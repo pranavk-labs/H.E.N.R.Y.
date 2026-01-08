@@ -134,19 +134,19 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
 git clone https://github.com/pranavk-labs/H.E.N.R.Y..git
 cd H.E.N.R.Y.
 
-# Create virtual environment
-python3 -m venv venv
-source venv/bin/activate
+# Install Poetry (if not already installed)
+# macOS/Linux: curl -sSL https://install.python-poetry.org | python3 -
+# Windows: (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
 
-# Install dependencies
-pip install -r requirements.txt
+# Install dependencies (Poetry creates virtual environment automatically)
+poetry install
 
 # Configure environment
 cp .env.example .env
 # Edit .env with your configuration
 
 # Initialize database
-python scripts/init_db.py
+poetry run python scripts/init_db.py
 
 # Start services
 sudo systemctl enable henry.service
@@ -166,6 +166,7 @@ For detailed setup instructions, see:
 
 -   [Phase 1: Foundation](docs/phase-1-foundation.md) - Complete setup guide
 -   [Local Development Guide](docs/local-development.md) - Develop locally, deploy to Pi
+-   [Poetry Setup Guide](docs/poetry-setup.md) - Package management with Poetry
 
 ## Project Structure
 

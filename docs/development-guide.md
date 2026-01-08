@@ -17,8 +17,8 @@ Develop and test on your local machine, then deploy to Raspberry Pi for hardware
    ```
 
 2. **Set Up Local Development Environment**
-   - Create virtual environment
-   - Install dependencies
+   - Install Poetry (if not already installed)
+   - Install dependencies with Poetry (creates virtual environment automatically)
    - Configure environment variables for local development
    - Set up local services (Neo4j, Ollama) or connect to home server
    - Run development server locally
@@ -33,7 +33,8 @@ Develop and test on your local machine, then deploy to Raspberry Pi for hardware
 
 **Recommended Setup:**
 - **Local Machine**: Your development computer (Linux, macOS, or Windows)
-- Python 3.9+ virtual environment
+- Python 3.9+
+- Poetry for package management
 - Code editor/IDE with Python support
 - Git for version control
 - Docker (optional, for local Neo4j/Ollama)
@@ -231,16 +232,16 @@ uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
 # On Pi
 cd ~/H.E.N.R.Y.
 git pull origin main
-source venv/bin/activate
-pip install -r requirements.txt
+poetry install  # Updates dependencies if pyproject.toml changed
 sudo systemctl restart henry.service
 ```
 
 **Option 2: Rsync Deployment**
 ```bash
 # From local machine
-rsync -avz --exclude 'venv' --exclude '__pycache__' \
+rsync -avz --exclude '.venv' --exclude '__pycache__' \
     --exclude '.git' \
+    --exclude 'poetry.lock' \
     ./ pi@raspberry-pi-ip:~/H.E.N.R.Y./
 ```
 
@@ -278,8 +279,7 @@ rsync -avz --delete \
 # Run deployment commands on Pi
 ssh ${PI_USER}@${PI_HOST} << 'ENDSSH'
 cd ~/H.E.N.R.Y.
-source venv/bin/activate
-pip install -r requirements.txt
+poetry install  # Updates dependencies if pyproject.toml changed
 sudo systemctl restart henry.service
 ENDSSH
 
@@ -645,6 +645,7 @@ import pdb; pdb.set_trace()  # Breakpoint
 ### Documentation
 - [Phase Documentation](.) - Development phase guides
 - [Local Development Guide](local-development.md) - Complete local development setup
+- [Poetry Setup Guide](poetry-setup.md) - Poetry package management guide
 - [Architecture](architecture.md) - System architecture
 - [API Documentation](api-docs.md) - API reference (if created)
 

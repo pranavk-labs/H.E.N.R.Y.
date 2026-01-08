@@ -115,13 +115,15 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 
 1. Create directory structure (backend, mobile, docs, scripts, config, tests)
 2. Initialize Git repository
-3. Set up Python virtual environment on local machine
-4. Create requirements.txt with initial dependencies
-5. Set up environment configuration files:
+3. Install Poetry (if not already installed)
+4. Initialize Poetry project: `poetry init` (or create pyproject.toml manually)
+5. Add dependencies to pyproject.toml
+6. Install dependencies: `poetry install` (creates virtual environment automatically)
+7. Set up environment configuration files:
     - `.env.example` - Template
     - `.env.local` - Local development (connect to home server or local services)
     - `.env.pi` - Raspberry Pi production
-6. Create deployment scripts (see Development Guide)
+8. Create deployment scripts (see Development Guide)
 
 ### Step 3: Backend API Foundation
 
@@ -198,7 +200,8 @@ Phase 1 is complete when:
 
 -   [ ] Raspberry Pi OS is installed, updated, and configured
 -   [ ] Audio input/output devices are working and tested
--   [ ] Python virtual environment is set up with all dependencies installed
+-   [ ] Poetry is installed and configured
+-   [ ] Dependencies are installed via Poetry (pyproject.toml)
 -   [ ] FastAPI backend is running and accessible on local network
 -   [ ] Tailscale VPN is installed, authenticated, and connected
 -   [ ] Connection to home server via Tailscale is verified
