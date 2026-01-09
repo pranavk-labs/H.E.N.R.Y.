@@ -134,13 +134,14 @@ Phase 3 implements the conversational interface and personality system that make
 
 ### 7. Visual and Audio Feedback
 
-**Visual Feedback (Native Python GUI):**
-- Full-screen Python GUI (e.g., PySide6 or Kivy) running on the Pi
+**Visual Feedback (Native Python GUI + Touchscreen):**
+- Full-screen Python GUI (e.g., PySide6 or Kivy) running on the Pi, on a touchscreen display
 - Renders H.E.N.R.Y.'s face and tool views based on `ScreenManager.state`
 - Indicators for listening/speaking states
 - Visualizations for ideas, tasks, and tools
 - Conversation history display as needed
 - Personality expression through animations and expressions
+- Touch interactions mapped to tool actions (e.g., tapping timer controls, selecting ideas), routed through tools/`ToolsService`
 
 **Audio Feedback:**
 - Earcons (short sounds) for key events

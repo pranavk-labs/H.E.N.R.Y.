@@ -100,6 +100,7 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 -   `GraphFallback` (NetworkX + SQLite cache)
 -   `ToolsRegistry` / `ToolsService` (tool lookup + invocation)
 -   Tools library (`TimerTool`, `IdeaTool`, future tools)
+-   `ScreenManager` (single source of truth for current UI state, used by the native Python GUI and future touchscreen interactions)
 
 ### Personality System
 
