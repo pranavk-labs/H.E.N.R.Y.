@@ -1,0 +1,14 @@
+.env.local
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+.env.pi
+.env
+data/
+*.db
+*.log
+*.log.*
+*.log.*.*
+*.log.*.*.*

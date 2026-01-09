@@ -18,10 +18,11 @@ Phase 3 implements the conversational interface and personality system that make
 
 ### 1. Always-On Voice Listening
 
-**Continuous Conversation:**
-- Always-listening microphone (with wake word or continuous processing)
-- Low-latency voice processing pipeline
-- Background audio processing without blocking
+**Wake Word Activation:**
+- Always-listening microphone for wake word detection
+- HENRY only processes audio when wake word is detected (e.g., "Hey HENRY")
+- Low-latency wake word detection pipeline
+- Background audio monitoring without full processing
 - Energy-efficient listening (optimized for Pi)
 - Noise filtering and echo cancellation
 
@@ -134,12 +135,13 @@ Phase 3 implements the conversational interface and personality system that make
 ## Execution Strategy
 
 ### Step 1: Voice Input Infrastructure
-1. Set up always-on audio capture
-2. Implement audio buffering and streaming
-3. Add noise reduction and filtering
-4. Create wake word detection (optional) or continuous processing
+1. Set up always-on audio capture for wake word detection
+2. Implement wake word detection (HENRY only processes when name is called)
+3. Implement audio buffering and streaming (activated after wake word)
+4. Add noise reduction and filtering
 5. Optimize for Pi hardware (CPU usage, memory)
-6. Test audio quality and latency
+6. Test wake word detection accuracy and latency
+7. Test audio quality and processing latency
 
 ### Step 2: Speech-to-Text Integration
 1. Choose and integrate STT engine (Whisper recommended)
@@ -251,7 +253,8 @@ Phase 3 implements the conversational interface and personality system that make
 
 Phase 3 is complete when:
 
-- [ ] Always-on voice listening is working
+- [ ] Wake word detection is working (HENRY only activates when name is called)
+- [ ] Always-on voice listening for wake word is working
 - [ ] Speech-to-text is functional with acceptable accuracy
 - [ ] Personality system is implemented and configurable
 - [ ] Natural language understanding works for core intents
@@ -267,7 +270,7 @@ Phase 3 is complete when:
 
 ## Questions to Answer
 
-1. **Wake Word**: Use wake word detection or continuous listening? (Continuous may be more natural but uses more resources)
+1. **Wake Word**: What wake word/phrase should trigger HENRY? (e.g., "Hey HENRY", "HENRY", etc.) - **Required**: HENRY only processes audio when wake word is detected
 2. **STT Engine**: Whisper (offline, accurate) vs cloud services (better accuracy, requires internet)?
 3. **Model Size**: Full Whisper model or quantized/smaller version? (trade-off between accuracy and performance)
 4. **LLM Choice**: Ollama on home server (recommended) or Langchain + Cloud?

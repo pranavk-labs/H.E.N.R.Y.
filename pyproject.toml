@@ -1,0 +1,52 @@
+[tool.poetry]
+name = "henry"
+version = "0.1.0"
+description = "H.E.N.R.Y. - A personalized conversational desk assistant"
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+packages = [{include = "backend"}]
+
+[tool.poetry.dependencies]
+python = ">=3.9,<3.12"
+fastapi = "^0.104.1"
+uvicorn = {extras = ["standard"], version = "^0.24.0"}
+python-dotenv = "^1.0.0"
+pydantic = "^2.5.0"
+pydantic-settings = "^2.1.0"
+neo4j = "^5.14.0"
+httpx = "^0.25.0"
+networkx = "^3.2.1"
+sounddevice = "^0.4.6"
+numpy = "^1.26.0"
+openwakeword = "^0.6.0"
+pyaudio = "^0.2.14"
+pytest = "^7.4.3"
+pytest-asyncio = "^0.21.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^23.11.0"
+flake8 = "^6.1.0"
+mypy = "^1.7.0"
+pytest-cov = "^4.1.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.black]
+line-length = 100
+target-version = ['py39']
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+

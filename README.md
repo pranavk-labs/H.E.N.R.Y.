@@ -1,7 +1,7 @@
 # H.E.N.R.Y. (Acronym unknown so far)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.9--3.11-blue.svg)](https://www.python.org/)
 [![Raspberry Pi](https://img.shields.io/badge/Raspberry%20Pi-Compatible-red.svg)](https://www.raspberrypi.org/)
 
 A personalized, open-source conversational desk assistant running on Raspberry Pi. H.E.N.R.Y. is your always-on productivity companion that you interact with continuously via voice, featuring a graph-based knowledge system, productivity tools, and a personality all its own.
@@ -74,7 +74,7 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
 
 ### Backend (Raspberry Pi)
 
--   **Language**: Python 3.9+
+-   **Language**: Python 3.9, 3.10, or 3.11 (required for OpenWakeWord's tflite-runtime dependency)
 -   **Framework**: FastAPI
 -   **Graph Database**: NetworkX + SQLite (primary, on-Pi) or Neo4j (optional, external)
 -   **LLM**: Ollama with quantized models (Llama 3.2 3B Q4 or Mistral 7B Q4)
@@ -123,11 +123,13 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
 ### Prerequisites
 
 1. Raspberry Pi 4B or newer with Raspberry Pi OS installed
-2. Python 3.9+ installed
+2. Python 3.9, 3.10, or 3.11 installed (not 3.12+ due to `tflite-runtime` dependency for OpenWakeWord)
 3. Network connection (WiFi or Ethernet)
 4. Audio input/output devices configured
 
 ### Installation
+
+#### Local Development Setup
 
 ```bash
 # Clone the repository
@@ -141,14 +143,31 @@ cd H.E.N.R.Y.
 # Install dependencies (Poetry creates virtual environment automatically)
 poetry install
 
+# Configure environment for local development
+cp .env.example .env.local
+# Edit .env.local with your configuration (connect to home server or use local services)
+
+# Run development server
+poetry run python scripts/dev_server.py
+# Or: poetry run uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+#### Raspberry Pi Setup
+
+```bash
+# On Raspberry Pi, after deploying code:
+cd /home/pi/H.E.N.R.Y.
+
+# Install dependencies
+poetry install --no-dev
+
 # Configure environment
-cp .env.example .env
-# Edit .env with your configuration
+cp .env.example .env.pi
+# Edit .env.pi with your configuration
 
-# Initialize database
-poetry run python scripts/init_db.py
-
-# Start services
+# Set up systemd service
+sudo cp config/henry.service /etc/systemd/system/
+sudo systemctl daemon-reload
 sudo systemctl enable henry.service
 sudo systemctl start henry.service
 ```
