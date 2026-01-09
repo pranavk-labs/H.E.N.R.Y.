@@ -1,0 +1,540 @@
+"""Knowledge service using Neo4jClient directly with local fallback.
+
+This provides a higher-level API for working with user preferences,
+ideas, and concepts. Uses Neo4jClient directly (no adapter layer),
+with automatic fallback to local GraphFallback for offline operation.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import uuid
+from dataclasses import dataclass, asdict
+from datetime import datetime, timezone
+from typing import Any, Dict, List, Optional
+
+from backend.services.graph_fallback import GraphFallback
+from backend.services.neo4j_client import Neo4jClient
+
+logger = logging.getLogger(__name__)
+
+
+def _utc_now_iso() -> str:
+    """Return current UTC time as ISO 8601 string."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+@dataclass
+class Idea:
+    """Simple representation of an idea node."""
+
+    id: str
+    text: str
+    tags: List[str]
+    created_at: str
+    updated_at: Optional[str] = None
+
+
+@dataclass
+class Preference:
+    """Simple representation of a user preference."""
+
+    id: str
+    user_id: str
+    key: str
+    value: Any
+    strength: float
+    created_at: str
+    updated_at: Optional[str] = None
+
+
+class KnowledgeService:
+    """High-level knowledge service using Neo4jClient directly with local fallback."""
+
+    _instance: Optional["KnowledgeService"] = None
+
+    def __init__(self, graph: Optional[GraphFallback] = None) -> None:
+        self._graph = graph or GraphFallback()
+        self._neo4j_client = Neo4jClient.get_instance()
+        self._use_neo4j = True  # Try Neo4j first
+
+    @classmethod
+    def get_instance(cls) -> "KnowledgeService":
+        """Get or create singleton instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
+        """Get or create event loop for async operations."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_closed():
+                raise RuntimeError("Event loop is closed")
+            return loop
+        except RuntimeError:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            return loop
+
+    def _ensure_neo4j_connected(self) -> bool:
+        """Ensure Neo4j is connected, return True if successful."""
+        if not self._neo4j_client.is_connected:
+            try:
+                loop = self._get_loop()
+                loop.run_until_complete(self._neo4j_client.connect())
+                return True
+            except Exception as e:
+                logger.debug(f"Neo4j not available: {e}")
+                return False
+        return True
+
+    def _write_node(self, node_id: str, label: str, **properties: Any) -> None:
+        """Write node to Neo4j if available, otherwise to fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _create():
+                    async with self._neo4j_client.driver.session() as session:
+                        props_str = ", ".join(f"{k}: ${k}" for k in properties.keys())
+                        query = f"CREATE (n:{label} {{id: $id, {props_str}}}) RETURN n"
+                        params = {"id": node_id, **properties}
+                        result = await session.run(query, params)
+                        await result.consume()
+
+                loop = self._get_loop()
+                loop.run_until_complete(_create())
+                logger.debug(f"Wrote node {node_id} to Neo4j")
+                # Also write to fallback for redundancy
+                self._graph.add_node(node_id, label=label, **properties)
+                return
+            except Exception as e:
+                logger.info(f"Neo4j write failed: {e}, falling back to local graph")
+                self._use_neo4j = False
+
+        # Fallback to local graph
+        self._graph.add_node(node_id, label=label, **properties)
+
+    def _read_node(self, node_id: str) -> Optional[Dict[str, Any]]:
+        """Read node from Neo4j if available, otherwise from fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _get():
+                    async with self._neo4j_client.driver.session() as session:
+                        result = await session.run("MATCH (n {id: $id}) RETURN n", {"id": node_id})
+                        record = await result.single()
+                        if record:
+                            return dict(record["n"])
+                        return None
+
+                loop = self._get_loop()
+                node = loop.run_until_complete(_get())
+                if node is not None:
+                    return node
+            except Exception as e:
+                logger.debug(f"Neo4j read failed: {e}, trying fallback")
+
+        return self._graph.get_node(node_id)
+
+    def _update_node(self, node_id: str, **properties: Any) -> bool:
+        """Update node in Neo4j if available, otherwise in fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _update():
+                    async with self._neo4j_client.driver.session() as session:
+                        set_clauses = ", ".join(f"n.{k} = ${k}" for k in properties.keys())
+                        query = f"MATCH (n {{id: $id}}) SET {set_clauses} RETURN n"
+                        params = {"id": node_id, **properties}
+                        result = await session.run(query, params)
+                        await result.consume()
+
+                loop = self._get_loop()
+                loop.run_until_complete(_update())
+                # Also update fallback
+                data = self._graph.get_node(node_id) or {}
+                data.update(properties)
+                self._graph.graph.nodes[node_id].update(data)
+                self._graph.save()
+                return True
+            except Exception as e:
+                logger.debug(f"Neo4j update failed: {e}")
+                self._use_neo4j = False
+
+        # Fallback to local graph
+        data = self._graph.get_node(node_id)
+        if not data:
+            return False
+        data.update(properties)
+        self._graph.graph.nodes[node_id].update(data)
+        self._graph.save()
+        return True
+
+    def _delete_node(self, node_id: str) -> bool:
+        """Delete node from Neo4j if available, otherwise from fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _delete():
+                    async with self._neo4j_client.driver.session() as session:
+                        result = await session.run(
+                            "MATCH (n {id: $id}) DETACH DELETE n", {"id": node_id}
+                        )
+                        await result.consume()
+
+                loop = self._get_loop()
+                loop.run_until_complete(_delete())
+                # Also delete from fallback
+                if node_id in self._graph.graph:
+                    self._graph.graph.remove_node(node_id)
+                    self._graph.save()
+                return True
+            except Exception as e:
+                logger.debug(f"Neo4j delete failed: {e}")
+                self._use_neo4j = False
+
+        # Fallback to local graph
+        if node_id not in self._graph.graph:
+            return False
+        self._graph.graph.remove_node(node_id)
+        self._graph.save()
+        return True
+
+    def _find_nodes(
+        self, label: Optional[str] = None, **properties: Any
+    ) -> List[str]:
+        """Find nodes in Neo4j if available, otherwise in fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _find():
+                    async with self._neo4j_client.driver.session() as session:
+                        where_clauses = []
+                        params: Dict[str, Any] = {}
+
+                        if label:
+                            where_clauses.append(f"n:{label}")
+
+                        for key, value in properties.items():
+                            where_clauses.append(f"n.{key} = ${key}")
+                            params[key] = value
+
+                        where_str = " AND ".join(where_clauses) if where_clauses else "1=1"
+                        query = f"MATCH (n) WHERE {where_str} RETURN n.id as id"
+                        result = await session.run(query, params)
+                        return [record["id"] async for record in result]
+
+                loop = self._get_loop()
+                node_ids = loop.run_until_complete(_find())
+                if node_ids:
+                    return node_ids
+            except Exception as e:
+                logger.debug(f"Neo4j find failed: {e}")
+                self._use_neo4j = False
+
+        return self._graph.find_nodes(label=label, **properties)
+
+    def _list_nodes_by_label(self, label: str) -> List[Dict[str, Any]]:
+        """List nodes by label from Neo4j if available, otherwise from fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _list():
+                    async with self._neo4j_client.driver.session() as session:
+                        query = f"MATCH (n:{label}) RETURN n"
+                        result = await session.run(query)
+                        nodes = []
+                        async for record in result:
+                            node = dict(record["n"])
+                            nodes.append(node)
+                        return nodes
+
+                loop = self._get_loop()
+                nodes = loop.run_until_complete(_list())
+                if nodes:
+                    return nodes
+            except Exception as e:
+                logger.debug(f"Neo4j list failed: {e}")
+                self._use_neo4j = False
+
+        # Fallback: convert from graph format
+        nodes = []
+        for node_id, data in self._graph.graph.nodes(data=True):
+            if data.get("label") == label:
+                node_data = dict(data)
+                node_data["id"] = node_id
+                nodes.append(node_data)
+        return nodes
+
+    def _create_relationship(
+        self,
+        source_id: str,
+        target_id: str,
+        relationship_type: str,
+        **properties: Any,
+    ) -> None:
+        """Create relationship in Neo4j if available, otherwise in fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _create_rel():
+                    async with self._neo4j_client.driver.session() as session:
+                        props_str = ""
+                        if properties:
+                            props_str = " {" + ", ".join(f"{k}: ${k}" for k in properties.keys()) + "}"
+                        query = (
+                            f"MATCH (a {{id: $source_id}}), (b {{id: $target_id}}) "
+                            f"CREATE (a)-[r:{relationship_type}{props_str}]->(b) RETURN r"
+                        )
+                        params = {"source_id": source_id, "target_id": target_id, **properties}
+                        result = await session.run(query, params)
+                        await result.consume()
+
+                loop = self._get_loop()
+                loop.run_until_complete(_create_rel())
+                # Also create in fallback
+                self._graph.add_edge(
+                    source_id, target_id, relationship=relationship_type, **properties
+                )
+                return
+            except Exception as e:
+                logger.debug(f"Neo4j relationship creation failed: {e}")
+                self._use_neo4j = False
+
+        # Fallback to local graph
+        self._graph.add_edge(
+            source_id, target_id, relationship=relationship_type, **properties
+        )
+
+    def _get_neighbors(self, node_id: str) -> List[str]:
+        """Get neighbors from Neo4j if available, otherwise from fallback."""
+        if self._use_neo4j and self._ensure_neo4j_connected():
+            try:
+                async def _get_neighbors():
+                    async with self._neo4j_client.driver.session() as session:
+                        result = await session.run(
+                            "MATCH (n {id: $id})-[r]->(m) RETURN m.id as id",
+                            {"id": node_id},
+                        )
+                        return [record["id"] async for record in result]
+
+                loop = self._get_loop()
+                neighbors = loop.run_until_complete(_get_neighbors())
+                if neighbors is not None:
+                    return neighbors
+            except Exception as e:
+                logger.debug(f"Neo4j neighbors failed: {e}")
+                self._use_neo4j = False
+
+        return self._graph.get_neighbors(node_id)
+
+    # ------------------------------------------------------------------
+    # Idea operations
+    # ------------------------------------------------------------------
+    def create_idea(self, text: str, tags: Optional[List[str]] = None) -> Idea:
+        """Create and store a new idea node in the graph."""
+        idea_id = str(uuid.uuid4())
+        created_at = _utc_now_iso()
+        idea = Idea(
+            id=idea_id,
+            text=text,
+            tags=tags or [],
+            created_at=created_at,
+        )
+
+        self._write_node(
+            idea_id,
+            label="Idea",
+            text=text,
+            tags=list(idea.tags),
+            created_at=idea.created_at,
+            updated_at=idea.updated_at,
+        )
+        logger.info("Created idea %s", idea_id)
+        return idea
+
+    def get_idea(self, idea_id: str) -> Optional[Idea]:
+        """Retrieve an idea by ID."""
+        data = self._read_node(idea_id)
+        if not data or data.get("label") != "Idea":
+            return None
+
+        return Idea(
+            id=idea_id,
+            text=data.get("text", ""),
+            tags=list(data.get("tags", []) or []),
+            created_at=data.get("created_at", _utc_now_iso()),
+            updated_at=data.get("updated_at"),
+        )
+
+    def list_ideas(self) -> List[Idea]:
+        """List all ideas."""
+        # Try Neo4j first
+        nodes = self._list_nodes_by_label("Idea")
+        if nodes:
+            ideas = []
+            for node_data in nodes:
+                idea_id = node_data.get("id", "")
+                ideas.append(
+                    Idea(
+                        id=idea_id,
+                        text=node_data.get("text", ""),
+                        tags=list(node_data.get("tags", []) or []),
+                        created_at=node_data.get("created_at", _utc_now_iso()),
+                        updated_at=node_data.get("updated_at"),
+                    )
+                )
+            return ideas
+
+        # Fallback to local graph
+        ideas: List[Idea] = []
+        for node_id, data in self._graph.graph.nodes(data=True):
+            if data.get("label") != "Idea":
+                continue
+            ideas.append(
+                Idea(
+                    id=node_id,
+                    text=data.get("text", ""),
+                    tags=list(data.get("tags", []) or []),
+                    created_at=data.get("created_at", _utc_now_iso()),
+                    updated_at=data.get("updated_at"),
+                )
+            )
+        return ideas
+
+    def update_idea(
+        self, idea_id: str, text: Optional[str] = None, tags: Optional[List[str]] = None
+    ) -> Optional[Idea]:
+        """Update an existing idea."""
+        data = self._read_node(idea_id)
+        if not data or data.get("label") != "Idea":
+            return None
+
+        updates: Dict[str, Any] = {}
+        if text is not None:
+            updates["text"] = text
+        if tags is not None:
+            updates["tags"] = list(tags)
+        updates["updated_at"] = _utc_now_iso()
+
+        self._update_node(idea_id, **updates)
+        return self.get_idea(idea_id)
+
+    def delete_idea(self, idea_id: str) -> bool:
+        """Delete an idea node."""
+        return self._delete_node(idea_id)
+
+    def search_ideas(self, query: str) -> List[Idea]:
+        """Naive full-text search over idea text and tags."""
+        query_lower = query.lower().strip()
+        if not query_lower:
+            return []
+
+        matches: List[Idea] = []
+        for idea in self.list_ideas():
+            if query_lower in idea.text.lower() or any(
+                query_lower in tag.lower() for tag in idea.tags
+            ):
+                matches.append(idea)
+        return matches
+
+    # ------------------------------------------------------------------
+    # Preference operations (lightweight; can be expanded later)
+    # ------------------------------------------------------------------
+    def set_preference(
+        self,
+        user_id: str,
+        key: str,
+        value: Any,
+        strength: float = 1.0,
+    ) -> Preference:
+        """Create or update a user preference node."""
+        # Look for existing preference node
+        existing_ids = self._find_nodes(
+            label="Preference", user_id=user_id, key=key
+        )
+
+        pref_id: str
+        created_at: str
+        if existing_ids:
+            pref_id = existing_ids[0]
+            node = self._read_node(pref_id) or {}
+            created_at = node.get("created_at", _utc_now_iso())
+        else:
+            pref_id = str(uuid.uuid4())
+            created_at = _utc_now_iso()
+
+        updated_at = _utc_now_iso()
+        pref = Preference(
+            id=pref_id,
+            user_id=user_id,
+            key=key,
+            value=value,
+            strength=float(strength),
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+        self._write_node(
+            pref_id,
+            label="Preference",
+            user_id=user_id,
+            key=key,
+            value=value,
+            strength=pref.strength,
+            created_at=created_at,
+            updated_at=updated_at,
+        )
+
+        # Also create relationship from user to preference node
+        user_node_id = f"user:{user_id}"
+        if self._read_node(user_node_id) is None:
+            self._write_node(user_node_id, label="User", user_id=user_id)
+
+        self._create_relationship(
+            user_node_id,
+            pref_id,
+            relationship_type="HAS_PREFERENCE",
+        )
+
+        logger.info("Set preference %s for user %s", key, user_id)
+        return pref
+
+    def get_preferences(self, user_id: str) -> List[Preference]:
+        """Get all preferences for a given user."""
+        user_node_id = f"user:{user_id}"
+        if self._read_node(user_node_id) is None:
+            return []
+
+        prefs: List[Preference] = []
+        for neighbor_id in self._get_neighbors(user_node_id):
+            node = self._read_node(neighbor_id) or {}
+            if node.get("label") != "Preference":
+                continue
+            prefs.append(
+                Preference(
+                    id=neighbor_id,
+                    user_id=node.get("user_id", user_id),
+                    key=node.get("key", ""),
+                    value=node.get("value"),
+                    strength=float(node.get("strength", 1.0)),
+                    created_at=node.get("created_at", _utc_now_iso()),
+                    updated_at=node.get("updated_at"),
+                )
+            )
+        return prefs
+
+    # ------------------------------------------------------------------
+    # Utility
+    # ------------------------------------------------------------------
+    @staticmethod
+    def idea_to_dict(idea: Idea) -> Dict[str, Any]:
+        """Convert Idea dataclass to plain dict (for API responses)."""
+        return asdict(idea)
+
+    @staticmethod
+    def preference_to_dict(pref: Preference) -> Dict[str, Any]:
+        """Convert Preference dataclass to plain dict."""
+        return asdict(pref)
+
+
+__all__ = [
+    "KnowledgeService",
+    "Idea",
+    "Preference",
+]

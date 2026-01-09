@@ -2,7 +2,7 @@
 
 ## Objectives and Goals
 
-Phase 4 focuses on optimizing and managing services running on the Raspberry Pi for always-on operation. This phase ensures H.E.N.R.Y. runs reliably, efficiently, and can handle continuous operation without manual intervention.
+Phase 4 focuses on optimizing and managing services running on the Raspberry Pi for always-on operation. This phase ensures H.E.N.R.Y. runs reliably, efficiently, and can handle continuous operation without manual intervention, **with the native Python GUI (running on the Pi's touchscreen) as the primary face and control surface**.
 
 ### Key Objectives
 

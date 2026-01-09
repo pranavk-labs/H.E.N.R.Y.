@@ -8,37 +8,39 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Raspberry Pi (Voice Interface Hub)              │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │   Backend    │  │  Voice/STT   │  │  API Gateway│     │
-│  │   (FastAPI)  │  │   Service    │  │             │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Robot       │  │  Integrations│  │  Automation  │     │
-│  │  Control     │  │  (n8n, etc)  │  │  Engine      │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
-│                                                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐     │
-│  │  Personality │  │  Knowledge   │  │  Background  │     │
-│  │  System      │  │  Client      │  │  Tasks       │     │
-│  └──────────────┘  └──────────────┘  └──────────────┘     │
+│              Raspberry Pi (Assistant Hub)                   │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────────────────┐           │
+│  │   Backend    │  │   Native UI (Python GUI) │           │
+│  │   (FastAPI)  │  │   Face + Tools Display   │           │
+│  └──────────────┘  └──────────────────────────┘           │
+│        │                        ▲                         │
+│        │ ToolsService /         │ ScreenManager           │
+│        ▼                        │                         │
+│  ┌──────────────┐        ┌──────────────┐                  │
+│  │  Tools       │        │ Screen       │                  │
+│  │  (Timer,     │        │ Manager      │                  │
+│  │   Ideas, …)  │        └──────────────┘                  │
+│  └──────────────┘                                          │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Voice/STT   │  │  Knowledge   │  │  Audio I/O   │      │
+│  │  Pipeline    │  │  Service     │  │  Service     │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
-                        ↕                    ↕ (Tailscale VPN)
-        ┌──────────────────────────┐  ┌──────────────────────┐
-        │   Mobile Companion App   │  │   Home Server         │
-        │   (Flutter/Swift)        │  │   (Public IP + TS)   │
-        └──────────────────────────┘  │                      │
-                        ↕              │  ┌──────────────┐   │
-        ┌──────────────────────────┐  │  │  LLM Service │   │
-        │   External Services       │  │  │  (Ollama)   │   │
-        │   (Beeper, n8n, etc)      │  │  └──────────────┘   │
-        └──────────────────────────┘  │  ┌──────────────┐   │
-                                       │  │  Graph DB    │   │
-                                       │  │  (Neo4j)     │   │
-                                       │  └──────────────┘   │
-                                       └──────────────────────┘
+                        ↕  (Tailscale VPN)
+        ┌──────────────────────────┐
+        │       Home Server        │
+        │                          │
+        │  ┌──────────────┐        │
+        │  │  LLM Service │        │
+        │  │  (Ollama)    │        │
+        │  └──────────────┘        │
+        │  ┌──────────────┐        │
+        │  │  Graph DB    │        │
+        │  │  (Neo4j)     │        │
+        │  └──────────────┘        │
+        └──────────────────────────┘
 ```
 
 ## Component Architecture
@@ -81,24 +83,24 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 -   Conversation state manager
 -   Audio queue manager
 
-### Knowledge Service
+### Knowledge & Tools Layer
 
 **Responsibilities:**
 
--   Graph database operations (NetworkX + SQLite)
+-   Graph database operations (Neo4j via `Neo4jClient` with local `GraphFallback` fallback)
 -   Knowledge graph queries
--   Concept and relationship management
--   Context tracking
--   Preference storage
+-   Idea and preference management
+-   Context and relationship management
+-   Tool orchestration
 
 **Key Components:**
 
--   Graph storage service (NetworkX in-memory, SQLite persistence)
--   Knowledge graph queries
--   Entity management
--   Relationship management
--   Context service
--   Optional: External Neo4j connector (if using external DB)
+-   `KnowledgeService` (ideas, preferences, graph ops)
+-   `Neo4jClient` (remote graph DB on home server)
+-   `GraphFallback` (NetworkX + SQLite cache)
+-   `ToolsRegistry` / `ToolsService` (tool lookup + invocation)
+-   Tools library (`TimerTool`, `IdeaTool`, future tools)
+-   `ScreenManager` (single source of truth for current UI state, used by the native Python GUI and future touchscreen interactions)
 
 ### Personality System
 
@@ -119,7 +121,7 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 -   Learning system
 -   LLM integration (Ollama client)
 
-### Integration Service
+### Integration Service (Future Phases)
 
 **Responsibilities:**
 
@@ -137,7 +139,7 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 -   Service discovery
 -   Authentication managers
 
-### Robot Control Service
+### Robot Control Service (Future Phases)
 
 **Responsibilities:**
 
