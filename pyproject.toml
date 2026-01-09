@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "H.E.N.R.Y. - A personalized conversational desk assistant"
 authors = ["Your Name <you@example.com>"]
 readme = "README.md"
-packages = [{include = "backend"}]
+packages = [{include = "backend"}, {include = "tools"}]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"

@@ -58,6 +58,11 @@ from backend.api.routes import graph as graph_router
 
 app.include_router(graph_router.router)
 
+# Include productivity (tools) router
+from backend.api.routes import productivity as productivity_router
+
+app.include_router(productivity_router.router)
+
 
 @app.get("/")
 async def root():
