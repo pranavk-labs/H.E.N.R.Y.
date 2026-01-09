@@ -20,9 +20,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from backend.services import KnowledgeService, ScreenManager
-from backend.services.pomodoro_service import PomodoroService
-from backend.services.idea_service import IdeaService
+from backend.services import KnowledgeService, ScreenManager, ToolsService
 from tools import ToolsRegistry
 
 
@@ -114,13 +112,14 @@ def test_pomodoro_tool():
     assert result["session"]["completed_at"] is not None
     print("✓ Session completed")
 
-    # Test service directly
-    print_subsection("Testing PomodoroService directly")
-    service = PomodoroService.get_instance()
-    sessions = service.list_sessions()
+    # Test tools service directly
+    print_subsection("Testing ToolsService directly")
+    tools_service = ToolsService.get_instance()
+    timer_tool = tools_service.get_tool("timer")
+    sessions = timer_tool.list_sessions()
     print(f"Total sessions: {len(sessions)}")
     assert len(sessions) >= 1
-    print("✓ Service working correctly")
+    print("✓ Tools service working correctly")
 
 
 def test_idea_tool():
@@ -214,13 +213,13 @@ def test_idea_tool():
     except KeyError:
         print("✓ Idea deleted successfully")
 
-    # Test service directly
-    print_subsection("Testing IdeaService directly")
-    service = IdeaService.get_instance()
-    all_ideas = service.list_ideas()
-    print(f"Total ideas in service: {len(all_ideas)}")
+    # Test knowledge service directly
+    print_subsection("Testing KnowledgeService directly")
+    knowledge = KnowledgeService.get_instance()
+    all_ideas = knowledge.list_ideas()
+    print(f"Total ideas in knowledge service: {len(all_ideas)}")
     assert len(all_ideas) >= 1
-    print("✓ Service working correctly")
+    print("✓ Knowledge service working correctly")
 
 
 def test_knowledge_service():
