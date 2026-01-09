@@ -11,8 +11,7 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 -   Configure Tailscale VPN connection to home server
 -   Set up connection to remote Graph Database (Neo4j on home server)
 -   Set up connection to remote LLM service (Ollama on home server)
--   Implement basic authentication and user management
--   Set up voice/audio input/output infrastructure (essential for primary interaction method)
+-   Set up voice/audio input/output infrastructure with wake word detection (essential for primary interaction method)
 -   Configure development tools and workflows
 -   Establish project structure and code organization
 
@@ -64,24 +63,16 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 -   Connection health monitoring
 -   Retry logic and error handling
 
-### 5. Authentication System
-
--   User model and schema
--   Password hashing and verification
--   JWT token generation and validation
--   Basic authentication endpoints (login, token refresh)
--   User management endpoints
--   Security best practices implementation
-
-### 6. Audio/Voice Infrastructure
+### 5. Audio/Voice Infrastructure
 
 -   Audio device detection and configuration
 -   ALSA/PulseAudio setup
 -   Audio input/output testing utilities
+-   **Wake word detection setup** (HENRY only processes audio when name is called)
 -   Audio service foundation (to be expanded in Phase 3)
 -   Device selection and switching capabilities
 
-### 7. Development Environment
+### 6. Development Environment
 
 **Local Development Setup:**
 
@@ -142,24 +133,16 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 5. Test schema and queries
 6. Document schema structure
 
-### Step 6: Authentication
-
-1. Design user data model
-2. Implement password hashing service
-3. Create JWT token service
-4. Implement authentication endpoints
-5. Create user management endpoints
-6. Add authentication middleware/dependencies
-
-### Step 7: Audio Infrastructure
+### Step 6: Audio Infrastructure
 
 1. Configure ALSA/PulseAudio
 2. Create audio device detection utilities
 3. Implement basic audio service structure
-4. Create audio testing scripts
-5. Document audio configuration
+4. **Set up wake word detection** (HENRY only processes when name is called)
+5. Create audio testing scripts
+6. Document audio configuration
 
-### Step 8: Service Management (Pi Only)
+### Step 7: Service Management (Pi Only)
 
 1. Create systemd service file
 2. Configure service to run on boot
@@ -174,16 +157,16 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 ### Unit Tests
 
 -   Configuration loading and validation
--   Authentication service functions (password hashing, token generation)
 -   Database connection and query execution
 -   Audio device detection
+-   Wake word detection accuracy
 
 ### Integration Tests
 
 -   API health check endpoint
 -   Database connectivity and schema initialization
--   Authentication flow (login, token validation)
 -   Audio input/output functionality
+-   Wake word detection and activation flow
 -   Service startup and shutdown
 
 ### Manual Testing
@@ -208,9 +191,8 @@ Phase 1 is complete when:
 -   [ ] Neo4j connection to home server is working
 -   [ ] Ollama connection to home server is working
 -   [ ] Database schema is initialized on home server Neo4j
--   [ ] Basic authentication endpoints are functional (login, token validation)
--   [ ] User management endpoints are working
 -   [ ] Health check endpoint returns successful response
+-   [ ] Wake word detection is implemented and working (HENRY only activates when name is called)
 -   [ ] Connection health monitoring is implemented
 -   [ ] Local fallback cache is implemented
 -   [ ] Project structure follows established conventions
@@ -226,15 +208,16 @@ Phase 1 is complete when:
 3. **Ollama Configuration**: What port is Ollama running on home server? (default: 11434)
 4. **Network Reliability**: How reliable is Tailscale connection? (affects fallback strategy)
 5. **Audio Hardware**: What specific microphone/speaker setup will be used? (affects configuration approach)
-6. **Network Setup**: Static IP or DHCP? (Static recommended for home server)
-7. **Development Workflow**:
+6. **Wake Word**: What wake word/phrase should trigger HENRY? (e.g., "Hey HENRY", "HENRY", etc.)
+7. **Network Setup**: Static IP or DHCP? (Static recommended for home server)
+8. **Development Workflow**:
     - **Recommended**: Develop locally, deploy to Pi
     - Local development with connection to home server services
     - Periodic testing on Pi for hardware-specific features
     - See [Development Guide](development-guide.md) for local setup
-8. **Service Management**: Any specific logging requirements or monitoring needs?
-9. **Security**: What level of security hardening is needed? (firewall, fail2ban, etc.)
-10. **Backup Strategy**: How should database and configuration be backed up?
+9. **Service Management**: Any specific logging requirements or monitoring needs?
+10. **Security**: What level of security hardening is needed? (firewall, fail2ban, etc.) - Note: Authentication is not required for single-user local system
+11. **Backup Strategy**: How should database and configuration be backed up?
 
 ## Next Steps
 

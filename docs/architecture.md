@@ -49,29 +49,32 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 
 -   HTTP API endpoints
 -   Request routing and validation
--   Authentication and authorization
 -   Service orchestration
 -   Error handling
 
 **Key Components:**
 
 -   API routes (REST endpoints)
--   Middleware (CORS, auth, logging)
+-   Middleware (CORS, logging)
 -   Service layer integration
 -   Request/response models
+
+**Note**: Authentication is not required for single-user local system. Can be added later if multi-user or remote access is needed.
 
 ### Voice Service
 
 **Responsibilities:**
 
--   Always-on audio capture
--   Speech-to-text conversion
+-   Always-on audio capture for wake word detection
+-   Wake word detection (HENRY only processes when name is called)
+-   Speech-to-text conversion (activated after wake word)
 -   Text-to-speech synthesis
 -   Audio processing pipeline
 -   Conversation management
 
 **Key Components:**
 
+-   Wake word detection service
 -   Audio capture service
 -   STT engine integration
 -   TTS engine integration
@@ -157,10 +160,12 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 ### Voice Interaction Flow
 
 ```
-User Voice → Audio Capture → STT (Whisper) → Intent Recognition →
+User Voice → Audio Capture → Wake Word Detection → STT (Whisper) → Intent Recognition →
 Knowledge Query → LLM Processing (Ollama) → Personality Injection →
 Response Generation → TTS → Audio Output → User
 ```
+
+**Note**: HENRY only processes audio when wake word is detected (e.g., "Hey HENRY")
 
 ### Knowledge Graph Flow
 
@@ -328,9 +333,9 @@ Event Bus → Relevant Service → Action/Response
 
 ### Authentication
 
--   JWT tokens for API access
--   Password hashing (bcrypt)
--   Token expiration and refresh
+-   **Not required for single-user local system**
+-   Can be added later if multi-user or remote access is needed
+-   Optional: Simple API key for mobile app access (if needed)
 
 ### Network Security
 
