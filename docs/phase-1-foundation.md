@@ -181,25 +181,25 @@ Phase 1 establishes the foundational infrastructure for H.E.N.R.Y., setting up t
 
 Phase 1 is complete when:
 
--   [ ] Raspberry Pi OS is installed, updated, and configured
--   [ ] Audio input/output devices are working and tested
--   [ ] Poetry is installed and configured
--   [ ] Dependencies are installed via Poetry (pyproject.toml)
--   [ ] FastAPI backend is running and accessible on local network
--   [ ] Tailscale VPN is installed, authenticated, and connected
--   [ ] Connection to home server via Tailscale is verified
--   [ ] Neo4j connection to home server is working
--   [ ] Ollama connection to home server is working
--   [ ] Database schema is initialized on home server Neo4j
--   [ ] Health check endpoint returns successful response
--   [ ] Wake word detection is implemented and working (HENRY only activates when name is called)
--   [ ] Connection health monitoring is implemented
--   [ ] Local fallback cache is implemented
--   [ ] Project structure follows established conventions
--   [ ] Development environment is fully configured
--   [ ] systemd service is configured and tested
--   [ ] All tests pass
--   [ ] Documentation is updated
+-   [x] Raspberry Pi OS is installed, updated, and configured
+-   [x] Audio input/output devices are working and tested
+-   [x] Poetry is installed and configured
+-   [x] Dependencies are installed via Poetry (pyproject.toml)
+-   [x] FastAPI backend is running and accessible on local network
+-   [x] Tailscale VPN is installed, authenticated, and connected
+-   [x] Connection to home server via Tailscale is verified
+-   [x] Neo4j connection to home server is working
+-   [x] Ollama connection to home server is working
+-   [x] Database schema is initialized on home server Neo4j
+-   [x] Health check endpoint returns successful response
+-   [x] Wake word detection is implemented and working (HENRY only activates when name is called)
+-   [x] Connection health monitoring is implemented
+-   [x] Local fallback cache is implemented
+-   [x] Project structure follows established conventions
+-   [x] Development environment is fully configured
+-   [x] systemd service is configured and tested
+-   [x] All tests pass
+-   [x] Documentation is updated
 
 ## Questions to Answer
 
