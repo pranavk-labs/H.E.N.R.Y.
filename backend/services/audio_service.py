@@ -633,12 +633,12 @@ class AudioService:
                                         pred_scores[mdl] = scores[-1]
                         
                         if pred_scores:
-                            # Format predictions for readable output
+                            # Format predictions for readable output (debug only - too noisy for info)
                             pred_str = ", ".join([f"{name}: {score:.3f}" for name, score in pred_scores.items()])
-                            logger.info(f"[{time_since_start:.1f}s] Predictions: {pred_str} (threshold: {threshold:.2f})")
+                            logger.debug(f"[{time_since_start:.1f}s] Predictions: {pred_str} (threshold: {threshold:.2f})")
                         elif self._frame_count == 12:
                             # First second - show that we're waiting for predictions
-                            logger.info(f"[{time_since_start:.1f}s] Waiting for predictions... (models: {len(model_names)})")
+                            logger.debug(f"[{time_since_start:.1f}s] Waiting for predictions... (models: {len(model_names)})")
                         
                         # Save periodic audio sample every 10 seconds (approximately)
                         if save_audio and self._frame_count % 120 == 0 and len(audio_buffer) > 0:
