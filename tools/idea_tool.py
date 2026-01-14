@@ -25,7 +25,8 @@ class IdeaTool(BaseTool):
         if action == "create":
             text: str = kwargs.get("text") or ""
             tags: List[str] = kwargs.get("tags") or []
-            idea = self._knowledge.create_idea(text=text, tags=tags)
+            user_id: str | None = kwargs.get("user_id")
+            idea = self._knowledge.create_idea(text=text, tags=tags, user_id=user_id)
             self._screen.update_idea_view(active_idea_id=idea.id, draft_text=idea.text)
             self._screen.update_status("Idea captured")
             return {"idea": KnowledgeService.idea_to_dict(idea)}
