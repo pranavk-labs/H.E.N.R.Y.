@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from backend.services.conversation_service import ConversationService, ConversationTurn
 from backend.services.screen_manager import ScreenManager
+from backend.services.tools_service import ToolsService
 
 
 router = APIRouter(prefix="/conversation", tags=["conversation"])
@@ -58,8 +59,23 @@ async def history(user_id: str = "default") -> Any:
 @router.get("/ui/state", response_model=UIStateResponse)
 async def ui_state() -> Any:
     """Expose current screen/UI state for GUI client consumption."""
+    # Check for timer transitions before returning state
     screen = ScreenManager.get_instance()
     state = screen.state
+    
+    # If there's an active timer session, check for transitions
+    if state.timer_state and state.timer_state.get("session_id"):
+        try:
+            tools_service = ToolsService.get_instance()
+            timer_tool = tools_service.get_tool("timer")
+            session_id = state.timer_state.get("session_id")
+            if session_id:
+                # This will check and handle transitions
+                timer_tool.get_session(session_id)
+        except (KeyError, AttributeError):
+            # Timer tool or session not found, continue without checking
+            pass
+    
     return UIStateResponse(
         active_view=state.active_view,
         status_text=state.status_text,

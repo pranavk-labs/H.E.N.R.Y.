@@ -112,6 +112,17 @@ async def complete_pomodoro(session_id: str) -> Any:
         raise HTTPException(status_code=404, detail="Session not found")
 
 
+@router.post("/pomodoro/{session_id}/stop", response_model=PomodoroSessionResponse)
+async def stop_pomodoro(session_id: str) -> Any:
+    """Stop/end a Pomodoro session immediately."""
+    tools_service = ToolsService.get_instance()
+    try:
+        result = tools_service.execute_tool("timer", "stop", session_id=session_id)
+        return result["session"]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+
 @router.get("/pomodoro/{session_id}", response_model=PomodoroSessionResponse)
 async def get_pomodoro(session_id: str) -> Any:
     tools_service = ToolsService.get_instance()
