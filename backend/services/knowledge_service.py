@@ -406,6 +406,9 @@ class KnowledgeService:
         else:
             logger.info("Created idea %s (no user relationship)", idea_id)
 
+        # Link to similar ideas
+        self.link_similar_ideas(idea)
+
         return idea
 
     def get_idea(self, idea_id: str) -> Optional[Idea]:
@@ -473,7 +476,13 @@ class KnowledgeService:
         updates["updated_at"] = _utc_now_iso()
 
         self._update_node(idea_id, **updates)
-        return self.get_idea(idea_id)
+        idea = self.get_idea(idea_id)
+
+        # Re-link to similar ideas if text or tags changed
+        if idea and (text is not None or tags is not None):
+            self.link_similar_ideas(idea)
+
+        return idea
 
     def delete_idea(self, idea_id: str) -> bool:
         """Delete an idea node."""
@@ -492,6 +501,74 @@ class KnowledgeService:
             ):
                 matches.append(idea)
         return matches
+
+    def find_similar_ideas(self, idea: Idea, threshold: int = 2) -> List[Idea]:
+        """Find ideas similar to the given idea based on tags and keywords.
+
+        Args:
+            idea: The idea to find similar ideas for
+            threshold: Minimum number of matching keywords required
+
+        Returns:
+            List of similar ideas (excluding the input idea)
+        """
+        # Extract significant words from the idea text (4+ chars, lowercase)
+        import re
+        idea_words = set(
+            w.lower() for w in re.findall(r'\b\w{4,}\b', idea.text.lower())
+        )
+        idea_tags = set(t.lower() for t in (idea.tags or []))
+
+        similar: List[Idea] = []
+        for other in self.list_ideas():
+            if other.id == idea.id:
+                continue
+
+            # Check tag overlap
+            other_tags = set(t.lower() for t in (other.tags or []))
+            if idea_tags & other_tags:
+                similar.append(other)
+                continue
+
+            # Check keyword overlap
+            other_words = set(
+                w.lower() for w in re.findall(r'\b\w{4,}\b', other.text.lower())
+            )
+            overlap = len(idea_words & other_words)
+            if overlap >= threshold:
+                similar.append(other)
+
+        return similar
+
+    def link_similar_ideas(self, idea: Idea) -> int:
+        """Create RELATED_TO relationships between an idea and similar ideas.
+
+        Args:
+            idea: The idea to link
+
+        Returns:
+            Number of new connections created
+        """
+        similar = self.find_similar_ideas(idea)
+        connections_created = 0
+
+        for other in similar:
+            # Check if relationship already exists (avoid duplicates)
+            neighbors = self._get_neighbors(idea.id)
+            if other.id not in neighbors:
+                self._create_relationship(
+                    idea.id,
+                    other.id,
+                    relationship_type="RELATED_TO",
+                    created_at=_utc_now_iso(),
+                )
+                connections_created += 1
+                logger.debug("Linked idea %s to similar idea %s", idea.id[:8], other.id[:8])
+
+        if connections_created > 0:
+            logger.info("Created %d connections for idea %s", connections_created, idea.id[:8])
+
+        return connections_created
 
     # ------------------------------------------------------------------
     # Preference operations (lightweight; can be expanded later)

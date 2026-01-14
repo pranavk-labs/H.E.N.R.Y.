@@ -43,12 +43,12 @@ OllamaClient → PersonalityService → TTS (Piper) → Audio Output
 
 Services use lazy-initialized singletons accessed via `ServiceClass.get_instance()`:
 
-- **ConversationService** (`backend/services/conversation_service.py`): Utterance handling, intent routing, conversation history
-- **OllamaClient** (`backend/services/ollama_client.py`): LLM client with health checks
-- **KnowledgeService** (`backend/services/knowledge_service.py`): Graph operations (ideas, preferences)
-- **PersonalityService** (`backend/services/personality_service.py`): Personality trait management, response generation
-- **ToolsService** (`backend/services/tools_service.py`): Tool registry and execution
-- **ScreenManager** (`backend/services/screen_manager.py`): Single source of truth for UI state
+-   **ConversationService** (`backend/services/conversation_service.py`): Utterance handling, intent routing, conversation history
+-   **OllamaClient** (`backend/services/ollama_client.py`): LLM client with health checks
+-   **KnowledgeService** (`backend/services/knowledge_service.py`): Graph operations (ideas, preferences)
+-   **PersonalityService** (`backend/services/personality_service.py`): Personality trait management, response generation
+-   **ToolsService** (`backend/services/tools_service.py`): Tool registry and execution
+-   **ScreenManager** (`backend/services/screen_manager.py`): Single source of truth for UI state
 
 ### Tools Plugin System
 
@@ -85,12 +85,12 @@ def handle_utterance(self, text: str):
 
 ### API Routes
 
-- `/conversation/chat` - Chat endpoint
-- `/conversation/history` - Conversation history
-- `/conversation/ui/state` - UI state from ScreenManager
-- `/productivity/timer/*` - Timer tool endpoints
-- `/productivity/ideas/*` - Ideas tool endpoints
-- `/health` - Service health checks
+-   `/conversation/chat` - Chat endpoint
+-   `/conversation/history` - Conversation history
+-   `/conversation/ui/state` - UI state from ScreenManager
+-   `/productivity/timer/*` - Timer tool endpoints
+-   `/productivity/ideas/*` - Ideas tool endpoints
+-   `/health` - Service health checks
 
 ## Configuration
 
@@ -102,16 +102,17 @@ settings = get_settings()
 ```
 
 Key environment variables:
-- `APP_ENV`: "development" or "production"
-- `DEBUG`: True/False
-- `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`: Graph database connection
-- `OLLAMA_BASE_URL`: LLM service URL
-- `AUDIO_ENABLED`: True on Pi, False for local dev
-- `WAKE_WORD`: Trigger phrase (default: "Hey HENRY")
+
+-   `APP_ENV`: "development" or "production"
+-   `DEBUG`: True/False
+-   `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`: Graph database connection
+-   `OLLAMA_BASE_URL`: LLM service URL
+-   `AUDIO_ENABLED`: True on Pi, False for local dev
+-   `WAKE_WORD`: Trigger phrase (default: "Hey HENRY")
 
 ## Constraints
 
-- **Python version**: 3.9, 3.10, or 3.11 only (not 3.12+ due to tflite-runtime for OpenWakeWord)
-- **Line length**: 100 characters (black configured)
-- **Graph DB**: NetworkX + SQLite (on-Pi) or external Neo4j (optional)
-- **LLM**: Ollama with quantized models (Llama 3.2 3B Q4 or Mistral 7B Q4)
+-   **Python version**: 3.9, 3.10, or 3.11 only (not 3.12+ due to tflite-runtime for OpenWakeWord)
+-   **Line length**: 100 characters (black configured)
+-   **Graph DB**: external Neo4j (optional)
+-   **LLM**: Ollama with quantized models (Llama 3.2 3B Q4 or Mistral 7B Q4)

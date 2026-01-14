@@ -199,4 +199,12 @@ async def delete_idea(idea_id: str) -> Any:
     return {"deleted": True, "idea_id": idea_id}
 
 
+@router.post("/ideas/close")
+async def close_idea() -> Any:
+    """Close the currently active idea view without deleting the idea."""
+    tools_service = ToolsService.get_instance()
+    result = tools_service.execute_tool("ideas", "close")
+    return result
+
+
 

@@ -1,0 +1,60 @@
+# H.E.N.R.Y. Cursor Rules
+
+## Documentation Policy
+
+-   NEVER create new markdown documentation files unless explicitly requested
+-   Update existing docs (CLAUDE.md, development-guide.md) instead of creating new ones
+-   Prefer inline code comments and docstrings over separate documentation files
+-   Keep explanations concise and focused
+
+## Token Efficiency
+
+-   Read only the specific files/sections needed, not entire directories
+-   Use grep with targeted patterns instead of broad searches
+-   Avoid reading large generated files (poetry.lock, **pycache**)
+-   Batch related file reads in parallel when possible
+-   Skip reading files when content can be inferred from context
+
+## UI Development
+
+-   All UI code uses pygame with 800x480 resolution (Raspberry Pi touchscreen)
+-   ALWAYS verify scaling and positioning for the target resolution
+-   Use relative positioning and scaling factors, never hardcoded pixel values
+-   Test that text is readable at display size (min 20px font for body text)
+-   Ensure touch targets are at least 44x44 pixels for usability
+-   Check color contrast for readability (especially for small text)
+-   Verify all UI elements fit within screen bounds before completing changes
+-   Use ScreenManager (backend/services/screen_manager.py) as single source of truth for UI state
+
+## Code Style & Architecture
+
+-   Python 3.9-3.11 only (not 3.12+ due to tflite-runtime constraint)
+-   Black formatting with 100 char line length
+-   Use singleton pattern via `ServiceClass.get_instance()` for all services
+-   All I/O operations must be async with sync wrappers for compatibility
+-   Tools inherit from BaseTool and register with ToolsRegistry
+-   Use Pydantic settings from backend/config/settings.py
+-   Follow existing patterns in similar files rather than inventing new approaches
+
+## Testing
+
+-   Write tests for new features in tests/ directory
+-   Use pytest fixtures for service instances
+-   Mock external dependencies (Ollama, Neo4j, audio services)
+-   Run tests before considering task complete
+
+## Deployment Context
+
+-   Development: local machine with .env.local
+-   Production: Raspberry Pi with .env.pi
+-   Consider resource constraints (RPi 4 with 4GB RAM)
+-   Use quantized models and efficient algorithms
+
+## Common Pitfalls to Avoid
+
+-   Don't use Python 3.12+ features or dependencies
+-   Don't forget async/sync wrapper pattern for services
+-   Don't hardcode paths (use settings or relative paths)
+-   Don't skip service initialization checks
+-   Don't create redundant documentation files
+-   Don't make UI changes without verifying on target resolution

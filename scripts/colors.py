@@ -49,7 +49,17 @@ NOTIFICATION_ICON_OUTLINE = "#ccaa00"  # Dark gold outline
 NOTIFICATION_TEXT_START = "#b0b0b0"  # Medium grey (fade start)
 NOTIFICATION_TEXT_END = "#e0e0e0"  # Light grey (fade end)
 
-# Idea View Colors (if needed)
+# Idea Notebook Colors
+NOTEBOOK_BG = "#2a2a2a"  # Paper-like dark background
+NOTEBOOK_BORDER = "#444444"  # Subtle border
+NOTEBOOK_TITLE = "#e0e0e0"  # Title text
+NOTEBOOK_DIVIDER = "#555555"  # Divider line
+NOTEBOOK_TEXT = "#d0d0d0"  # Main idea text
+NOTEBOOK_HINT = "#888888"  # Hint text at bottom
+NOTEBOOK_SHADOW = "#0d0d0d"  # Shadow for depth
+NOTEBOOK_ICON = "#ffd700"  # Gold lightbulb icon
+
+# Legacy Idea View Colors (kept for compatibility)
 IDEA_BG = "#2a2a2a"
 IDEA_TEXT = "#e0e0e0"
 

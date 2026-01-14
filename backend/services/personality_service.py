@@ -17,6 +17,7 @@ from typing import Any, Dict, List, Optional
 import logging
 
 from backend.services.knowledge_service import KnowledgeService
+from backend.services.screen_manager import ScreenManager
 
 logger = logging.getLogger(__name__)
 
@@ -123,6 +124,17 @@ class PersonalityService:
             "- If they say 'remind me about that', ask 'What should I remind you about?'",
             "- If context is missing, politely ask for more information.",
         ]
+
+        # Add active idea context if one is being discussed
+        screen = ScreenManager.get_instance()
+        if screen.is_idea_active():
+            active_text = screen.state.active_idea_text
+            lines.extend([
+                "",
+                f"ACTIVE IDEA CONTEXT: The user is currently developing an idea: \"{active_text}\"",
+                "If they add more details or refine this idea, use ideas_tool with is_continuation=true to update it.",
+                "If they clearly change topics, create a new idea or respond normally.",
+            ])
 
         if extra_instructions:
             lines.append(extra_instructions.strip())

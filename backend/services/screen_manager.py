@@ -10,6 +10,7 @@ A real GUI (Phase 3+) can observe this state and render appropriate views.
 from __future__ import annotations
 
 import logging
+import time
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional
 
@@ -24,6 +25,10 @@ class ScreenState:
     status_text: str = ""
     timer_state: Dict[str, Any] = field(default_factory=dict)
     idea_view: Dict[str, Any] = field(default_factory=dict)
+    # Active idea tracking
+    active_idea_id: Optional[str] = None
+    active_idea_text: str = ""
+    idea_last_updated: Optional[float] = None
 
 
 class ScreenManager:
@@ -83,6 +88,54 @@ class ScreenManager:
         self._state.idea_view.update(idea_state)
         if self._state.active_view == "idle":
             self._state.active_view = "ideas"
+
+    def set_active_idea(self, idea_id: str, text: str) -> None:
+        """Set the currently active idea being discussed."""
+        self._state.active_idea_id = idea_id
+        self._state.active_idea_text = text
+        self._state.idea_last_updated = time.time()
+        self._state.idea_view.update({
+            "active_idea_id": idea_id,
+            "draft_text": text,
+            "is_active": True,
+            "last_updated": self._state.idea_last_updated,
+        })
+        if self._state.active_view == "idle":
+            self._state.active_view = "ideas"
+        logger.info("Active idea set: %s", idea_id[:8] if idea_id else "none")
+
+    def clear_active_idea(self) -> None:
+        """Clear the active idea (user moved on to a different topic)."""
+        self._state.active_idea_id = None
+        self._state.active_idea_text = ""
+        self._state.idea_last_updated = None
+        self._state.idea_view["is_active"] = False
+        if self._state.active_view == "ideas":
+            # Return to timer view if timer is active, otherwise idle
+            if self._state.timer_state and self._state.timer_state.get("status") in ("running", "paused"):
+                self._state.active_view = "pomodoro"
+            else:
+                self._state.active_view = "idle"
+        logger.debug("Active idea cleared")
+
+    def is_idea_active(self, timeout_seconds: float = 300) -> bool:
+        """Check if an idea is actively being discussed (within timeout).
+
+        Args:
+            timeout_seconds: How long an idea stays "active" without updates (default 5 min)
+
+        Returns:
+            True if there's an active idea within the timeout window
+        """
+        if not self._state.active_idea_id or not self._state.idea_last_updated:
+            return False
+        return (time.time() - self._state.idea_last_updated) < timeout_seconds
+
+    def get_active_idea_id(self) -> Optional[str]:
+        """Get the active idea ID if one is being discussed."""
+        if self.is_idea_active():
+            return self._state.active_idea_id
+        return None
 
 
 __all__ = ["ScreenManager", "ScreenState"]

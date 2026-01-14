@@ -299,31 +299,35 @@ class OllamaClient:
             "type": "function",
             "function": {
                 "name": "ideas_tool",
-                "description": "Manage idea notebook. Create, update, get, list, search, or delete ideas. IMPORTANT: When creating an idea, you MUST: (1) Elaborate on the user's raw input to make it clearer and more detailed, (2) Remove ALL formatting (asterisks, markdown, bullets, etc.) since it will be read aloud by text-to-speech, (3) Your response message should be ONLY the elaborated idea text itself, with no meta-commentary like 'I saved your idea' - just speak the elaborated idea naturally.",
+                "description": "Save and manage ideas in the notebook. Use 'create' for new ideas, 'update' to refine the active idea, 'close' when the user is done with the current idea.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "action": {
                             "type": "string",
-                            "enum": ["create", "update", "get", "list", "delete", "search"],
-                            "description": "The action to perform on ideas"
+                            "enum": ["create", "update", "get", "list", "delete", "search", "close"],
+                            "description": "Action to perform. Use 'close' when user says they're done with the idea or wants to move on."
                         },
                         "text": {
                             "type": "string",
-                            "description": "Idea text content. For 'create' action: MUST be an elaborated, clear version of the user's idea with ALL formatting removed (no asterisks, markdown, etc.). For 'update' action: optional elaborated text."
+                            "description": "The idea content. RULES: (1) Expand the user's thought into a clear, complete description. (2) NEVER include meta-commentary like 'the user wants', 'this idea is about', or 'raw input'. (3) NO markdown, bullets, or formatting - plain text only. (4) Write as if explaining the idea to someone else. EXAMPLE: User says 'voice control for lights' -> Write 'A voice-controlled lighting system that allows hands-free control of room lighting through spoken commands, enabling dimming, color changes, and scheduling.'"
                         },
                         "idea_id": {
                             "type": "string",
-                            "description": "Idea ID (required for get, update, delete actions)"
+                            "description": "Idea ID (required for get, update, delete). Omit for update to use active idea."
                         },
                         "tags": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Tags for the idea (optional)"
+                            "description": "Optional tags for categorization"
                         },
                         "query": {
                             "type": "string",
-                            "description": "Search query (required for search action)"
+                            "description": "Search query (for search action)"
+                        },
+                        "is_continuation": {
+                            "type": "boolean",
+                            "description": "Set true when adding to or refining the current active idea rather than creating a new one"
                         }
                     },
                     "required": ["action"]
