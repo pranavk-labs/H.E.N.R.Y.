@@ -58,6 +58,7 @@ class KnowledgeService:
         self._graph = graph or GraphFallback()
         self._neo4j_client = Neo4jClient.get_instance()
         self._use_neo4j = True  # Try Neo4j first
+        self._preferences_cache: Dict[str, List[Preference]] = {}  # Cache preferences by user_id
 
     @classmethod
     def get_instance(cls) -> "KnowledgeService":
@@ -78,13 +79,35 @@ class KnowledgeService:
             asyncio.set_event_loop(loop)
             return loop
 
+    def _run_async(self, coro):
+        """Run async coroutine, handling already-running event loop gracefully.
+
+        Args:
+            coro: Coroutine to run
+
+        Returns:
+            Result of the coroutine, or None if event loop is already running
+
+        Raises:
+            Exception: If an error occurs other than event loop already running
+        """
+        try:
+            loop = self._get_loop()
+            return loop.run_until_complete(coro)
+        except RuntimeError as e:
+            # If event loop is already running, we're being called from async context
+            # This is fine - we'll just use the fallback
+            if "already running" in str(e):
+                return None
+            raise
+
     def _ensure_neo4j_connected(self) -> bool:
         """Ensure Neo4j is connected, return True if successful."""
         if not self._neo4j_client.is_connected:
             try:
-                loop = self._get_loop()
-                loop.run_until_complete(self._neo4j_client.connect())
-                return True
+                result = self._run_async(self._neo4j_client.connect())
+                # If result is None, event loop was already running - fall back
+                return result is not None
             except Exception as e:
                 logger.debug(f"Neo4j not available: {e}")
                 return False
@@ -102,12 +125,16 @@ class KnowledgeService:
                         result = await session.run(query, params)
                         await result.consume()
 
-                loop = self._get_loop()
-                loop.run_until_complete(_create())
+                self._run_async(_create())
                 logger.debug(f"Wrote node {node_id} to Neo4j")
                 # Also write to fallback for redundancy
                 self._graph.add_node(node_id, label=label, **properties)
                 return
+            except RuntimeError as e:
+                # Silently fall back if event loop is already running
+                if "already running" not in str(e):
+                    logger.info(f"Neo4j write failed: {e}, falling back to local graph")
+                    self._use_neo4j = False
             except Exception as e:
                 logger.info(f"Neo4j write failed: {e}, falling back to local graph")
                 self._use_neo4j = False
@@ -121,16 +148,25 @@ class KnowledgeService:
             try:
                 async def _get():
                     async with self._neo4j_client.driver.session() as session:
-                        result = await session.run("MATCH (n {id: $id}) RETURN n", {"id": node_id})
+                        # Use IS NOT NULL to check property existence and avoid schema warnings
+                        result = await session.run(
+                            "MATCH (n) WHERE n.id IS NOT NULL AND n.id = $id RETURN n",
+                            {"id": node_id}
+                        )
                         record = await result.single()
                         if record:
                             return dict(record["n"])
                         return None
 
-                loop = self._get_loop()
-                node = loop.run_until_complete(_get())
+                node = self._run_async(_get())
                 if node is not None:
                     return node
+            except RuntimeError as e:
+                # Silently fall back if event loop is already running (called from async context)
+                if "already running" in str(e):
+                    pass  # Fall through to local graph fallback
+                else:
+                    logger.debug(f"Neo4j read failed: {e}, trying fallback")
             except Exception as e:
                 logger.debug(f"Neo4j read failed: {e}, trying fallback")
 
@@ -143,13 +179,12 @@ class KnowledgeService:
                 async def _update():
                     async with self._neo4j_client.driver.session() as session:
                         set_clauses = ", ".join(f"n.{k} = ${k}" for k in properties.keys())
-                        query = f"MATCH (n {{id: $id}}) SET {set_clauses} RETURN n"
+                        query = f"MATCH (n) WHERE n.id IS NOT NULL AND n.id = $id SET {set_clauses} RETURN n"
                         params = {"id": node_id, **properties}
                         result = await session.run(query, params)
                         await result.consume()
 
-                loop = self._get_loop()
-                loop.run_until_complete(_update())
+                        self._run_async(_update())
                 # Also update fallback
                 data = self._graph.get_node(node_id) or {}
                 data.update(properties)
@@ -176,12 +211,11 @@ class KnowledgeService:
                 async def _delete():
                     async with self._neo4j_client.driver.session() as session:
                         result = await session.run(
-                            "MATCH (n {id: $id}) DETACH DELETE n", {"id": node_id}
+                            "MATCH (n) WHERE n.id IS NOT NULL AND n.id = $id DETACH DELETE n", {"id": node_id}
                         )
                         await result.consume()
 
-                loop = self._get_loop()
-                loop.run_until_complete(_delete())
+                        self._run_async(_delete())
                 # Also delete from fallback
                 if node_id in self._graph.graph:
                     self._graph.graph.remove_node(node_id)
@@ -217,12 +251,15 @@ class KnowledgeService:
                             params[key] = value
 
                         where_str = " AND ".join(where_clauses) if where_clauses else "1=1"
-                        query = f"MATCH (n) WHERE {where_str} RETURN n.id as id"
+                        # Add IS NOT NULL check to avoid schema warnings
+                        if where_clauses:
+                            query = f"MATCH (n) WHERE n.id IS NOT NULL AND {where_str} RETURN n.id as id"
+                        else:
+                            query = f"MATCH (n) WHERE n.id IS NOT NULL RETURN n.id as id"
                         result = await session.run(query, params)
                         return [record["id"] async for record in result]
 
-                loop = self._get_loop()
-                node_ids = loop.run_until_complete(_find())
+                node_ids = self._run_async(_find())
                 if node_ids:
                     return node_ids
             except Exception as e:
@@ -245,8 +282,7 @@ class KnowledgeService:
                             nodes.append(node)
                         return nodes
 
-                loop = self._get_loop()
-                nodes = loop.run_until_complete(_list())
+                nodes = self._run_async(_list())
                 if nodes:
                     return nodes
             except Exception as e:
@@ -278,15 +314,15 @@ class KnowledgeService:
                         if properties:
                             props_str = " {" + ", ".join(f"{k}: ${k}" for k in properties.keys()) + "}"
                         query = (
-                            f"MATCH (a {{id: $source_id}}), (b {{id: $target_id}}) "
+                            f"MATCH (a), (b) WHERE a.id IS NOT NULL AND b.id IS NOT NULL "
+                            f"AND a.id = $source_id AND b.id = $target_id "
                             f"CREATE (a)-[r:{relationship_type}{props_str}]->(b) RETURN r"
                         )
                         params = {"source_id": source_id, "target_id": target_id, **properties}
                         result = await session.run(query, params)
                         await result.consume()
 
-                loop = self._get_loop()
-                loop.run_until_complete(_create_rel())
+                self._run_async(_create_rel())
                 # Also create in fallback
                 self._graph.add_edge(
                     source_id, target_id, relationship=relationship_type, **properties
@@ -308,13 +344,12 @@ class KnowledgeService:
                 async def _get_neighbors():
                     async with self._neo4j_client.driver.session() as session:
                         result = await session.run(
-                            "MATCH (n {id: $id})-[r]->(m) RETURN m.id as id",
+                            "MATCH (n)-[r]->(m) WHERE n.id IS NOT NULL AND n.id = $id RETURN m.id as id",
                             {"id": node_id},
                         )
                         return [record["id"] async for record in result]
 
-                loop = self._get_loop()
-                neighbors = loop.run_until_complete(_get_neighbors())
+                neighbors = self._run_async(_get_neighbors())
                 if neighbors is not None:
                     return neighbors
             except Exception as e:
@@ -326,8 +361,17 @@ class KnowledgeService:
     # ------------------------------------------------------------------
     # Idea operations
     # ------------------------------------------------------------------
-    def create_idea(self, text: str, tags: Optional[List[str]] = None) -> Idea:
-        """Create and store a new idea node in the graph."""
+    def create_idea(self, text: str, tags: Optional[List[str]] = None, user_id: Optional[str] = None) -> Idea:
+        """Create and store a new idea node in the graph.
+
+        Args:
+            text: The idea text content
+            tags: Optional list of tags for the idea
+            user_id: Optional user ID to create relationship from User to Idea
+
+        Returns:
+            Created Idea object
+        """
         idea_id = str(uuid.uuid4())
         created_at = _utc_now_iso()
         idea = Idea(
@@ -345,7 +389,23 @@ class KnowledgeService:
             created_at=idea.created_at,
             updated_at=idea.updated_at,
         )
-        logger.info("Created idea %s", idea_id)
+
+        # Create relationship from User to Idea if user_id is provided
+        if user_id:
+            user_node_id = f"user:{user_id}"
+            if self._read_node(user_node_id) is None:
+                self._write_node(user_node_id, label="User", user_id=user_id)
+
+            self._create_relationship(
+                user_node_id,
+                idea_id,
+                relationship_type="HAS_IDEA",
+                created_at=created_at,
+            )
+            logger.info("Created idea %s for user %s with HAS_IDEA relationship", idea_id, user_id)
+        else:
+            logger.info("Created idea %s (no user relationship)", idea_id)
+
         return idea
 
     def get_idea(self, idea_id: str) -> Optional[Idea]:
@@ -492,13 +552,22 @@ class KnowledgeService:
             relationship_type="HAS_PREFERENCE",
         )
 
+        # Invalidate cache for this user
+        if user_id in self._preferences_cache:
+            del self._preferences_cache[user_id]
+
         logger.info("Set preference %s for user %s", key, user_id)
         return pref
 
     def get_preferences(self, user_id: str) -> List[Preference]:
-        """Get all preferences for a given user."""
+        """Get all preferences for a given user (cached)."""
+        # Return cached preferences if available
+        if user_id in self._preferences_cache:
+            return self._preferences_cache[user_id]
+
         user_node_id = f"user:{user_id}"
         if self._read_node(user_node_id) is None:
+            self._preferences_cache[user_id] = []
             return []
 
         prefs: List[Preference] = []
@@ -517,6 +586,9 @@ class KnowledgeService:
                     updated_at=node.get("updated_at"),
                 )
             )
+
+        # Cache the result
+        self._preferences_cache[user_id] = prefs
         return prefs
 
     # ------------------------------------------------------------------

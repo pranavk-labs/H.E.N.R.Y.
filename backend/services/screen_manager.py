@@ -51,27 +51,35 @@ class ScreenManager:
     # ------------------------------------------------------------------
     def set_view(self, view_name: str, **kwargs: Any) -> None:
         """Set the active view and optionally update arbitrary metadata."""
-        logger.info("Screen view -> %s", view_name)
+        logger.debug("Screen view -> %s", view_name)
         self._state.active_view = view_name
         if kwargs:
             self._state.idea_view.update(kwargs)
 
     def update_status(self, text: str) -> None:
         """Update status text shown to the user."""
-        logger.info("Screen status: %s", text)
+        # Only log significant status changes, not repetitive ones
+        if text and text != self._state.status_text:
+            logger.debug("Screen status: %s", text)
         self._state.status_text = text
 
     def update_timer(self, **timer_state: Any) -> None:
         """Update timer-related UI."""
-        logger.info("Screen timer state: %s", timer_state)
+        # Only log status changes, not countdown updates
+        old_status = self._state.timer_state.get("status")
+        new_status = timer_state.get("status")
+        if old_status != new_status:
+            logger.info("Timer status: %s -> %s", old_status or "none", new_status)
+
         self._state.timer_state.update(timer_state)
         # Ensure the active view reflects that a timer is visible
-        if self._state.active_view == "idle":
+        # But don't force the view if the timer is completed (we're returning to idle)
+        if self._state.active_view == "idle" and timer_state.get("status") != "completed":
             self._state.active_view = "pomodoro"
 
     def update_idea_view(self, **idea_state: Any) -> None:
         """Update the idea/notebook-related UI."""
-        logger.info("Screen idea view: %s", idea_state)
+        logger.debug("Screen idea view: %s", idea_state)
         self._state.idea_view.update(idea_state)
         if self._state.active_view == "idle":
             self._state.active_view = "ideas"

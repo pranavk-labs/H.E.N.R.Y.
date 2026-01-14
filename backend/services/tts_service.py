@@ -188,12 +188,18 @@ class TextToSpeechService:
         if self.engine_name == "piper" and self._piper_voice is not None:
             try:
                 # Generate audio with Piper
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp_file:
-                    tmp_path = Path(tmp_file.name)
-                
-                # Synthesize speech to WAV file
-                with open(tmp_path, "wb") as wav_file:
-                    self._piper_voice.synthesize(text, wav_file)
+                # Create temp file and get path
+                tmp_fd, tmp_path_str = tempfile.mkstemp(suffix=".wav")
+                tmp_path = Path(tmp_path_str)
+
+                # Close the file descriptor so Piper can write to it
+                import os
+                import wave
+                os.close(tmp_fd)
+
+                # Synthesize speech to WAV file using wave module
+                with wave.open(str(tmp_path), "wb") as wav_file:
+                    self._piper_voice.synthesize_wav(text, wav_file)
                 
                 # Load and play the audio
                 try:

@@ -143,7 +143,20 @@ class OllamaClient:
                 # Reset delay on success
                 delay = self._retry_delay
                 return response
-            except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            except httpx.HTTPStatusError as e:
+                # Log 500 errors with response body for debugging
+                if e.response.status_code == 500:
+                    error_body = e.response.text[:500] if hasattr(e.response, 'text') else str(e)
+                    logger.error(f"Ollama 500 error on {method} {url}: {error_body}")
+                if attempt == max_retries - 1:
+                    raise
+                logger.warning(
+                    f"Request failed (attempt {attempt + 1}/{max_retries}): {e}. "
+                    f"Retrying in {delay}s..."
+                )
+                await asyncio.sleep(delay)
+                delay = min(delay * 2, self._max_retry_delay)
+            except httpx.RequestError as e:
                 if attempt == max_retries - 1:
                     raise
                 logger.warning(
@@ -286,7 +299,7 @@ class OllamaClient:
             "type": "function",
             "function": {
                 "name": "ideas_tool",
-                "description": "Manage idea notebook. Create, update, get, list, search, or delete ideas.",
+                "description": "Manage idea notebook. Create, update, get, list, search, or delete ideas. IMPORTANT: When creating an idea, you MUST: (1) Elaborate on the user's raw input to make it clearer and more detailed, (2) Remove ALL formatting (asterisks, markdown, bullets, etc.) since it will be read aloud by text-to-speech, (3) Your response message should be ONLY the elaborated idea text itself, with no meta-commentary like 'I saved your idea' - just speak the elaborated idea naturally.",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -297,7 +310,7 @@ class OllamaClient:
                         },
                         "text": {
                             "type": "string",
-                            "description": "Idea text content (required for create, optional for update)"
+                            "description": "Idea text content. For 'create' action: MUST be an elaborated, clear version of the user's idea with ALL formatting removed (no asterisks, markdown, etc.). For 'update' action: optional elaborated text."
                         },
                         "idea_id": {
                             "type": "string",
@@ -330,9 +343,10 @@ class OllamaClient:
         options: Optional[Dict[str, Any]] = None,
         max_tool_iterations: int = 5,
         pre_tool_speak_callback: Optional[callable] = None,
+        user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Chat with Ollama using tool calling support.
-        
+
         Args:
             model: Name of the Ollama model to use
             messages: List of message dictionaries with 'role' and 'content'
@@ -341,7 +355,9 @@ class OllamaClient:
             system_prompt: Optional system prompt
             options: Extra model options
             max_tool_iterations: Maximum number of tool call iterations (default: 5)
-            
+            pre_tool_speak_callback: Optional callback to speak text before tool execution
+            user_id: Optional user ID to pass to tools for context
+
         Returns:
             Dict with final response from the model
         """
@@ -352,6 +368,7 @@ class OllamaClient:
             "model": model,
             "messages": messages,
             "tools": tools,
+            "stream": False,  # CRITICAL: Disable streaming to get single JSON response
         }
         if system_prompt:
             payload["system"] = system_prompt
@@ -361,7 +378,25 @@ class OllamaClient:
         iteration = 0
         while iteration < max_tool_iterations:
             response = await self._retry_request("POST", "/api/chat", json=payload)
-            response_data = response.json()
+
+            # Parse response with robust error handling
+            try:
+                response_data = response.json()
+            except json.JSONDecodeError as e:
+                # If streaming wasn't disabled properly, try to parse first line
+                if "Extra data" in str(e):
+                    logger.warning("Ollama returned streamed response despite stream=False. Parsing first object.")
+                    response_text = response.text
+                    # Get first line (first JSON object)
+                    first_line = response_text.split('\n')[0]
+                    try:
+                        response_data = json.loads(first_line)
+                    except json.JSONDecodeError:
+                        logger.error(f"Failed to parse Ollama response: {response_text[:200]}")
+                        raise
+                else:
+                    logger.error(f"Failed to parse Ollama response: {response.text[:200]}")
+                    raise
             
             message = response_data.get("message", {})
             content = message.get("content", "")
@@ -389,9 +424,44 @@ class OllamaClient:
                 function_args_str = function.get("arguments", "{}")
                 
                 try:
-                    # Parse arguments
+                    # Parse arguments with robust JSON extraction
                     if isinstance(function_args_str, str):
-                        function_args = json.loads(function_args_str)
+                        # Try standard parsing first
+                        try:
+                            function_args = json.loads(function_args_str)
+                        except json.JSONDecodeError as e:
+                            # If there's extra data after JSON, try to extract just the JSON part
+                            if "Extra data" in str(e):
+                                logger.debug(f"Extracting JSON from malformed response: {function_args_str[:100]}...")
+                                # Use JSONDecoder to parse incrementally
+                                decoder = json.JSONDecoder()
+                                try:
+                                    function_args, end_idx = decoder.raw_decode(function_args_str)
+                                    extra_text = function_args_str[end_idx:].strip()
+                                    if extra_text:
+                                        logger.debug(f"Ignored extra text after JSON: {extra_text[:50]}...")
+                                except json.JSONDecodeError:
+                                    # If that fails too, try to find JSON object boundaries
+                                    start_idx = function_args_str.find('{')
+                                    if start_idx != -1:
+                                        # Count braces to find the end of the JSON object
+                                        brace_count = 0
+                                        end_idx = start_idx
+                                        for i in range(start_idx, len(function_args_str)):
+                                            if function_args_str[i] == '{':
+                                                brace_count += 1
+                                            elif function_args_str[i] == '}':
+                                                brace_count -= 1
+                                                if brace_count == 0:
+                                                    end_idx = i + 1
+                                                    break
+                                        json_str = function_args_str[start_idx:end_idx]
+                                        function_args = json.loads(json_str)
+                                        logger.debug(f"Extracted JSON via brace counting: {json_str}")
+                                    else:
+                                        raise
+                            else:
+                                raise
                     else:
                         function_args = function_args_str
                     
@@ -405,10 +475,11 @@ class OllamaClient:
                         })
                     elif function_name == "ideas_tool":
                         action = function_args.get("action", "")
-                        # Execute via tools_service
-                        tool_result = tools_service.execute_tool("ideas", action, **{
-                            k: v for k, v in function_args.items() if k != "action"
-                        })
+                        # Execute via tools_service, inject user_id for context
+                        tool_kwargs = {k: v for k, v in function_args.items() if k != "action"}
+                        if user_id:
+                            tool_kwargs["user_id"] = user_id
+                        tool_result = tools_service.execute_tool("ideas", action, **tool_kwargs)
                     else:
                         # Try callback if provided
                         if tools_callback:

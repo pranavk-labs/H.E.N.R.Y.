@@ -10,6 +10,7 @@ This service sits on top of:
 from __future__ import annotations
 
 import asyncio
+import os
 import logging
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
@@ -39,7 +40,7 @@ class ConversationService:
         personality_service: Optional[PersonalityService] = None,
         ollama_client: Optional[OllamaClient] = None,
         tools_service: Optional[ToolsService] = None,
-        default_model: str = "llama3.2:3b",
+        default_model: str = os.getenv("OLLAMA_MODEL", "llama3.2:3b")
     ) -> None:
         self._knowledge = knowledge_service or KnowledgeService.get_instance()
         self._personality = personality_service or PersonalityService.get_instance()
@@ -93,7 +94,41 @@ class ConversationService:
     ) -> Dict[str, Any]:
         text = text.strip()
         if not text:
-            return {"response": "I didn't catch that. Could you say it again?", "intent": "empty"}
+            return {"response": "I didn't catch that. Could you repeat what you said?", "intent": "empty"}
+
+        # Handle very short or potentially unclear inputs
+        if len(text.split()) <= 2:
+            # Check if it's a common short command
+            lowered = text.lower()
+            unclear_phrases = ["that", "it", "this", "there", "one", "thing"]
+            if any(phrase in lowered for phrase in unclear_phrases):
+                return {
+                    "response": "I'm not sure what you're referring to. Could you be more specific?",
+                    "intent": "clarification_needed"
+                }
+
+        # Handle requests for repetition or clarification
+        lowered = text.lower()
+        repeat_phrases = ["what did you say", "what was that", "repeat", "say again", "didn't hear", "pardon"]
+        if any(phrase in lowered for phrase in repeat_phrases):
+            # Get last assistant message
+            turns = self._history.get(user_id, [])
+            last_assistant_message = None
+            for turn in reversed(turns):
+                if turn.role == "assistant":
+                    last_assistant_message = turn.content
+                    break
+
+            if last_assistant_message:
+                return {
+                    "response": f"I said: {last_assistant_message}",
+                    "intent": "repeat"
+                }
+            else:
+                return {
+                    "response": "I haven't said anything yet. How can I help you?",
+                    "intent": "repeat"
+                }
 
         # Append user turn
         self._append_turn(user_id, "user", text)
@@ -132,7 +167,7 @@ class ConversationService:
             })
             
             # Use chat_with_tools for tool calling support
-            # Pass through the speak callback if provided
+            # Pass through the speak callback and user_id if provided
             raw = await self._ollama.chat_with_tools(
                 model=self._default_model,
                 messages=messages,
@@ -142,28 +177,33 @@ class ConversationService:
                 options=None,
                 max_tool_iterations=5,
                 pre_tool_speak_callback=pre_tool_speak_callback,
+                user_id=user_id,
             )
             
             # Get final response text
             message = raw.get("message", {})
             llm_text = str(message.get("content", "") or "").strip()
             if not llm_text:
-                llm_text = "I'm having trouble reaching my language model right now."
+                llm_text = "I'm sorry, I'm having trouble processing that right now. Could you try rephrasing?"
         except Exception as e:
             logger.warning(f"Tool calling failed, falling back to generate: {e}")
             # Fallback to regular generate method
-            history_text = self._build_history_text(user_id)
-            full_prompt = f"{history_text}\nUser: {text}\nAssistant:"
+            try:
+                history_text = self._build_history_text(user_id)
+                full_prompt = f"{history_text}\nUser: {text}\nAssistant:"
 
-            raw = await self._ollama.generate(
-                model=self._default_model,
-                prompt=full_prompt,
-                system_prompt=system_prompt,
-                stream=False,
-            )
-            llm_text = str(raw.get("response") or raw.get("message", {}).get("content") or "").strip()
-            if not llm_text:
-                llm_text = "I'm having trouble reaching my language model right now."
+                raw = await self._ollama.generate(
+                    model=self._default_model,
+                    prompt=full_prompt,
+                    system_prompt=system_prompt,
+                    stream=False,
+                )
+                llm_text = str(raw.get("response") or raw.get("message", {}).get("content") or "").strip()
+                if not llm_text:
+                    llm_text = "I'm sorry, I'm having trouble understanding. Could you rephrase that?"
+            except Exception as fallback_error:
+                logger.error(f"Complete LLM failure: {fallback_error}")
+                llm_text = "I'm having connection issues right now. Could you try again in a moment?"
 
         final_text = self._personality.decorate_llm_response(user_id=user_id, raw_text=llm_text)
         self._append_turn(user_id, "assistant", final_text)
@@ -205,6 +245,125 @@ class ConversationService:
             lines.append(f"{prefix}: {t.content}")
         return "\n".join(lines)
 
+    def _fuzzy_match_word(self, word: str, target: str, threshold: int = 2) -> bool:
+        """Check if word is similar to target using Levenshtein-like edit distance.
+
+        Args:
+            word: The word to check (e.g., "state")
+            target: The target word (e.g., "start")
+            threshold: Maximum edit distance allowed (default: 2)
+
+        Returns:
+            True if words are similar enough, False otherwise
+        """
+        if word == target:
+            return True
+
+        # Quick checks for common prefixes/suffixes
+        if len(word) == len(target):
+            # Count character differences
+            differences = sum(1 for a, b in zip(word, target) if a != b)
+            return differences <= threshold
+
+        # Simple edit distance calculation
+        m, n = len(word), len(target)
+        if abs(m - n) > threshold:
+            return False
+
+        # Create matrix for edit distance
+        dp = [[0] * (n + 1) for _ in range(m + 1)]
+
+        for i in range(m + 1):
+            dp[i][0] = i
+        for j in range(n + 1):
+            dp[0][j] = j
+
+        for i in range(1, m + 1):
+            for j in range(1, n + 1):
+                if word[i - 1] == target[j - 1]:
+                    dp[i][j] = dp[i - 1][j - 1]
+                else:
+                    dp[i][j] = 1 + min(
+                        dp[i - 1][j],      # deletion
+                        dp[i][j - 1],      # insertion
+                        dp[i - 1][j - 1]   # substitution
+                    )
+
+        return dp[m][n] <= threshold
+
+    def _normalize_transcription(self, text: str) -> str:
+        """Normalize common transcription errors in text.
+
+        Args:
+            text: The transcribed text (possibly with errors)
+
+        Returns:
+            Normalized text with common errors corrected
+        """
+        lowered = text.lower()
+
+        # Check if this looks like a timer command
+        has_timer_context = any(word in lowered for word in ["timer", "pomodoro", "focus", "session"])
+
+        # Common transcription error mappings for timer commands
+        # Only apply context-sensitive corrections when timer keywords are present
+        always_correct = {
+            "state": "start",      # "state your timer" -> "start your timer"
+            "status": "start",     # "status timer" -> "start timer"
+            "stat": "start",       # "stat timer" -> "start timer"
+            "stayed": "start",     # "stayed timer" -> "start timer"
+            "stir": "start",       # "stir timer" -> "start timer"
+            "store": "start",      # "store timer" -> "start timer"
+            "star": "start",       # "star timer" -> "start timer"
+            "starting": "start",   # Normalize to base form
+            "started": "start",    # Normalize to base form
+            "ending": "end",       # Close enough but let's normalize
+            "ended": "end",        # Normalize to base form
+            "finish": "finish",    # Keep as is
+            "finished": "finish",  # Normalize to base form
+            "finnish": "finish",   # Common typo/transcription error
+            "poles": "pause",      # "poles my timer" -> "pause my timer"
+            "paws": "pause",       # "paws timer" -> "pause timer"
+            "pausing": "pause",    # Normalize to base form
+            "paused": "pause",     # Normalize to base form
+        }
+
+        # Only apply these if timer context is detected (avoid false positives)
+        context_corrections = {
+            "and": "end",          # "and my timer" -> "end my timer"
+            "in": "end",           # "in my timer" -> "end my timer"
+        }
+
+        words = lowered.split()
+        normalized_words = []
+
+        for i, word in enumerate(words):
+            # Check for always-correct mappings
+            if word in always_correct:
+                normalized_words.append(always_correct[word])
+                continue
+
+            # Check for context-sensitive corrections
+            if has_timer_context and word in context_corrections:
+                # Check if next word is "my", "the", "timer", etc. (likely part of command)
+                next_word = words[i + 1] if i + 1 < len(words) else ""
+                if next_word in ["my", "the", "timer", "pomodoro", "session", "focus"]:
+                    normalized_words.append(context_corrections[word])
+                    continue
+
+            # Check for fuzzy matches with always-correct words
+            found_match = False
+            for error, correction in always_correct.items():
+                if self._fuzzy_match_word(word, error, threshold=1):
+                    normalized_words.append(correction)
+                    found_match = True
+                    break
+
+            if not found_match:
+                normalized_words.append(word)
+
+        return " ".join(normalized_words)
+
     async def _maybe_handle_tool_intent(
         self,
         user_id: str,
@@ -214,7 +373,11 @@ class ConversationService:
 
         This keeps us decoupled from the LLM for simple, reliable commands.
         """
-        lowered = text.lower()
+        # Normalize transcription errors before intent detection
+        normalized_text = self._normalize_transcription(text)
+        if normalized_text != text.lower():
+            logger.info(f"Normalized transcription: '{text}' -> '{normalized_text}'")
+        lowered = normalized_text.lower()
 
         # Timer / Pomodoro intents
         if "pomodoro" in lowered or "timer" in lowered:
@@ -222,6 +385,19 @@ class ConversationService:
                 result = self._tools.execute_tool("timer", "start")
                 return "timer.start", {
                     "message": "Starting a 25/5 Pomodoro.",
+                    "session": result.get("session"),
+                }
+            # Check for end/finish/complete first (more specific intent)
+            if any(word in lowered for word in ["end", "finish", "complete", "done"]):
+                sessions = self._tools.get_tool("timer").list_sessions()
+                if not sessions:
+                    return "timer.end", {"message": "You don't have an active focus session."}
+                latest = sessions[-1]
+                if latest.status == "completed":
+                    return "timer.end", {"message": "Your focus session is already complete."}
+                result = self._tools.execute_tool("timer", "stop", session_id=latest.id)
+                return "timer.end", {
+                    "message": "Focus session ended. Great work!",
                     "session": result.get("session"),
                 }
             if any(word in lowered for word in ["pause", "hold", "stop"]):
@@ -235,16 +411,9 @@ class ConversationService:
                     "session": result.get("session"),
                 }
 
-        # Ideas tool intents
-        if any(word in lowered for word in ["note", "idea"]) and any(
-            word in lowered for word in ["remember", "save", "capture", "jot"]
-        ):
-            # Naively treat the whole sentence as the idea text for now
-            result = self._tools.execute_tool("ideas", "create", text=text)
-            return "ideas.create", {
-                "message": "Got it, I saved that as an idea.",
-                "idea": result.get("idea"),
-            }
+        # Ideas tool intents - removed simple detection to let LLM elaborate via tool calling
+        # The LLM will handle idea creation through the ideas_tool function call,
+        # which allows it to elaborate on the user's input and remove formatting
 
         return None, None
 

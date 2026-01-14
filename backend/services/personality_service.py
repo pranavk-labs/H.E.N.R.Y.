@@ -26,9 +26,9 @@ class PersonalityProfile:
     """Represents a single personality configuration."""
 
     name: str = "default"
-    style: str = "helpful, slightly witty but professional"
+    style: str = "helpful, conversational, and naturally curious - asks questions when unsure"
     speaking_voice: str = "neutral"
-    temperature: float = 0.6
+    temperature: float = 0.7
     max_context_turns: int = 8
 
 
@@ -109,6 +109,19 @@ class PersonalityService:
             f"Your personality style is: {profile.style}.",
             "You speak concisely, stay on task, and keep a warm, collaborative tone.",
             "You can reference the user's habits and preferences when they are relevant.",
+            "",
+            "CRITICAL: Never use formatting marks like asterisks, bullets, or markdown in your responses. "
+            "All text you generate will be read aloud by text-to-speech, so write in plain text only. "
+            "This is especially important when saving ideas - always provide clean, readable text.",
+            "",
+            "IMPORTANT: If the user's request is unclear, ambiguous, or missing important details, "
+            "ask a clarifying question instead of guessing or making assumptions. "
+            "Be conversational and natural when asking for clarification.",
+            "",
+            "Examples:",
+            "- If they say 'start a timer' without specifying duration, ask 'How long should I set the timer for?'",
+            "- If they say 'remind me about that', ask 'What should I remind you about?'",
+            "- If context is missing, politely ask for more information.",
         ]
 
         if extra_instructions:
