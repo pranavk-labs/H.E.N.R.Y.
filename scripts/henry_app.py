@@ -78,6 +78,9 @@ from backend.services.conversation_service import ConversationService
 from backend.services.stt_service import SpeechToTextService
 from backend.services.tts_service import TextToSpeechService
 
+# Import color scheme
+from scripts import colors
+
 # Configure logging based on DEBUG environment variable
 DEBUG_MODE = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 logging.basicConfig(
@@ -96,6 +99,7 @@ logging.getLogger("openwakeword").setLevel(logging.WARNING)  # Suppress openWake
 logging.getLogger("openwakeword.model").setLevel(logging.WARNING)
 logging.getLogger("openwakeword.utils").setLevel(logging.WARNING)
 logging.getLogger("backend.services.audio_service").setLevel(logging.WARNING)  # Suppress audio prediction logs
+logging.getLogger("neo4j.notifications").setLevel(logging.ERROR)  # Suppress Neo4j schema property warnings
 
 # Configuration
 API_BASE_URL = os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
@@ -112,6 +116,7 @@ class UIState:
     status_text: str = ""
     timer_state: Dict[str, Any] | None = None
     idea_view: Dict[str, Any] | None = None
+    timer_state_received_at: float = 0.0  # Timestamp when timer state was last received
 
 
 class VoiceLoop:
@@ -224,6 +229,17 @@ class VoiceLoop:
             confidence: Confidence score (0.0 to 1.0)
         """
         if self._shutdown_requested:
+            return
+
+        # Ignore wake word if we're already processing one
+        if self._processing_wake_word:
+            logger.debug(f"Wake word '{wake_word_name}' ignored - already processing a request (confidence: {confidence:.2f})")
+            return
+
+        # Also ignore if queue is getting too large (shouldn't happen, but safety check)
+        queue_size = self._wake_word_queue.qsize()
+        if queue_size >= 3:
+            logger.warning(f"Wake word queue too large ({queue_size} items), ignoring new detection")
             return
 
         # Timestamp and enqueue the wake word event
@@ -485,13 +501,14 @@ class VoiceLoop:
                             ring_buffer.clear()
                     else:
                         # Currently recording speech
-                        # Check for silence BEFORE adding this chunk
+                        # Add chunk first, then check for silence
+                        speech_frames.append(chunk)
                         ring_buffer.append((chunk, is_speech))
                         num_unvoiced = len([f for f, speech in ring_buffer if not speech])
 
                         # If majority of recent frames are silence, we're done
-                        # Don't add this chunk if it's part of the silence period
-                        if num_unvoiced > 0.8 * ring_buffer.maxlen:
+                        # Use 0.7 threshold (70%) for more responsive detection
+                        if num_unvoiced > 0.7 * ring_buffer.maxlen:
                             duration = chunk_count * chunk_duration_ms / 1000
                             logger.info(f"Silence detected, stopping recording (duration: {duration:.1f}s)")
                             
@@ -503,9 +520,6 @@ class VoiceLoop:
                                 logger.debug(f"Trimmed {frames_to_trim} silence frames from end")
                             
                             break
-                        
-                        # Only add chunk if we're still recording (not silence)
-                        speech_frames.append(chunk)
 
                     chunk_count += 1
 
@@ -554,7 +568,7 @@ class VoiceLoop:
         audio_data = self._record_audio_with_vad(
             sample_rate=16000,
             max_duration=30.0,
-            silence_duration=1.5,
+            silence_duration=0.8,  # Reduced from 1.5s to 0.8s for faster response
             vad_aggressiveness=2
         )
         if audio_data is None:
@@ -766,8 +780,8 @@ class SmileyFace:
         self.is_listening = False  # Visual indicator when recording audio
 
         # Colors
-        self.eye_color = "#000000"  # Black
-        self.mouth_color = "#000000"  # Black
+        self.eye_color = colors.FACE_EYE_COLOR
+        self.mouth_color = colors.FACE_MOUTH_COLOR
 
         logger.debug(f"SmileyFace initialized: center=({x}, {y}), size={self.size}, screen_width={screen_width}")
 
@@ -999,14 +1013,15 @@ class SevenSegmentDisplay:
     
     # Segment definitions: (x1, y1, x2, y2) for each segment
     # Segments are numbered: top, upper-right, lower-right, bottom, lower-left, upper-left, middle
+    # Added small gaps (0.05) to prevent rounded caps from overlapping
     SEGMENTS = [
-        (0.1, 0.0, 0.9, 0.0),   # Top (0)
-        (0.9, 0.05, 0.9, 0.45), # Upper-right (1)
-        (0.9, 0.55, 0.9, 0.95), # Lower-right (2)
-        (0.1, 1.0, 0.9, 1.0),   # Bottom (3)
-        (0.1, 0.55, 0.1, 0.95), # Lower-left (4)
-        (0.1, 0.05, 0.1, 0.45), # Upper-left (5)
-        (0.1, 0.5, 0.9, 0.5),   # Middle (6)
+        (0.15, 0.03, 0.85, 0.03),   # Top (0)
+        (0.87, 0.08, 0.87, 0.43),   # Upper-right (1)
+        (0.87, 0.57, 0.87, 0.92),   # Lower-right (2)
+        (0.15, 0.97, 0.85, 0.97),   # Bottom (3)
+        (0.13, 0.57, 0.13, 0.92),   # Lower-left (4)
+        (0.13, 0.08, 0.13, 0.43),   # Upper-left (5)
+        (0.15, 0.5, 0.85, 0.5),     # Middle (6)
     ]
     
     # Digit patterns: which segments are ON for each digit 0-9
@@ -1041,9 +1056,9 @@ class SevenSegmentDisplay:
         # Height is 1.67x width (standard 7-segment aspect ratio)
         self.height = int(self.width * 1.67)
         self.segment_items = []
-        self.on_color = "#1a1a1a"  # Dark gray/black
-        self.off_color = "#e0e0e0"  # Light gray
-        self.segment_width = max(3, int(self.width * 0.05))
+        self.on_color = colors.TIMER_DIGIT_ON  # Light grey for active segments
+        self.off_color = colors.TIMER_DIGIT_OFF  # Dark grey for inactive segments
+        self.segment_width = max(6, int(self.width * 0.10))  # Thicker lines for better visibility
     
     def _get_segment_coords(self, segment_idx: int) -> Tuple[int, int, int, int]:
         """Get absolute coordinates for a segment.
@@ -1185,7 +1200,7 @@ class TimerDisplay:
         top_dot = self.canvas.create_oval(
             x - dot_size, y - dot_spacing - dot_size,
             x + dot_size, y - dot_spacing + dot_size,
-            fill="#1a1a1a",
+            fill=colors.TIMER_COLON_COLOR,
             outline=""
         )
         items_list.append(top_dot)
@@ -1194,7 +1209,7 @@ class TimerDisplay:
         bottom_dot = self.canvas.create_oval(
             x - dot_size, y + dot_spacing - dot_size,
             x + dot_size, y + dot_spacing + dot_size,
-            fill="#1a1a1a",
+            fill=colors.TIMER_COLON_COLOR,
             outline=""
         )
         items_list.append(bottom_dot)
@@ -1283,6 +1298,341 @@ class TimerDisplay:
         self.break_colon_items.clear()
 
 
+class TimerControls:
+    """Touch-friendly controls for timer (pause/play and end buttons)."""
+    
+    def __init__(self, canvas: tk.Canvas, x: int, y: int, screen_width: int, 
+                 on_pause_play: callable, on_end: callable):
+        """Initialize timer controls.
+        
+        Args:
+            canvas: Canvas to draw on
+            x: Center x coordinate
+            y: Top y coordinate
+            screen_width: Screen width for responsive sizing
+            on_pause_play: Callback for pause/play button click
+            on_end: Callback for end button click
+        """
+        self.canvas = canvas
+        self.center_x = x
+        self.top_y = y
+        self.screen_width = screen_width
+        self.on_pause_play = on_pause_play
+        self.on_end = on_end
+        self.items = []
+        self.pause_play_rect = None
+        self.end_rect = None
+        self.is_paused = False
+        
+        # Button sizing - touch-friendly
+        self.button_height = max(60, int(screen_width * 0.08))  # 8% of width, min 60px
+        self.button_width = int(screen_width * 0.15)  # 15% of width
+        self.button_spacing = int(screen_width * 0.03)  # 3% spacing
+        
+        self._draw()
+    
+    def _draw(self) -> None:
+        """Draw the control buttons."""
+        # Clear previous items
+        for item in self.items:
+            self.canvas.delete(item)
+        self.items = []
+        
+        # Calculate button positions (centered horizontally)
+        total_width = (self.button_width * 2) + self.button_spacing
+        start_x = self.center_x - (total_width // 2)
+        
+        # Pause/Play button (left)
+        pause_play_x1 = start_x
+        pause_play_y1 = self.top_y
+        pause_play_x2 = start_x + self.button_width
+        pause_play_y2 = self.top_y + self.button_height
+
+        self.pause_play_rect = (pause_play_x1, pause_play_y1, pause_play_x2, pause_play_y2)
+
+        # Draw button shadow for depth
+        shadow_offset = 3
+        pause_play_shadow = self.canvas.create_rectangle(
+            pause_play_x1 + shadow_offset, pause_play_y1 + shadow_offset,
+            pause_play_x2 + shadow_offset, pause_play_y2 + shadow_offset,
+            fill="#000000",
+            outline="",
+            width=0
+        )
+        self.items.append(pause_play_shadow)
+
+        # Draw button background
+        bg_color = colors.BUTTON_PAUSE if not self.is_paused else colors.BUTTON_PLAY
+        pause_play_bg = self.canvas.create_rectangle(
+            pause_play_x1, pause_play_y1, pause_play_x2, pause_play_y2,
+            fill=bg_color,
+            outline=colors.BUTTON_OUTLINE,
+            width=3
+        )
+        self.items.append(pause_play_bg)
+
+        # Draw pause/play icon (simple text for now)
+        icon_text = "⏸" if not self.is_paused else "▶"
+        font_size = max(20, int(self.screen_width * 0.03))
+        pause_play_text = self.canvas.create_text(
+            (pause_play_x1 + pause_play_x2) // 2,
+            (pause_play_y1 + pause_play_y2) // 2,
+            text=icon_text,
+            font=("Arial", font_size, "bold"),
+            fill="white"
+        )
+        self.items.append(pause_play_text)
+        
+        # End button (right)
+        end_x1 = start_x + self.button_width + self.button_spacing
+        end_y1 = self.top_y
+        end_x2 = end_x1 + self.button_width
+        end_y2 = self.top_y + self.button_height
+
+        self.end_rect = (end_x1, end_y1, end_x2, end_y2)
+
+        # Draw button shadow for depth
+        end_shadow = self.canvas.create_rectangle(
+            end_x1 + shadow_offset, end_y1 + shadow_offset,
+            end_x2 + shadow_offset, end_y2 + shadow_offset,
+            fill="#000000",
+            outline="",
+            width=0
+        )
+        self.items.append(end_shadow)
+
+        # Draw button background
+        end_bg = self.canvas.create_rectangle(
+            end_x1, end_y1, end_x2, end_y2,
+            fill=colors.BUTTON_END,
+            outline=colors.BUTTON_OUTLINE,
+            width=3
+        )
+        self.items.append(end_bg)
+
+        # Draw end icon/text
+        end_text = self.canvas.create_text(
+            (end_x1 + end_x2) // 2,
+            (end_y1 + end_y2) // 2,
+            text="End",
+            font=("Arial", max(16, int(self.screen_width * 0.025)), "bold"),
+            fill="white"
+        )
+        self.items.append(end_text)
+    
+    def handle_click(self, x: int, y: int) -> bool:
+        """Handle click event. Returns True if click was handled."""
+        if not self.pause_play_rect or not self.end_rect:
+            return False
+        
+        px1, py1, px2, py2 = self.pause_play_rect
+        ex1, ey1, ex2, ey2 = self.end_rect
+        
+        if px1 <= x <= px2 and py1 <= y <= py2:
+            # Pause/Play button clicked
+            self.on_pause_play()
+            return True
+        elif ex1 <= x <= ex2 and ey1 <= y <= ey2:
+            # End button clicked
+            self.on_end()
+            return True
+        
+        return False
+    
+    def set_paused(self, is_paused: bool) -> None:
+        """Update paused state and redraw."""
+        if self.is_paused != is_paused:
+            self.is_paused = is_paused
+            self._draw()
+    
+    def clear(self) -> None:
+        """Clear the controls."""
+        for item in self.items:
+            self.canvas.delete(item)
+        self.items = []
+        self.pause_play_rect = None
+        self.end_rect = None
+
+
+class ConfirmationDialog:
+    """Modal-style confirmation dialog for ending timer session."""
+    
+    def __init__(self, canvas: tk.Canvas, x: int, y: int, screen_width: int,
+                 on_confirm: callable, on_cancel: callable):
+        """Initialize confirmation dialog.
+        
+        Args:
+            canvas: Canvas to draw on
+            x: Center x coordinate
+            y: Center y coordinate
+            screen_width: Screen width for responsive sizing
+            on_confirm: Callback for confirm button
+            on_cancel: Callback for cancel button
+        """
+        self.canvas = canvas
+        self.center_x = x
+        self.center_y = y
+        self.screen_width = screen_width
+        self.on_confirm = on_confirm
+        self.on_cancel = on_cancel
+        self.items = []
+        self.confirm_rect = None
+        self.cancel_rect = None
+        
+        # Dialog sizing
+        self.width = int(screen_width * 0.4)  # 40% of width
+        self.height = int(screen_width * 0.15)  # 15% of width
+        self.button_height = max(50, int(screen_width * 0.06))
+        self.button_width = int(self.width * 0.35)
+        
+        self._draw()
+    
+    def _draw(self) -> None:
+        """Draw the confirmation dialog."""
+        # Clear previous items
+        for item in self.items:
+            self.canvas.delete(item)
+        self.items = []
+        
+        # Dialog background (semi-transparent overlay effect)
+        x1 = self.center_x - (self.width // 2)
+        y1 = self.center_y - (self.height // 2)
+        x2 = self.center_x + (self.width // 2)
+        y2 = self.center_y + (self.height // 2)
+        
+        # Background rectangle with shadow for depth
+        shadow_offset = 4
+        shadow = self.canvas.create_rectangle(
+            x1 + shadow_offset, y1 + shadow_offset,
+            x2 + shadow_offset, y2 + shadow_offset,
+            fill="#000000",
+            outline="",
+            width=0
+        )
+        self.items.append(shadow)
+
+        bg = self.canvas.create_rectangle(
+            x1, y1, x2, y2,
+            fill=colors.DIALOG_BG,
+            outline=colors.DIALOG_OUTLINE,
+            width=4
+        )
+        self.items.append(bg)
+
+        # Message text
+        message_y = y1 + int(self.height * 0.35)
+        font_size = max(16, int(self.screen_width * 0.025))
+        message = self.canvas.create_text(
+            self.center_x, message_y,
+            text="End focus session?",
+            font=("Arial", font_size, "bold"),
+            fill=colors.DIALOG_TEXT
+        )
+        self.items.append(message)
+        
+        # Buttons
+        button_y = y1 + int(self.height * 0.65)
+        button_spacing = int(self.width * 0.1)
+        total_button_width = (self.button_width * 2) + button_spacing
+        button_start_x = self.center_x - (total_button_width // 2)
+        
+        # Cancel button (left)
+        cancel_x1 = button_start_x
+        cancel_y1 = button_y - (self.button_height // 2)
+        cancel_x2 = cancel_x1 + self.button_width
+        cancel_y2 = button_y + (self.button_height // 2)
+
+        self.cancel_rect = (cancel_x1, cancel_y1, cancel_x2, cancel_y2)
+
+        # Draw button shadow for depth
+        shadow_offset = 3
+        cancel_shadow = self.canvas.create_rectangle(
+            cancel_x1 + shadow_offset, cancel_y1 + shadow_offset,
+            cancel_x2 + shadow_offset, cancel_y2 + shadow_offset,
+            fill="#000000",
+            outline="",
+            width=0
+        )
+        self.items.append(cancel_shadow)
+
+        cancel_bg = self.canvas.create_rectangle(
+            cancel_x1, cancel_y1, cancel_x2, cancel_y2,
+            fill=colors.BUTTON_CANCEL,
+            outline=colors.BUTTON_OUTLINE,
+            width=3
+        )
+        self.items.append(cancel_bg)
+
+        cancel_text = self.canvas.create_text(
+            (cancel_x1 + cancel_x2) // 2, button_y,
+            text="Cancel",
+            font=("Arial", max(14, int(self.screen_width * 0.022)), "bold"),
+            fill="white"
+        )
+        self.items.append(cancel_text)
+        
+        # Confirm button (right)
+        confirm_x1 = button_start_x + self.button_width + button_spacing
+        confirm_y1 = cancel_y1
+        confirm_x2 = confirm_x1 + self.button_width
+        confirm_y2 = cancel_y2
+
+        self.confirm_rect = (confirm_x1, confirm_y1, confirm_x2, confirm_y2)
+
+        # Draw button shadow for depth
+        confirm_shadow = self.canvas.create_rectangle(
+            confirm_x1 + shadow_offset, confirm_y1 + shadow_offset,
+            confirm_x2 + shadow_offset, confirm_y2 + shadow_offset,
+            fill="#000000",
+            outline="",
+            width=0
+        )
+        self.items.append(confirm_shadow)
+
+        confirm_bg = self.canvas.create_rectangle(
+            confirm_x1, confirm_y1, confirm_x2, confirm_y2,
+            fill=colors.BUTTON_CONFIRM,
+            outline=colors.BUTTON_OUTLINE,
+            width=3
+        )
+        self.items.append(confirm_bg)
+
+        confirm_text = self.canvas.create_text(
+            (confirm_x1 + confirm_x2) // 2, button_y,
+            text="Yes",
+            font=("Arial", max(14, int(self.screen_width * 0.022)), "bold"),
+            fill="white"
+        )
+        self.items.append(confirm_text)
+    
+    def handle_click(self, x: int, y: int) -> bool:
+        """Handle click event. Returns True if click was handled."""
+        if not self.confirm_rect or not self.cancel_rect:
+            return False
+        
+        cx1, cy1, cx2, cy2 = self.confirm_rect
+        canx1, cany1, canx2, cany2 = self.cancel_rect
+        
+        if cx1 <= x <= cx2 and cy1 <= y <= cy2:
+            # Confirm button clicked
+            self.on_confirm()
+            return True
+        elif canx1 <= x <= canx2 and cany1 <= y <= cany2:
+            # Cancel button clicked
+            self.on_cancel()
+            return True
+        
+        return False
+    
+    def clear(self) -> None:
+        """Clear the dialog."""
+        for item in self.items:
+            self.canvas.delete(item)
+        self.items = []
+        self.confirm_rect = None
+        self.cancel_rect = None
+
+
 class IdeaNotification:
     """Toast-style notification for idea creation."""
     
@@ -1349,12 +1699,12 @@ class IdeaNotification:
         
         bg = self.canvas.create_rectangle(
             x1, y1, x2, y2,
-            fill="#f0f0f0",
-            outline="#888888",
+            fill=colors.NOTIFICATION_BG,
+            outline=colors.NOTIFICATION_OUTLINE,
             width=2
         )
         self.items.append(bg)
-        
+
         # Lightbulb icon (simple circle) - scale with screen
         icon_size = int(self.screen_width * 0.01875)  # 1.875% of width
         icon_x = x1 + icon_size
@@ -1362,15 +1712,16 @@ class IdeaNotification:
         icon = self.canvas.create_oval(
             icon_x - icon_size, icon_y - icon_size,
             icon_x + icon_size, icon_y + icon_size,
-            fill="#FFD700",
-            outline="#CCAA00",
+            fill=colors.NOTIFICATION_ICON_BG,
+            outline=colors.NOTIFICATION_ICON_OUTLINE,
             width=max(1, int(self.screen_width * 0.0025))
         )
         self.items.append(icon)
         
         # Text (opacity handled by fill color)
-        # Fade from light gray (#999999 = 153) to black (#333333 = 51)
-        text_value = int(153 - (102 * self.alpha))  # 153 -> 51
+        # Fade from medium grey to light grey
+        text_value = int(colors.NOTIFICATION_TEXT_START_RGB +
+                        ((colors.NOTIFICATION_TEXT_END_RGB - colors.NOTIFICATION_TEXT_START_RGB) * self.alpha))
         text_color = f"#{text_value:02x}{text_value:02x}{text_value:02x}"
         
         # Scale font size based on screen width
@@ -1454,7 +1805,7 @@ class HenryGUI(tk.Tk):
             self.geometry(f"{screen_width}x{screen_height}")
         else:
             self.geometry("800x480")
-        self.configure(bg="white")
+        self.configure(bg=colors.MAIN_BG)
 
         self._state = UIState()
         self._api_base_url = api_base_url or os.getenv("API_BASE_URL") or API_BASE_URL
@@ -1491,17 +1842,17 @@ class HenryGUI(tk.Tk):
 
         style = ttk.Style(self)
         style.theme_use("clam")
-        style.configure("TFrame", background="white")
-        style.configure("TLabel", background="white", foreground="#333333")
-        
+        style.configure("TFrame", background=colors.FRAME_BG)
+        style.configure("TLabel", background=colors.FRAME_BG, foreground=colors.TEXT_PRIMARY)
+
         # Define custom styles for status labels
-        style.configure("StatusLabel.TLabel", background="white", foreground="#228B22")  # Connected
-        style.configure("ErrorLabel.TLabel", background="white", foreground="#DC143C")  # Disconnected
+        style.configure("StatusLabel.TLabel", background=colors.FRAME_BG, foreground=colors.STATUS_CONNECTED)
+        style.configure("ErrorLabel.TLabel", background=colors.FRAME_BG, foreground=colors.STATUS_DISCONNECTED)
 
         # Content area for smiley face, timer, etc. - fill entire frame
         self.content_canvas = tk.Canvas(
             self.main_frame,
-            bg="white",
+            bg=colors.CANVAS_BG,
             highlightthickness=0
         )
         self.content_canvas.grid(row=0, column=0, sticky="nsew")
@@ -1509,9 +1860,14 @@ class HenryGUI(tk.Tk):
         # Bind to canvas resize to update layout
         self.content_canvas.bind("<Configure>", self._on_canvas_configure)
         
+        # Bind click events for timer controls
+        self.content_canvas.bind("<Button-1>", self._on_canvas_click)
+        
         # Initialize UI components
         self.smiley_face: Optional[SmileyFace] = None
         self.timer_display: Optional[TimerDisplay] = None
+        self.timer_controls: Optional[TimerControls] = None
+        self.confirmation_dialog: Optional[ConfirmationDialog] = None
         self.idea_notification: Optional[IdeaNotification] = None
         
         # Track last interaction time for bored state
@@ -1542,7 +1898,7 @@ class HenryGUI(tk.Tk):
         self.footer = ttk.Frame(self, padding=(16, 8))
         self.footer.grid(row=1, column=0, sticky="ew")
         self.footer.columnconfigure(0, weight=1)
-        style.configure("TFrame", background="white")
+        style.configure("TFrame", background=colors.FOOTER_BG)
         self.footer_label = ttk.Label(
             self.footer, 
             text=f"H.E.N.R.Y. - Connecting to {self._api_base_url}...",
@@ -1641,7 +1997,7 @@ class HenryGUI(tk.Tk):
                 x, y,
                 text=display_text,
                 font=font,
-                fill="#333333",
+                fill=colors.TEXT_PRIMARY,
                 anchor="center",
                 width=max_width,
                 justify="center"
@@ -1660,12 +2016,16 @@ class HenryGUI(tk.Tk):
                 resp = self._client.get(f"{self._api_base_url}/conversation/ui/state", timeout=CONNECTION_TIMEOUT)
                 resp.raise_for_status()
                 data = resp.json()
-                
+
+                # Track when timer state was received for countdown calculation
+                timer_state_received_at = time.time() if data.get("timer_state") else 0.0
+
                 self._state = UIState(
                     active_view=data.get("active_view", "idle"),
                     status_text=data.get("status_text", ""),
                     timer_state=data.get("timer_state") or {},
                     idea_view=data.get("idea_view") or {},
+                    timer_state_received_at=timer_state_received_at,
                 )
                 
                 # Connection successful
@@ -1759,11 +2119,23 @@ class HenryGUI(tk.Tk):
         center_y = canvas_height // 2
         
         # Only clear and redraw if view changed or timer needs update
+        # Preserve confirmation dialog state before clearing
+        had_confirmation_dialog = self.confirmation_dialog is not None
         if view_changed or (self._state.active_view == "pomodoro" and timer_changed):
             # Clear canvas only when view changes
             self.content_canvas.delete("all")
             self.smiley_face = None
             self.timer_display = None
+            self.timer_controls = None
+            # Clear confirmation dialog reference (will redraw if it was visible)
+            if self.confirmation_dialog:
+                self.confirmation_dialog.clear()
+            # Only reset dialog on view change, preserve it on timer updates
+            if view_changed:
+                self.confirmation_dialog = None
+                had_confirmation_dialog = False
+            else:
+                self.confirmation_dialog = None
             # Reset transcription text ID so it gets redrawn
             self._transcription_text_id = None
         
@@ -1809,6 +2181,25 @@ class HenryGUI(tk.Tk):
                     else:
                         # Just update timer values
                         self._update_timer_display()
+                
+                # Show timer controls below timer display
+                timer_status = self._state.timer_state.get("status", "paused")
+                if self.timer_controls is None or view_changed:
+                    # Position controls below timer (work timer + break timer + spacing)
+                    timer_display_height = (self.timer_display.digit_height * 2) + int(canvas_width * 0.05) if self.timer_display else 200
+                    controls_y = int(canvas_height * 0.35) + timer_display_height + int(canvas_width * 0.05)
+                    self._show_timer_controls(center_x, controls_y, canvas_width, timer_status == "paused")
+                else:
+                    # Update controls state
+                    self.timer_controls.set_paused(timer_status == "paused")
+
+                # Redraw confirmation dialog if it was visible before canvas clear
+                if had_confirmation_dialog and self.confirmation_dialog is None:
+                    self.confirmation_dialog = ConfirmationDialog(
+                        self.content_canvas, center_x, center_y, canvas_width,
+                        on_confirm=self._handle_end_confirm,
+                        on_cancel=self._handle_end_cancel
+                    )
             # Hide smiley face
             if self.smiley_face:
                 for item in getattr(self.smiley_face, 'face_items', []):
@@ -1847,6 +2238,14 @@ class HenryGUI(tk.Tk):
             if self.timer_display:
                 self.timer_display.clear()
                 self.timer_display = None
+            # Hide timer controls
+            if self.timer_controls:
+                self.timer_controls.clear()
+                self.timer_controls = None
+            # Hide confirmation dialog if visible
+            if self.confirmation_dialog:
+                self.confirmation_dialog.clear()
+                self.confirmation_dialog = None
             # Stop timer updates
             if self._timer_update_job:
                 self.after_cancel(self._timer_update_job)
@@ -1889,50 +2288,39 @@ class HenryGUI(tk.Tk):
         """Update timer display values without full UI refresh."""
         if self.timer_display is None:
             return
-        
-        # Calculate remaining time (same logic as _show_timer_display)
+
         timer_state = self._state.timer_state
         if not timer_state:
             return
-        
+
+        # Get remaining seconds from state (calculated server-side)
+        remaining_work_seconds = timer_state.get("remaining_work_seconds", 0)
+        remaining_break_seconds = timer_state.get("remaining_break_seconds", 0)
+        phase = timer_state.get("phase", "work")
         status = timer_state.get("status", "paused")
-        work_duration_minutes = timer_state.get("work_duration_minutes", 25)
-        break_duration_minutes = timer_state.get("break_duration_minutes", 5)
-        
-        updated_at_str = timer_state.get("updated_at")
-        total_work_seconds_elapsed = timer_state.get("total_work_seconds", 0)
-        
-        now = datetime.now(timezone.utc)
-        total_work_seconds = work_duration_minutes * 60
-        
-        if status == "running" and updated_at_str:
-            try:
-                updated_at = datetime.fromisoformat(updated_at_str.replace('Z', '+00:00'))
-                if updated_at.tzinfo is None:
-                    updated_at = updated_at.replace(tzinfo=timezone.utc)
-                
-                elapsed_since_update = (now - updated_at).total_seconds()
-                total_elapsed = total_work_seconds_elapsed + elapsed_since_update
-                remaining_work_seconds = max(0, int(total_work_seconds - total_elapsed))
-                
-                work_minutes = remaining_work_seconds // 60
-                work_seconds = remaining_work_seconds % 60
-                
-                self.timer_display.update_timer(
-                    work_minutes, work_seconds,
-                    break_minutes=break_duration_minutes,
-                    break_seconds=0
-                )
-            except (ValueError, TypeError) as e:
-                logger.debug(f"Error parsing timer timestamps: {e}")
-                self.timer_display.update_timer(work_duration_minutes, 0)
-        elif status == "paused":
-            remaining_work_seconds = max(0, int(total_work_seconds - total_work_seconds_elapsed))
-            work_minutes = remaining_work_seconds // 60
-            work_seconds = remaining_work_seconds % 60
-            self.timer_display.update_timer(work_minutes, work_seconds)
-        else:
-            self.timer_display.update_timer(work_duration_minutes, 0)
+
+        # If timer is running, calculate elapsed time since last state update
+        if status == "running" and self._state.timer_state_received_at > 0:
+            elapsed_since_update = int(time.time() - self._state.timer_state_received_at)
+
+            # Subtract elapsed time from the appropriate counter based on phase
+            if phase == "work":
+                remaining_work_seconds = max(0, remaining_work_seconds - elapsed_since_update)
+            elif phase == "break":
+                remaining_break_seconds = max(0, remaining_break_seconds - elapsed_since_update)
+
+        work_minutes = remaining_work_seconds // 60
+        work_seconds = remaining_work_seconds % 60
+
+        # Always show both timers (work on top, break below)
+        # Break timer shows remaining time if in break phase, otherwise full duration
+        break_minutes = remaining_break_seconds // 60
+        break_seconds = remaining_break_seconds % 60
+        self.timer_display.update_timer(
+            work_minutes, work_seconds,
+            break_minutes=break_minutes,
+            break_seconds=break_seconds
+        )
     
     def _show_smiley_face(self, x: int, y: int, screen_width: int) -> None:
         """Show smiley face at position.
@@ -1955,6 +2343,20 @@ class HenryGUI(tk.Tk):
             # Redraw if position changed significantly
             if abs(self.smiley_face.center_x - x) > 10 or abs(self.smiley_face.center_y - y) > 10:
                 self.smiley_face._draw_face()
+    
+    def _on_canvas_click(self, event) -> None:
+        """Handle canvas click events for timer controls and confirmation dialog."""
+        x, y = event.x, event.y
+        
+        # Check confirmation dialog first (if visible)
+        if self.confirmation_dialog:
+            if self.confirmation_dialog.handle_click(x, y):
+                return
+        
+        # Check timer controls (if visible)
+        if self.timer_controls:
+            if self.timer_controls.handle_click(x, y):
+                return
     
     def _on_canvas_configure(self, event) -> None:
         """Handle canvas resize event."""
@@ -1984,6 +2386,11 @@ class HenryGUI(tk.Tk):
                     self.timer_display.clear()
                     self.timer_display = None
                     logger.debug("Cleared timer display for resize")
+                
+                if self.timer_controls:
+                    self.timer_controls.clear()
+                    self.timer_controls = None
+                    logger.debug("Cleared timer controls for resize")
 
                 # Refresh UI will recreate elements at new center
                 self._refresh_ui()
@@ -2032,6 +2439,14 @@ class HenryGUI(tk.Tk):
                     self._swipe_items.extend(display.segment_items)
                 self._swipe_items.extend(self.timer_display.colon_items)
                 self._swipe_items.extend(self.timer_display.break_colon_items)
+            
+            # Also create and animate timer controls
+            timer_status = self._state.timer_state.get("status", "paused")
+            timer_display_height = (self.timer_display.digit_height * 2) + int(screen_width * 0.05) if self.timer_display else 200
+            controls_y = int(canvas_height * 0.35) + timer_display_height + int(screen_width * 0.05)
+            self._show_timer_controls(start_x, controls_y, screen_width, timer_status == "paused")
+            if self.timer_controls:
+                self._swipe_items.extend(self.timer_controls.items)
         elif self._state.active_view == "ideas":
             # Create idea notification off-screen
             idea_id = self._state.idea_view.get("active_idea_id")
@@ -2041,48 +2456,80 @@ class HenryGUI(tk.Tk):
                 if self.idea_notification:
                     self._swipe_items.extend(self.idea_notification.items)
         
-        # Animate swipe-in
-        animation_duration = 300  # ms
-        frame_time = 16  # ~60 FPS
-        num_frames = animation_duration // frame_time
-        current_frame = [0]
-        last_x = [start_x]
+        # Animate swipe-in with time-based lerp for smoother animation
+        animation_duration_ms = 500  # Increased duration for smoother feel (500ms)
+        frame_time_ms = 8  # More frequent updates (~120 FPS target, but will adapt to actual frame rate)
+        start_time = [time.time() * 1000]  # Start time in milliseconds
+        last_x = [start_x]  # Last x position for delta calculation
         
         def animate_frame():
-            if current_frame[0] >= num_frames:
+            current_time_ms = time.time() * 1000
+            elapsed_ms = current_time_ms - start_time[0]
+            
+            if elapsed_ms >= animation_duration_ms:
                 # Animation complete - ensure final position
+                final_delta = target_x - last_x[0]
+                if abs(final_delta) > 0.1:
+                    for item in self._swipe_items:
+                        try:
+                            self.content_canvas.move(item, final_delta, 0)
+                        except:
+                            pass
+                
                 if self.timer_display:
                     self.timer_display.center_x = target_x
+                    # Force final update
+                    self._update_timer_display()
                 if self.idea_notification:
                     self.idea_notification.center_x = target_x
+                if self.timer_controls:
+                    # Also animate controls if they exist
+                    self.timer_controls.center_x = target_x
                 self._swipe_animation_job = None
                 return
             
-            # Ease-out curve: 1 - (1-t)^3
-            t = current_frame[0] / num_frames
+            # Normalized progress (0.0 to 1.0)
+            t = min(1.0, elapsed_ms / animation_duration_ms)
+            
+            # Smooth ease-out curve: 1 - (1-t)^3
+            # This provides smooth deceleration
             ease_t = 1 - pow(1 - t, 3)
             
-            # Calculate current x position
+            # Lerp current x position
             current_x = start_x + (target_x - start_x) * ease_t
             
-            # Move all items by delta
+            # Calculate delta from last position for smooth movement
             delta_x = current_x - last_x[0]
-            if abs(delta_x) > 0.1:
+            
+            # Only move if delta is significant (reduces jitter and improves performance)
+            if abs(delta_x) > 0.5:
+                # Move all items smoothly
                 for item in self._swipe_items:
                     try:
                         self.content_canvas.move(item, delta_x, 0)
                     except:
                         pass
+                
+                # Update display positions
+                if self.timer_display:
+                    self.timer_display.center_x = current_x
+                if self.idea_notification:
+                    self.idea_notification.center_x = current_x
+                if self.timer_controls:
+                    self.timer_controls.center_x = current_x
+                
+                last_x[0] = current_x
             
-            # Update display positions
-            if self.timer_display:
-                self.timer_display.center_x = current_x
-            if self.idea_notification:
-                self.idea_notification.center_x = current_x
+            # Schedule next frame - use adaptive timing
+            # If we're behind, use shorter delay to catch up
+            actual_frame_time = time.time() * 1000 - current_time_ms
+            if actual_frame_time > frame_time_ms * 2:
+                # We're running slow, use shorter delay to catch up
+                next_delay = max(4, int(frame_time_ms * 0.5))
+            else:
+                next_delay = frame_time_ms
             
-            last_x[0] = current_x
-            current_frame[0] += 1
-            self._swipe_animation_job = self.after(frame_time, animate_frame)
+            self._swipe_animation_job = self.after(next_delay, animate_frame)
         
         # Start animation
         animate_frame()
@@ -2109,6 +2556,125 @@ class HenryGUI(tk.Tk):
         
         # Update timer values after creating/positioning display
         self._update_timer_display()
+    
+    def _show_timer_controls(self, x: int, y: int, screen_width: int, is_paused: bool) -> None:
+        """Show timer controls at position.
+        
+        Args:
+            x: Center x coordinate
+            y: Top y coordinate
+            screen_width: Screen width for responsive sizing
+            is_paused: Whether timer is currently paused
+        """
+        if self.timer_controls is None or (
+            hasattr(self.timer_controls, 'screen_width') and self.timer_controls.screen_width != screen_width
+        ):
+            # Clear old controls
+            if self.timer_controls:
+                self.timer_controls.clear()
+            self.timer_controls = TimerControls(
+                self.content_canvas, x, y, screen_width,
+                on_pause_play=self._handle_pause_play,
+                on_end=self._handle_end_click
+            )
+        else:
+            # Update position and state
+            self.timer_controls.center_x = x
+            self.timer_controls.top_y = y
+            self.timer_controls.set_paused(is_paused)
+    
+    def _handle_pause_play(self) -> None:
+        """Handle pause/play button click."""
+        timer_state = self._state.timer_state
+        if not timer_state:
+            return
+        
+        session_id = timer_state.get("session_id")
+        if not session_id:
+            return
+        
+        status = timer_state.get("status", "paused")
+        api_url = f"{self._api_base_url}/productivity/pomodoro/{session_id}"
+        
+        try:
+            if status == "running":
+                # Pause the timer
+                response = self._client.post(f"{api_url}/pause", timeout=CONNECTION_TIMEOUT)
+                response.raise_for_status()
+                logger.info("Timer paused")
+            else:
+                # Resume the timer
+                response = self._client.post(f"{api_url}/resume", timeout=CONNECTION_TIMEOUT)
+                response.raise_for_status()
+                logger.info("Timer resumed")
+            
+            # Refresh UI state will update controls
+            self._refresh_ui()
+        except Exception as e:
+            logger.error(f"Error toggling timer: {e}", exc_info=True)
+    
+    def _handle_end_click(self) -> None:
+        """Handle end button click - show confirmation dialog."""
+        # Show confirmation dialog
+        self.update_idletasks()
+        canvas_width = self.content_canvas.winfo_width()
+        canvas_height = self.content_canvas.winfo_height()
+        if canvas_width <= 1:
+            canvas_width = self.winfo_width() or 800
+        if canvas_height <= 1:
+            canvas_height = self.winfo_height() or 480
+        
+        center_x = canvas_width // 2
+        center_y = canvas_height // 2
+        
+        if self.confirmation_dialog:
+            self.confirmation_dialog.clear()
+        
+        self.confirmation_dialog = ConfirmationDialog(
+            self.content_canvas, center_x, center_y, canvas_width,
+            on_confirm=self._handle_end_confirm,
+            on_cancel=self._handle_end_cancel
+        )
+    
+    def _handle_end_confirm(self) -> None:
+        """Handle confirmation to end timer session."""
+        timer_state = self._state.timer_state
+        if not timer_state:
+            return
+        
+        session_id = timer_state.get("session_id")
+        if not session_id:
+            return
+        
+        api_url = f"{self._api_base_url}/productivity/pomodoro/{session_id}/stop"
+        
+        try:
+            response = self._client.post(api_url, timeout=CONNECTION_TIMEOUT)
+            response.raise_for_status()
+            logger.info("Timer session ended")
+            
+            # Clear confirmation dialog
+            if self.confirmation_dialog:
+                self.confirmation_dialog.clear()
+                self.confirmation_dialog = None
+            
+            # Reset interaction time to make Henry happy
+            self._last_interaction_time = time.time()
+            
+            # Refresh UI - will show idle view with happy Henry
+            self._refresh_ui()
+        except Exception as e:
+            logger.error(f"Error ending timer session: {e}", exc_info=True)
+            # Clear dialog even on error
+            if self.confirmation_dialog:
+                self.confirmation_dialog.clear()
+                self.confirmation_dialog = None
+    
+    def _handle_end_cancel(self) -> None:
+        """Handle cancellation of end timer session."""
+        if self.confirmation_dialog:
+            self.confirmation_dialog.clear()
+            self.confirmation_dialog = None
     
     def _show_idea_notification(self, x: int, y: int, text: str, screen_width: int) -> None:
         """Show idea notification.
