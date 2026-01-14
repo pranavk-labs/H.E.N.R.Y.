@@ -49,6 +49,8 @@ logging.getLogger("openwakeword.model").setLevel(logging.WARNING)
 logging.getLogger("openwakeword.utils").setLevel(logging.WARNING)
 # Suppress uvicorn access logs for /conversation/ui/state polling endpoint
 logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+# Suppress Neo4j notification warnings (schema warnings about properties)
+logging.getLogger("neo4j.notifications").setLevel(logging.ERROR)
 
 # Global server instance for signal handling
 _server_config = None
@@ -86,6 +88,7 @@ def main():
             port=port,
             reload=reload,
             reload_dirs=[str(project_root / "backend")] if reload else None,
+            reload_excludes=["*.git/*", "*.git", ".git/*", ".git"] if reload else None,
             log_level="info",
             access_log=False,  # Disable access logs (too noisy with polling)
         )
