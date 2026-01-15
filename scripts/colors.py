@@ -29,11 +29,11 @@ TIMER_DIGIT_OFF = "#333333"  # Dark grey for inactive segments
 TIMER_COLON_COLOR = "#e0e0e0"  # Light grey for colon
 
 # Button Colors
-BUTTON_PAUSE = "#5a9fd4"  # Brighter blue for pause button
-BUTTON_PLAY = "#28a745"  # Vibrant green for play button
-BUTTON_END = "#e74c3c"  # Brighter red for end/stop button
+BUTTON_PAUSE = "#50687a"  # Dull blue for pause button
+BUTTON_PLAY = "#3c7a4a"  # Dull green for play button
+BUTTON_END = "#a03c3c"  # Dull red for end/stop button
 BUTTON_CANCEL = "#7f8c8d"  # Medium grey for cancel button
-BUTTON_CONFIRM = "#e74c3c"  # Brighter red for confirm button
+BUTTON_CONFIRM = "#a03c3c"  # Dull red for confirm button
 BUTTON_OUTLINE = "#ffffff"  # White outline for better contrast
 BUTTON_BG = "#2a2a2a"  # Slightly lighter than main background
 
