@@ -35,6 +35,8 @@ class UIStateResponse(BaseModel):
     status_text: str
     timer_state: dict
     idea_view: dict
+    view_stack: List[str] = Field(default_factory=lambda: ["idle"])
+    active_states: List[str] = Field(default_factory=list)
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -81,7 +83,17 @@ async def ui_state() -> Any:
         status_text=state.status_text,
         timer_state=state.timer_state,
         idea_view=state.idea_view,
+        view_stack=state.view_stack,
+        active_states=state.active_states,
     )
+
+
+@router.post("/ui/back")
+async def go_back() -> Any:
+    """Navigate back to the previous view."""
+    screen = ScreenManager.get_instance()
+    success = screen.go_back()
+    return {"success": success, "current_view": screen.state.active_view}
 
 
 

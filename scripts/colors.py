@@ -35,6 +35,7 @@ BUTTON_END = "#e74c3c"  # Brighter red for end/stop button
 BUTTON_CANCEL = "#7f8c8d"  # Medium grey for cancel button
 BUTTON_CONFIRM = "#e74c3c"  # Brighter red for confirm button
 BUTTON_OUTLINE = "#ffffff"  # White outline for better contrast
+BUTTON_BG = "#2a2a2a"  # Slightly lighter than main background
 
 # Dialog Colors
 DIALOG_BG = "#2a2a2a"  # Slightly lighter than main background

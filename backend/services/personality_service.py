@@ -11,6 +11,7 @@ It is intentionally simple for Phase 3 while leaving room for future expansion.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional
 
@@ -115,6 +116,9 @@ class PersonalityService:
             "All text you generate will be read aloud by text-to-speech, so write in plain text only. "
             "This is especially important when saving ideas - always provide clean, readable text.",
             "",
+            "IMPORTANT: When using tools like ideas_tool, NEVER mention idea IDs, numbers, or technical details "
+            "in your response. Simply confirm the action naturally (e.g., 'Got it' or 'I've saved that idea').",
+            "",
             "IMPORTANT: If the user's request is unclear, ambiguous, or missing important details, "
             "ask a clarifying question instead of guessing or making assumptions. "
             "Be conversational and natural when asking for clarification.",
@@ -141,6 +145,40 @@ class PersonalityService:
 
         return "\n".join(lines)
 
+    def _strip_markdown_and_formatting(self, text: str) -> str:
+        """Strip markdown formatting and clean text for TTS.
+        
+        Removes:
+        - Bold/italic asterisks and underscores
+        - Bullet points and numbered lists
+        - Headers
+        - Idea IDs and references
+        - Extra whitespace
+        """
+        # Remove bold/italic asterisks: **text**, *text*, __text__, _text_
+        text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)  # **bold**
+        text = re.sub(r'\*(.+?)\*', r'\1', text)  # *italic*
+        text = re.sub(r'__(.+?)__', r'\1', text)  # __bold__
+        text = re.sub(r'_(.+?)_', r'\1', text)  # _italic_
+        
+        # Remove bullet points at start of lines
+        text = re.sub(r'^\s*[-*+]\s+', '', text, flags=re.MULTILINE)
+        
+        # Remove numbered lists
+        text = re.sub(r'^\s*\d+\.\s+', '', text, flags=re.MULTILINE)
+        
+        # Remove headers
+        text = re.sub(r'^#+\s+', '', text, flags=re.MULTILINE)
+        
+        # Remove idea ID references (e.g., "Idea idea_001" or "idea_001")
+        text = re.sub(r'\b[Ii]dea\s+idea_\d+\b', 'idea', text)
+        text = re.sub(r'\bidea_\d+\b', '', text)
+        
+        # Remove extra whitespace
+        text = re.sub(r'\s+', ' ', text)
+        
+        return text.strip()
+
     def decorate_llm_response(
         self,
         user_id: str,
@@ -155,6 +193,9 @@ class PersonalityService:
         text = raw_text.strip()
         if not text:
             return text
+
+        # Strip markdown and formatting for TTS compatibility
+        text = self._strip_markdown_and_formatting(text)
 
         # Ensure we keep responses concise and aligned with style.
         # This is heuristic and intentionally lightweight.

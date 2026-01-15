@@ -175,14 +175,37 @@ class HenryGUI(tk.Tk):
         self.footer = ttk.Frame(self, padding=(16, 8))
         self.footer.grid(row=1, column=0, sticky="ew")
         self.footer.columnconfigure(0, weight=1)
+        self.footer.columnconfigure(1, weight=0)
+        self.footer.columnconfigure(2, weight=0)
+        self.footer.columnconfigure(3, weight=0)
         style.configure("TFrame", background=colors.FOOTER_BG)
+        style.configure("BackButton.TButton", background=colors.BUTTON_BG, foreground=colors.TEXT_PRIMARY)
+        
         self.footer_label = ttk.Label(
             self.footer, 
             text=f"H.E.N.R.Y. - Connecting to {self._api_base_url}...",
             style="ErrorLabel.TLabel"
         )
         self.footer_label.grid(row=0, column=0, sticky="w")
-
+        
+        # Navigation breadcrumb (shows navigation stack)
+        self.breadcrumb_label = ttk.Label(
+            self.footer,
+            text="",
+            style="StatusLabel.TLabel"
+        )
+        self.breadcrumb_label.grid(row=0, column=1, sticky="e", padx=(16, 8))
+        
+        # Back button
+        self.back_button = ttk.Button(
+            self.footer,
+            text="← Back",
+            command=self._on_back_button,
+            style="BackButton.TButton",
+            width=8
+        )
+        # Initially hidden, will be shown when navigation stack has depth > 1
+        
         # Voice loop status label (if voice loop is enabled)
         if self._voice_loop:
             self.voice_status_label = ttk.Label(
@@ -190,7 +213,7 @@ class HenryGUI(tk.Tk):
                 text="Voice: Starting...",
                 style="ErrorLabel.TLabel"
             )
-            self.voice_status_label.grid(row=0, column=1, sticky="e", padx=(16, 0))
+            self.voice_status_label.grid(row=0, column=3, sticky="e", padx=(16, 0))
 
     def update_voice_status(self, status: str) -> None:
         """Update voice loop status display and listening state (thread-safe)."""
@@ -210,6 +233,52 @@ class HenryGUI(tk.Tk):
                 ))
             except Exception:
                 pass  # GUI might be closed
+    
+    def _on_back_button(self) -> None:
+        """Handle back button click."""
+        if not HAS_HTTPX or not self._client:
+            return
+        
+        try:
+            resp = self._client.post(f"{self._api_base_url}/conversation/ui/back", timeout=CONNECTION_TIMEOUT)
+            resp.raise_for_status()
+            logger.info("Back navigation triggered")
+        except Exception as e:
+            logger.error(f"Failed to trigger back navigation: {e}", exc_info=True)
+    
+    def _update_navigation_ui(self) -> None:
+        """Update navigation breadcrumb and back button visibility."""
+        view_stack = self._state.view_stack if self._state.view_stack else ["idle"]
+        active_states = self._state.active_states if self._state.active_states else []
+        
+        # Show back button only if we can go back (stack depth > 1)
+        can_go_back = len(view_stack) > 1
+        
+        if can_go_back:
+            self.back_button.grid(row=0, column=2, sticky="e", padx=(8, 0))
+        else:
+            self.back_button.grid_remove()
+        
+        # Build breadcrumb text showing navigation path
+        if len(view_stack) > 1:
+            # Show the path: idle > pomodoro > ideas
+            breadcrumb_parts = []
+            for view in view_stack:
+                view_name = view.capitalize()
+                breadcrumb_parts.append(view_name)
+            breadcrumb_text = " > ".join(breadcrumb_parts)
+        else:
+            breadcrumb_text = ""
+        
+        # Add active states indicator if any
+        if active_states:
+            state_text = ", ".join(s.capitalize() for s in active_states)
+            if breadcrumb_text:
+                breadcrumb_text += f" | Active: {state_text}"
+            else:
+                breadcrumb_text = f"Active: {state_text}"
+        
+        self.breadcrumb_label.config(text=breadcrumb_text)
     
     def display_transcription(self, text: str) -> None:
         """Display transcribed text on the GUI (thread-safe).
@@ -303,6 +372,8 @@ class HenryGUI(tk.Tk):
                     timer_state=data.get("timer_state") or {},
                     idea_view=data.get("idea_view") or {},
                     timer_state_received_at=timer_state_received_at,
+                    view_stack=data.get("view_stack", ["idle"]),
+                    active_states=data.get("active_states", []),
                 )
                 
                 # Connection successful
@@ -375,6 +446,9 @@ class HenryGUI(tk.Tk):
             self._last_status_text = self._state.status_text
             self._last_timer_state = self._state.timer_state.copy() if self._state.timer_state else {}
             self._last_idea_view = self._state.idea_view.copy() if self._state.idea_view else {}
+        
+        # Update navigation UI (breadcrumb and back button)
+        self._update_navigation_ui()
         
         # Get canvas dimensions - use actual window size
         self.update_idletasks()
@@ -1030,7 +1104,10 @@ class HenryGUI(tk.Tk):
         # Check if text changed - update if so
         if self.idea_notebook._current_text != text:
             idea_id = self._state.idea_view.get("active_idea_id", "")
+            logger.debug(f"Idea text changed, updating notebook: old={self.idea_notebook._current_text[:50] if self.idea_notebook._current_text else 'None'}... new={text[:50]}...")
             self.idea_notebook.show(text, idea_id)
+        else:
+            logger.debug(f"Idea text unchanged: {text[:50]}...")
 
         # Keep legacy notification hidden
         if self.idea_notification:

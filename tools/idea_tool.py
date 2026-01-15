@@ -96,6 +96,9 @@ class IdeaTool(BaseTool):
         self, new_text: str, tags: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """Merge new context into the active idea."""
+        import logging
+        logger = logging.getLogger(__name__)
+        
         active_id = self._screen.get_active_idea_id()
         if not active_id:
             raise ValueError("No active idea to refine")
@@ -104,9 +107,13 @@ class IdeaTool(BaseTool):
         if not existing:
             raise KeyError(f"Active idea '{active_id}' not found")
 
+        logger.info(f"Refining idea {active_id[:8]}: old={existing.text[:50]}... new={new_text[:50]}...")
+
         # Intelligent merge: if new text is comprehensive, replace; otherwise append
         merged_text = self._merge_idea_text(existing.text, new_text)
         merged_tags = list(set((existing.tags or []) + (tags or [])))
+
+        logger.info(f"Merged text: {merged_text[:100]}...")
 
         idea = self._knowledge.update_idea(
             idea_id=active_id, text=merged_text, tags=merged_tags
@@ -114,8 +121,14 @@ class IdeaTool(BaseTool):
         if idea is None:
             raise KeyError(f"Failed to update idea '{active_id}'")
 
+        logger.info(f"Updated idea in database: {idea.text[:50]}...")
+
+        # Update screen state with new text
         self._screen.set_active_idea(idea.id, idea.text)
         self._screen.update_status("Idea refined")
+        
+        logger.info(f"Screen state updated with refined idea")
+        
         return {"idea": KnowledgeService.idea_to_dict(idea), "action": "refined"}
 
     def _merge_idea_text(self, existing: str, new: str) -> str:

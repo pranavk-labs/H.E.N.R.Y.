@@ -12,27 +12,58 @@ from __future__ import annotations
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ScreenState:
-    """Simple container for current screen-related state."""
+    """Enhanced state container with navigation stack and concurrent state tracking.
+    
+    This state model supports:
+    - Navigation history via a view stack
+    - Concurrent states (timer + idea both active)
+    - Layered views (idea overlay on top of timer view)
+    """
 
-    active_view: str = "idle"
+    # Navigation stack - tracks view history for back navigation
+    # Example: ["idle", "pomodoro", "ideas"] means we're in ideas view,
+    # and going back would return to pomodoro, then idle
+    view_stack: List[str] = field(default_factory=lambda: ["idle"])
+    
     status_text: str = ""
+    
+    # Concurrent state tracking - these can be active simultaneously
     timer_state: Dict[str, Any] = field(default_factory=dict)
     idea_view: Dict[str, Any] = field(default_factory=dict)
+    
     # Active idea tracking
     active_idea_id: Optional[str] = None
     active_idea_text: str = ""
     idea_last_updated: Optional[float] = None
+    
+    # Concurrent active states - tracks which features are currently running
+    # Example: ["timer", "idea"] means both timer and idea are active
+    active_states: List[str] = field(default_factory=list)
+    
+    @property
+    def active_view(self) -> str:
+        """Get the current active view (top of stack)."""
+        return self.view_stack[-1] if self.view_stack else "idle"
+    
+    @property
+    def previous_view(self) -> Optional[str]:
+        """Get the previous view (for back navigation)."""
+        return self.view_stack[-2] if len(self.view_stack) > 1 else None
+    
+    def can_go_back(self) -> bool:
+        """Check if we can navigate back."""
+        return len(self.view_stack) > 1
 
 
 class ScreenManager:
-    """Mock screen manager that tools can interact with."""
+    """Screen manager with navigation stack and concurrent state tracking."""
 
     _instance: Optional["ScreenManager"] = None
 
@@ -52,12 +83,131 @@ class ScreenManager:
         return self._state
 
     # ------------------------------------------------------------------
-    # High-level helpers used by tools
+    # Navigation stack methods
+    # ------------------------------------------------------------------
+    def push_view(self, view_name: str, replace_current: bool = False) -> None:
+        """Push a new view onto the navigation stack.
+        
+        Args:
+            view_name: Name of the view to push
+            replace_current: If True, replace the current view instead of pushing
+        """
+        current_view = self._state.active_view
+        
+        if replace_current and self._state.view_stack:
+            # Replace the top of the stack
+            self._state.view_stack[-1] = view_name
+            logger.debug(f"Screen view replaced: {current_view} -> {view_name}")
+        else:
+            # Push new view onto stack
+            self._state.view_stack.append(view_name)
+            logger.debug(f"Screen view pushed: {current_view} -> {view_name} (stack depth: {len(self._state.view_stack)})")
+    
+    def pop_view(self) -> Optional[str]:
+        """Pop the current view from the stack and return to previous view.
+        
+        Also clears the associated active state for the view being popped.
+        
+        Returns:
+            The view that was popped, or None if we're at the base view
+        """
+        if len(self._state.view_stack) <= 1:
+            logger.debug("Cannot pop view: already at base view")
+            return None
+        
+        popped = self._state.view_stack.pop()
+        
+        # Clear associated active state based on view type
+        # Map view names to state names
+        view_to_state = {
+            "pomodoro": "timer",
+            "ideas": "idea",
+        }
+        
+        if popped in view_to_state:
+            state_name = view_to_state[popped]
+            self.remove_active_state(state_name)
+            
+            # Also clear idea-specific data if popping ideas view
+            if popped == "ideas":
+                self._state.active_idea_id = None
+                self._state.active_idea_text = ""
+                self._state.idea_last_updated = None
+                self._state.idea_view["is_active"] = False
+        
+        new_view = self._state.active_view
+        logger.debug(f"Screen view popped: {popped} -> {new_view} (stack depth: {len(self._state.view_stack)})")
+        return popped
+    
+    def go_back(self) -> bool:
+        """Navigate back to the previous view.
+        
+        Returns:
+            True if navigation occurred, False if already at base view
+        """
+        if not self._state.can_go_back():
+            return False
+        
+        self.pop_view()
+        return True
+    
+    def reset_to_idle(self) -> None:
+        """Reset navigation stack to idle view."""
+        self._state.view_stack = ["idle"]
+        logger.debug("Screen view reset to idle")
+    
+    def get_navigation_stack(self) -> List[str]:
+        """Get a copy of the current navigation stack."""
+        return self._state.view_stack.copy()
+
+    # ------------------------------------------------------------------
+    # Concurrent state management
+    # ------------------------------------------------------------------
+    def add_active_state(self, state_name: str) -> None:
+        """Mark a state as active (e.g., 'timer', 'idea').
+        
+        Args:
+            state_name: Name of the state to mark as active
+        """
+        if state_name not in self._state.active_states:
+            self._state.active_states.append(state_name)
+            logger.debug(f"Active state added: {state_name} (active: {self._state.active_states})")
+    
+    def remove_active_state(self, state_name: str) -> None:
+        """Remove a state from active states.
+        
+        Args:
+            state_name: Name of the state to remove
+        """
+        if state_name in self._state.active_states:
+            self._state.active_states.remove(state_name)
+            logger.debug(f"Active state removed: {state_name} (active: {self._state.active_states})")
+    
+    def is_state_active(self, state_name: str) -> bool:
+        """Check if a specific state is currently active.
+        
+        Args:
+            state_name: Name of the state to check
+            
+        Returns:
+            True if the state is active
+        """
+        return state_name in self._state.active_states
+    
+    def get_active_states(self) -> List[str]:
+        """Get a copy of all currently active states."""
+        return self._state.active_states.copy()
+
+    # ------------------------------------------------------------------
+    # High-level helpers used by tools (backward compatible)
     # ------------------------------------------------------------------
     def set_view(self, view_name: str, **kwargs: Any) -> None:
-        """Set the active view and optionally update arbitrary metadata."""
+        """Set the active view (replaces current view in stack).
+        
+        This is kept for backward compatibility but prefer push_view().
+        """
         logger.debug("Screen view -> %s", view_name)
-        self._state.active_view = view_name
+        self.push_view(view_name, replace_current=True)
         if kwargs:
             self._state.idea_view.update(kwargs)
 
@@ -69,7 +219,7 @@ class ScreenManager:
         self._state.status_text = text
 
     def update_timer(self, **timer_state: Any) -> None:
-        """Update timer-related UI."""
+        """Update timer-related UI and manage timer state."""
         # Only log status changes, not countdown updates
         old_status = self._state.timer_state.get("status")
         new_status = timer_state.get("status")
@@ -77,17 +227,28 @@ class ScreenManager:
             logger.info("Timer status: %s -> %s", old_status or "none", new_status)
 
         self._state.timer_state.update(timer_state)
-        # Ensure the active view reflects that a timer is visible
-        # But don't force the view if the timer is completed (we're returning to idle)
-        if self._state.active_view == "idle" and timer_state.get("status") != "completed":
-            self._state.active_view = "pomodoro"
+        
+        # Manage active state tracking
+        if new_status in ("running", "paused"):
+            self.add_active_state("timer")
+            # Push pomodoro view if we're currently on idle
+            if self._state.active_view == "idle":
+                self.push_view("pomodoro")
+        elif new_status == "completed":
+            self.remove_active_state("timer")
+            # If we're in the pomodoro view and timer completes, pop back
+            if self._state.active_view == "pomodoro":
+                self.pop_view()
 
     def update_idea_view(self, **idea_state: Any) -> None:
-        """Update the idea/notebook-related UI."""
+        """Update the idea/notebook-related UI and manage idea state."""
         logger.debug("Screen idea view: %s", idea_state)
         self._state.idea_view.update(idea_state)
-        if self._state.active_view == "idle":
-            self._state.active_view = "ideas"
+        
+        # If an idea becomes active and we're not already in ideas view, push it
+        if idea_state.get("is_active") and self._state.active_view != "ideas":
+            self.add_active_state("idea")
+            self.push_view("ideas")
 
     def set_active_idea(self, idea_id: str, text: str) -> None:
         """Set the currently active idea being discussed."""
@@ -100,8 +261,12 @@ class ScreenManager:
             "is_active": True,
             "last_updated": self._state.idea_last_updated,
         })
-        if self._state.active_view == "idle":
-            self._state.active_view = "ideas"
+        
+        # Mark idea as active and navigate to ideas view
+        self.add_active_state("idea")
+        if self._state.active_view != "ideas":
+            self.push_view("ideas")
+        
         logger.info("Active idea set: %s", idea_id[:8] if idea_id else "none")
 
     def clear_active_idea(self) -> None:
@@ -110,12 +275,14 @@ class ScreenManager:
         self._state.active_idea_text = ""
         self._state.idea_last_updated = None
         self._state.idea_view["is_active"] = False
+        
+        # Remove idea from active states
+        self.remove_active_state("idea")
+        
+        # If we're in the ideas view, navigate back to previous view
         if self._state.active_view == "ideas":
-            # Return to timer view if timer is active, otherwise idle
-            if self._state.timer_state and self._state.timer_state.get("status") in ("running", "paused"):
-                self._state.active_view = "pomodoro"
-            else:
-                self._state.active_view = "idle"
+            self.pop_view()
+        
         logger.debug("Active idea cleared")
 
     def is_idea_active(self, timeout_seconds: float = 300) -> bool:

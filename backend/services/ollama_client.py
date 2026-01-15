@@ -299,18 +299,22 @@ class OllamaClient:
             "type": "function",
             "function": {
                 "name": "ideas_tool",
-                "description": "Save and manage ideas in the notebook. Use 'create' for new ideas, 'update' to refine the active idea, 'close' when the user is done with the current idea.",
+                "description": "Save and manage ideas in the notebook. Use 'create' for new ideas with is_continuation=true if refining the active idea, 'update' to modify existing ideas, 'close' when done. IMPORTANT: After calling this tool, respond naturally WITHOUT mentioning idea IDs, numbers, or technical details.",
                 "parameters": {
                     "type": "object",
                     "properties": {
                         "action": {
                             "type": "string",
                             "enum": ["create", "update", "get", "list", "delete", "search", "close"],
-                            "description": "Action to perform. Use 'close' when user says they're done with the idea or wants to move on."
+                            "description": "Action to perform. Use 'create' with is_continuation=true for active idea refinement, 'close' when user is done."
                         },
                         "text": {
                             "type": "string",
                             "description": "The idea content. RULES: (1) Expand the user's thought into a clear, complete description. (2) NEVER include meta-commentary like 'the user wants', 'this idea is about', or 'raw input'. (3) NO markdown, bullets, or formatting - plain text only. (4) Write as if explaining the idea to someone else. EXAMPLE: User says 'voice control for lights' -> Write 'A voice-controlled lighting system that allows hands-free control of room lighting through spoken commands, enabling dimming, color changes, and scheduling.'"
+                        },
+                        "is_continuation": {
+                            "type": "boolean",
+                            "description": "Set to true if user is adding details to the current active idea (refinement), false for completely new ideas"
                         },
                         "idea_id": {
                             "type": "string",

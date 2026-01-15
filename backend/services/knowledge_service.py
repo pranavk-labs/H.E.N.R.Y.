@@ -174,6 +174,8 @@ class KnowledgeService:
 
     def _update_node(self, node_id: str, **properties: Any) -> bool:
         """Update node in Neo4j if available, otherwise in fallback."""
+        logger.debug(f"_update_node called for {node_id[:8]} with properties: {list(properties.keys())}")
+        
         if self._use_neo4j and self._ensure_neo4j_connected():
             try:
                 async def _update():
@@ -184,13 +186,23 @@ class KnowledgeService:
                         result = await session.run(query, params)
                         await result.consume()
 
-                        self._run_async(_update())
+                self._run_async(_update())  # FIXED: Unindented to actually call the update
+                
                 # Also update fallback
                 data = self._graph.get_node(node_id) or {}
                 data.update(properties)
                 self._graph.graph.nodes[node_id].update(data)
                 self._graph.save()
+                logger.info(f"Updated node {node_id[:8]} in Neo4j and fallback")
                 return True
+            except RuntimeError as e:
+                # If event loop is already running, fall back to local graph only
+                if "already running" in str(e):
+                    logger.debug(f"Event loop already running, using fallback for update")
+                    self._use_neo4j = False
+                else:
+                    logger.debug(f"Neo4j update failed: {e}")
+                    self._use_neo4j = False
             except Exception as e:
                 logger.debug(f"Neo4j update failed: {e}")
                 self._use_neo4j = False
@@ -198,10 +210,12 @@ class KnowledgeService:
         # Fallback to local graph
         data = self._graph.get_node(node_id)
         if not data:
+            logger.warning(f"Node {node_id[:8]} not found in fallback graph")
             return False
         data.update(properties)
         self._graph.graph.nodes[node_id].update(data)
         self._graph.save()
+        logger.info(f"Updated node {node_id[:8]} in fallback graph only")
         return True
 
     def _delete_node(self, node_id: str) -> bool:
@@ -464,8 +478,11 @@ class KnowledgeService:
         self, idea_id: str, text: Optional[str] = None, tags: Optional[List[str]] = None
     ) -> Optional[Idea]:
         """Update an existing idea."""
+        logger.debug(f"update_idea called: id={idea_id[:8]}, text={text[:50] if text else None}...")
+        
         data = self._read_node(idea_id)
         if not data or data.get("label") != "Idea":
+            logger.warning(f"Idea {idea_id[:8]} not found or wrong label")
             return None
 
         updates: Dict[str, Any] = {}
@@ -475,8 +492,17 @@ class KnowledgeService:
             updates["tags"] = list(tags)
         updates["updated_at"] = _utc_now_iso()
 
-        self._update_node(idea_id, **updates)
+        logger.info(f"Updating idea {idea_id[:8]} with updates: {updates}")
+        
+        update_success = self._update_node(idea_id, **updates)
+        logger.info(f"Update node result: {update_success}")
+        
         idea = self.get_idea(idea_id)
+        
+        if idea:
+            logger.info(f"Retrieved updated idea: {idea.text[:50]}...")
+        else:
+            logger.error(f"Failed to retrieve idea {idea_id[:8]} after update")
 
         # Re-link to similar ideas if text or tags changed
         if idea and (text is not None or tags is not None):
