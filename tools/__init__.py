@@ -7,6 +7,7 @@ used by the voice pipeline, GUI, or any other orchestration layer.
 from tools.base import ToolsRegistry, BaseTool, ToolContext
 from tools.timer_tool import TimerTool
 from tools.idea_tool import IdeaTool
+from tools.todo_tool import TodoTool
 
 __all__ = [
     "ToolsRegistry",
@@ -14,11 +15,13 @@ __all__ = [
     "ToolContext",
     "TimerTool",
     "IdeaTool",
+    "TodoTool",
 ]
 
 # Register built-in tools with the central registry on import.
 _registry = ToolsRegistry.get_instance()
 _registry.register_tool("timer", TimerTool)
 _registry.register_tool("ideas", IdeaTool)
+_registry.register_tool("todos", TodoTool)
 
 

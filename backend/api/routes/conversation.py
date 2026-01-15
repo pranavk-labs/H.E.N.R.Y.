@@ -37,6 +37,10 @@ class UIStateResponse(BaseModel):
     idea_view: dict
     view_stack: List[str] = Field(default_factory=lambda: ["idle"])
     active_states: List[str] = Field(default_factory=list)
+    # Todo state
+    todo_filter_status: Optional[str] = None
+    selected_category_id: Optional[str] = None
+    active_todo_id: Optional[str] = None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -85,6 +89,9 @@ async def ui_state() -> Any:
         idea_view=state.idea_view,
         view_stack=state.view_stack,
         active_states=state.active_states,
+        todo_filter_status=state.todo_filter_status,
+        selected_category_id=state.selected_category_id,
+        active_todo_id=state.active_todo_id,
     )
 
 
@@ -94,6 +101,31 @@ async def go_back() -> Any:
     screen = ScreenManager.get_instance()
     success = screen.go_back()
     return {"success": success, "current_view": screen.state.active_view}
+
+
+class TodoFiltersRequest(BaseModel):
+    """Request model for updating todo filters."""
+    status: Optional[str] = None
+    category_id: Optional[str] = None
+
+
+@router.post("/ui/update_todo_filters")
+async def update_todo_filters(request: TodoFiltersRequest) -> Any:
+    """Update todo list filters."""
+    screen = ScreenManager.get_instance()
+    screen.update_todo_list(
+        status=request.status,
+        category_id=request.category_id,
+    )
+    return {"success": True, "filters": {"status": request.status, "category_id": request.category_id}}
+
+
+@router.post("/ui/show_todo_list")
+async def show_todo_list(status: Optional[str] = None, category_id: Optional[str] = None) -> Any:
+    """Show the todo list view with optional filters."""
+    screen = ScreenManager.get_instance()
+    screen.show_todo_list(status=status, category_id=category_id)
+    return {"success": True, "view": "todo_list"}
 
 
 

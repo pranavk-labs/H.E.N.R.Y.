@@ -10,6 +10,7 @@ __all__ = [
     "ConfirmationDialog",
     "IdeaNotification",
     "IdeaNotebook",
+    "TodoList",
 ]
 
 from app.ui.dialogs import ConfirmationDialog
@@ -19,4 +20,5 @@ from app.ui.seven_segment import SevenSegmentDisplay
 from app.ui.smiley_face import SmileyFace
 from app.ui.timer_controls import TimerControls
 from app.ui.timer_display import TimerDisplay
+from app.ui.todo_list import TodoList
 

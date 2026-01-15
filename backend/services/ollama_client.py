@@ -339,6 +339,93 @@ class OllamaClient:
             }
         })
         
+        # Todos tool schema
+        tools.append({
+            "type": "function",
+            "function": {
+                "name": "todos_tool",
+                "description": "Manage tasks and todos. Create tasks with priorities, categories, due dates, and track progress. Link tasks to ideas, add subtasks, and manage categories.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "action": {
+                            "type": "string",
+                            "enum": ["create", "update", "delete", "complete", "list", "get", "create_category", "list_categories", "add_subtask", "get_subtasks", "link_to_idea", "add_dependency", "start_timer"],
+                            "description": "Action to perform on todos/tasks"
+                        },
+                        "title": {
+                            "type": "string",
+                            "description": "Task title (required for create, add_subtask)"
+                        },
+                        "description": {
+                            "type": "string",
+                            "description": "Task description (optional)"
+                        },
+                        "priority": {
+                            "type": "string",
+                            "enum": ["low", "medium", "high", "critical"],
+                            "description": "Task priority (default: medium)"
+                        },
+                        "difficulty": {
+                            "type": "integer",
+                            "description": "Task difficulty from 1-5 (default: 3)"
+                        },
+                        "status": {
+                            "type": "string",
+                            "enum": ["todo", "in_progress", "completed", "cancelled"],
+                            "description": "Task status (for update/filter)"
+                        },
+                        "category_id": {
+                            "type": "string",
+                            "description": "Category ID to assign task to or filter by"
+                        },
+                        "due_date": {
+                            "type": "string",
+                            "description": "Due date in ISO format (e.g., 2026-01-20T00:00:00Z)"
+                        },
+                        "estimated_minutes": {
+                            "type": "integer",
+                            "description": "Estimated time to complete in minutes"
+                        },
+                        "recurrence_pattern": {
+                            "type": "string",
+                            "enum": ["none", "daily", "weekly", "monthly"],
+                            "description": "Recurrence pattern for recurring tasks (default: none)"
+                        },
+                        "todo_id": {
+                            "type": "string",
+                            "description": "Todo ID (required for update, delete, complete, get, etc.)"
+                        },
+                        "parent_todo_id": {
+                            "type": "string",
+                            "description": "Parent todo ID (for subtasks)"
+                        },
+                        "idea_id": {
+                            "type": "string",
+                            "description": "Idea ID to link to (for link_to_idea action)"
+                        },
+                        "depends_on_id": {
+                            "type": "string",
+                            "description": "Todo ID this task depends on (for add_dependency)"
+                        },
+                        "name": {
+                            "type": "string",
+                            "description": "Category name (for create_category)"
+                        },
+                        "color": {
+                            "type": "string",
+                            "description": "Category color hex code (for create_category, default: #808080)"
+                        },
+                        "icon": {
+                            "type": "string",
+                            "description": "Category icon emoji (for create_category, default: 📁)"
+                        }
+                    },
+                    "required": ["action"]
+                }
+            }
+        })
+        
         return tools
 
     async def chat_with_tools(
@@ -488,6 +575,13 @@ class OllamaClient:
                         if user_id:
                             tool_kwargs["user_id"] = user_id
                         tool_result = tools_service.execute_tool("ideas", action, **tool_kwargs)
+                    elif function_name == "todos_tool":
+                        action = function_args.get("action", "")
+                        # Execute via tools_service, inject user_id for context
+                        tool_kwargs = {k: v for k, v in function_args.items() if k != "action"}
+                        if user_id:
+                            tool_kwargs["user_id"] = user_id
+                        tool_result = tools_service.execute_tool("todos", action, **tool_kwargs)
                     else:
                         # Try callback if provided
                         if tools_callback:

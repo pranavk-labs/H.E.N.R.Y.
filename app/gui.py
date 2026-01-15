@@ -37,6 +37,7 @@ from app.ui import (
     SmileyFace,
     TimerControls,
     TimerDisplay,
+    TodoList,
 )
 from backend.config.settings import get_settings
 from scripts import colors
@@ -145,6 +146,7 @@ class HenryGUI(tk.Tk):
         self.confirmation_dialog: Optional[ConfirmationDialog] = None
         self.idea_notification: Optional[IdeaNotification] = None
         self.idea_notebook: Optional[IdeaNotebook] = None
+        self.todo_list: Optional[TodoList] = None
         
         # Track last interaction time for bored state
         # Initialize to current time to ensure we start in a happy state
@@ -374,6 +376,9 @@ class HenryGUI(tk.Tk):
                     timer_state_received_at=timer_state_received_at,
                     view_stack=data.get("view_stack", ["idle"]),
                     active_states=data.get("active_states", []),
+                    todo_filter_status=data.get("todo_filter_status"),
+                    selected_category_id=data.get("selected_category_id"),
+                    active_todo_id=data.get("active_todo_id"),
                 )
                 
                 # Connection successful
@@ -504,8 +509,8 @@ class HenryGUI(tk.Tk):
         
         # Handle different views with swipe animation
         previous_view = getattr(self, '_previous_view', None)
-        is_tool_view = self._state.active_view in ("pomodoro", "ideas")
-        was_tool_view = previous_view in ("pomodoro", "ideas")
+        is_tool_view = self._state.active_view in ("pomodoro", "ideas", "todo_list")
+        was_tool_view = previous_view in ("pomodoro", "ideas", "todo_list")
         
         # Trigger swipe animation if switching TO a tool view
         swipe_animating = False
@@ -610,6 +615,14 @@ class HenryGUI(tk.Tk):
             if self._timer_update_job:
                 self.after_cancel(self._timer_update_job)
                 self._timer_update_job = None
+        elif self._state.active_view == "todo_list":
+            # Show todo list view
+            if not swipe_animating:
+                self._show_todo_list(canvas_width, canvas_height)
+            # Stop timer updates
+            if self._timer_update_job:
+                self.after_cancel(self._timer_update_job)
+                self._timer_update_job = None
         else:
             # Idle view - show smiley face
             if self.smiley_face is None or view_changed:
@@ -629,6 +642,9 @@ class HenryGUI(tk.Tk):
             # Hide idea notebook if visible
             if self.idea_notebook:
                 self.idea_notebook.hide()
+            # Hide todo list if visible
+            if self.todo_list:
+                self.todo_list.hide()
             # Stop timer updates
             if self._timer_update_job:
                 self.after_cancel(self._timer_update_job)
@@ -728,7 +744,7 @@ class HenryGUI(tk.Tk):
                 self.smiley_face._draw_face()
     
     def _on_canvas_click(self, event) -> None:
-        """Handle canvas click events for timer controls and confirmation dialog."""
+        """Handle canvas click events for timer controls, confirmation dialog, and todo list."""
         x, y = event.x, event.y
         
         # Check confirmation dialog first (if visible)
@@ -739,6 +755,16 @@ class HenryGUI(tk.Tk):
         # Check timer controls (if visible)
         if self.timer_controls:
             if self.timer_controls.handle_click(x, y):
+                return
+        
+        # Check todo list (if visible)
+        if self.todo_list:
+            if self.todo_list.handle_touch((x, y)):
+                return
+        
+        # Check idea notebook (if visible)
+        if self.idea_notebook:
+            if self.idea_notebook._on_close_click(event):
                 return
     
     def _on_canvas_configure(self, event) -> None:
@@ -1112,6 +1138,86 @@ class HenryGUI(tk.Tk):
         # Keep legacy notification hidden
         if self.idea_notification:
             self.idea_notification.hide()
+
+    def _show_todo_list(self, screen_width: int, screen_height: int) -> None:
+        """Show todo list view.
+
+        Args:
+            screen_width: Screen width
+            screen_height: Screen height
+        """
+        if self.todo_list is None:
+            self.todo_list = TodoList(self.content_canvas, screen_width, screen_height)
+            # Set callbacks
+            self.todo_list.set_close_callback(self._on_todo_list_close)
+            self.todo_list.set_filter_change_callback(self._on_todo_filter_change)
+            self.todo_list.set_todo_tap_callback(self._on_todo_tap)
+        
+        # Fetch todos and categories from backend
+        try:
+            if self._client:
+                # Get filter state
+                filter_status = self._state.todo_filter_status
+                selected_category_id = self._state.selected_category_id
+                
+                # Build query params
+                params = {}
+                if filter_status:
+                    params["status"] = filter_status
+                if selected_category_id:
+                    params["category_id"] = selected_category_id
+                
+                # Fetch todos
+                response = self._client.get(f"{self._api_base_url}/api/todos", params=params)
+                todos_data = response.json() if response.status_code == 200 else {"todos": []}
+                todos = todos_data.get("todos", [])
+                
+                # Fetch categories
+                cat_response = self._client.get(f"{self._api_base_url}/api/categories")
+                categories_data = cat_response.json() if cat_response.status_code == 200 else {"categories": []}
+                categories = categories_data.get("categories", [])
+                
+                # Update todo list
+                self.todo_list.show(
+                    todos=todos,
+                    categories=categories,
+                    selected_category_id=selected_category_id,
+                    filter_status=filter_status,
+                )
+        except Exception as e:
+            logger.error(f"Failed to fetch todos: {e}")
+            # Show empty list
+            self.todo_list.show(todos=[], categories=[], selected_category_id=None, filter_status=None)
+
+    def _on_todo_list_close(self) -> None:
+        """Handle todo list close button click."""
+        logger.info("Todo list closed by user")
+        # Request backend to navigate back
+        try:
+            if self._client:
+                self._client.post(f"{self._api_base_url}/conversation/ui/back")
+        except Exception as e:
+            logger.error(f"Failed to pop view: {e}")
+
+    def _on_todo_filter_change(self, status: Optional[str], category_id: Optional[str]) -> None:
+        """Handle todo filter change."""
+        logger.info(f"Todo filter changed: status={status}, category={category_id}")
+        # Update backend state
+        try:
+            if self._client:
+                data = {}
+                if status is not None:
+                    data["status"] = status
+                if category_id is not None:
+                    data["category_id"] = category_id
+                self._client.post(f"{self._api_base_url}/conversation/ui/update_todo_filters", json=data)
+        except Exception as e:
+            logger.error(f"Failed to update filters: {e}")
+
+    def _on_todo_tap(self, todo_id: str) -> None:
+        """Handle todo item tap."""
+        logger.info(f"Todo tapped: {todo_id}")
+        # TODO: Show todo detail view or edit dialog
     
     def _start_animation_loop(self) -> None:
         """Start the animation loop for smiley face."""

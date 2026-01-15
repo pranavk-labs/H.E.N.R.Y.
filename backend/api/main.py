@@ -68,6 +68,11 @@ from backend.api.routes import conversation as conversation_router
 
 app.include_router(conversation_router.router)
 
+# Todo/task management router
+from backend.api.routes import todos as todos_router
+
+app.include_router(todos_router.router)
+
 
 @app.get("/")
 async def root():

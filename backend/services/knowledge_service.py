@@ -49,6 +49,38 @@ class Preference:
     updated_at: Optional[str] = None
 
 
+@dataclass
+class Category:
+    """Simple representation of a todo category."""
+
+    id: str
+    name: str
+    color: str
+    icon: str
+    created_at: str
+    updated_at: Optional[str] = None
+
+
+@dataclass
+class Todo:
+    """Simple representation of a todo/task node."""
+
+    id: str
+    title: str
+    description: str
+    status: str  # todo, in_progress, completed, cancelled
+    priority: str  # low, medium, high, critical
+    difficulty: int  # 1-5 scale
+    category_id: Optional[str]
+    due_date: Optional[str]
+    estimated_minutes: Optional[int]
+    recurrence_pattern: str  # none, daily, weekly, monthly
+    parent_todo_id: Optional[str]
+    created_at: str
+    updated_at: Optional[str] = None
+    completed_at: Optional[str] = None
+
+
 class KnowledgeService:
     """High-level knowledge service using Neo4jClient directly with local fallback."""
 
@@ -695,6 +727,539 @@ class KnowledgeService:
         return prefs
 
     # ------------------------------------------------------------------
+    # Category operations
+    # ------------------------------------------------------------------
+    def create_category(
+        self, name: str, color: str = "#808080", icon: str = "📁"
+    ) -> Category:
+        """Create a new todo category.
+
+        Args:
+            name: Category name
+            color: Hex color code (default: gray)
+            icon: Unicode emoji icon (default: folder)
+
+        Returns:
+            Created Category object
+        """
+        category_id = str(uuid.uuid4())
+        created_at = _utc_now_iso()
+        category = Category(
+            id=category_id,
+            name=name,
+            color=color,
+            icon=icon,
+            created_at=created_at,
+        )
+
+        self._write_node(
+            category_id,
+            label="Category",
+            name=name,
+            color=color,
+            icon=icon,
+            created_at=created_at,
+        )
+
+        logger.info("Created category %s: %s", category_id, name)
+        return category
+
+    def get_category(self, category_id: str) -> Optional[Category]:
+        """Retrieve a category by ID."""
+        data = self._read_node(category_id)
+        if not data or data.get("label") != "Category":
+            return None
+
+        return Category(
+            id=category_id,
+            name=data.get("name", ""),
+            color=data.get("color", "#808080"),
+            icon=data.get("icon", "📁"),
+            created_at=data.get("created_at", _utc_now_iso()),
+            updated_at=data.get("updated_at"),
+        )
+
+    def list_categories(self) -> List[Category]:
+        """List all categories."""
+        nodes = self._list_nodes_by_label("Category")
+        if nodes:
+            categories = []
+            for node_data in nodes:
+                category_id = node_data.get("id", "")
+                categories.append(
+                    Category(
+                        id=category_id,
+                        name=node_data.get("name", ""),
+                        color=node_data.get("color", "#808080"),
+                        icon=node_data.get("icon", "📁"),
+                        created_at=node_data.get("created_at", _utc_now_iso()),
+                        updated_at=node_data.get("updated_at"),
+                    )
+                )
+            return categories
+
+        # Fallback to local graph
+        categories: List[Category] = []
+        for node_id, data in self._graph.graph.nodes(data=True):
+            if data.get("label") != "Category":
+                continue
+            categories.append(
+                Category(
+                    id=node_id,
+                    name=data.get("name", ""),
+                    color=data.get("color", "#808080"),
+                    icon=data.get("icon", "📁"),
+                    created_at=data.get("created_at", _utc_now_iso()),
+                    updated_at=data.get("updated_at"),
+                )
+            )
+        return categories
+
+    def update_category(
+        self,
+        category_id: str,
+        name: Optional[str] = None,
+        color: Optional[str] = None,
+        icon: Optional[str] = None,
+    ) -> Optional[Category]:
+        """Update an existing category."""
+        data = self._read_node(category_id)
+        if not data or data.get("label") != "Category":
+            return None
+
+        updates: Dict[str, Any] = {}
+        if name is not None:
+            updates["name"] = name
+        if color is not None:
+            updates["color"] = color
+        if icon is not None:
+            updates["icon"] = icon
+        updates["updated_at"] = _utc_now_iso()
+
+        self._update_node(category_id, **updates)
+        return self.get_category(category_id)
+
+    def delete_category(self, category_id: str) -> bool:
+        """Delete a category node."""
+        return self._delete_node(category_id)
+
+    # ------------------------------------------------------------------
+    # Todo operations
+    # ------------------------------------------------------------------
+    def create_todo(
+        self,
+        title: str,
+        description: str = "",
+        priority: str = "medium",
+        difficulty: int = 3,
+        category_id: Optional[str] = None,
+        due_date: Optional[str] = None,
+        estimated_minutes: Optional[int] = None,
+        recurrence_pattern: str = "none",
+        parent_todo_id: Optional[str] = None,
+        user_id: Optional[str] = None,
+    ) -> Todo:
+        """Create a new todo/task.
+
+        Args:
+            title: Todo title
+            description: Todo description
+            priority: Priority level (low, medium, high, critical)
+            difficulty: Difficulty rating (1-5)
+            category_id: Optional category ID
+            due_date: Optional due date (ISO format)
+            estimated_minutes: Estimated time to complete
+            recurrence_pattern: Recurrence pattern (none, daily, weekly, monthly)
+            parent_todo_id: Optional parent todo ID for subtasks
+            user_id: Optional user ID to create relationship
+
+        Returns:
+            Created Todo object
+        """
+        todo_id = str(uuid.uuid4())
+        created_at = _utc_now_iso()
+        todo = Todo(
+            id=todo_id,
+            title=title,
+            description=description,
+            status="todo",
+            priority=priority,
+            difficulty=difficulty,
+            category_id=category_id,
+            due_date=due_date,
+            estimated_minutes=estimated_minutes,
+            recurrence_pattern=recurrence_pattern,
+            parent_todo_id=parent_todo_id,
+            created_at=created_at,
+        )
+
+        self._write_node(
+            todo_id,
+            label="Todo",
+            title=title,
+            description=description,
+            status="todo",
+            priority=priority,
+            difficulty=difficulty,
+            category_id=category_id or "",
+            due_date=due_date or "",
+            estimated_minutes=estimated_minutes or 0,
+            recurrence_pattern=recurrence_pattern,
+            parent_todo_id=parent_todo_id or "",
+            created_at=created_at,
+        )
+
+        # Create relationship from User to Todo if user_id is provided
+        if user_id:
+            user_node_id = f"user:{user_id}"
+            if self._read_node(user_node_id) is None:
+                self._write_node(user_node_id, label="User", user_id=user_id)
+
+            self._create_relationship(
+                user_node_id,
+                todo_id,
+                relationship_type="HAS_TODO",
+                created_at=created_at,
+            )
+            logger.info("Created todo %s for user %s", todo_id, user_id)
+
+        # Create relationship to category if provided
+        if category_id:
+            self._create_relationship(
+                todo_id,
+                category_id,
+                relationship_type="BELONGS_TO",
+                created_at=created_at,
+            )
+
+        # Create relationship to parent todo if this is a subtask
+        if parent_todo_id:
+            self._create_relationship(
+                parent_todo_id,
+                todo_id,
+                relationship_type="HAS_SUBTASK",
+                created_at=created_at,
+            )
+
+        logger.info("Created todo %s: %s", todo_id, title)
+        return todo
+
+    def get_todo(self, todo_id: str) -> Optional[Todo]:
+        """Retrieve a todo by ID."""
+        data = self._read_node(todo_id)
+        if not data or data.get("label") != "Todo":
+            return None
+
+        return Todo(
+            id=todo_id,
+            title=data.get("title", ""),
+            description=data.get("description", ""),
+            status=data.get("status", "todo"),
+            priority=data.get("priority", "medium"),
+            difficulty=int(data.get("difficulty", 3)),
+            category_id=data.get("category_id") or None,
+            due_date=data.get("due_date") or None,
+            estimated_minutes=data.get("estimated_minutes") or None,
+            recurrence_pattern=data.get("recurrence_pattern", "none"),
+            parent_todo_id=data.get("parent_todo_id") or None,
+            created_at=data.get("created_at", _utc_now_iso()),
+            updated_at=data.get("updated_at"),
+            completed_at=data.get("completed_at"),
+        )
+
+    def list_todos(
+        self,
+        status: Optional[str] = None,
+        category_id: Optional[str] = None,
+        priority: Optional[str] = None,
+        parent_todo_id: Optional[str] = None,
+    ) -> List[Todo]:
+        """List todos with optional filtering.
+
+        Args:
+            status: Filter by status (todo, in_progress, completed, cancelled)
+            category_id: Filter by category ID
+            priority: Filter by priority (low, medium, high, critical)
+            parent_todo_id: Filter by parent todo ID (for subtasks)
+
+        Returns:
+            List of Todo objects matching filters
+        """
+        nodes = self._list_nodes_by_label("Todo")
+        if nodes:
+            todos = []
+            for node_data in nodes:
+                todo_id = node_data.get("id", "")
+                todo = Todo(
+                    id=todo_id,
+                    title=node_data.get("title", ""),
+                    description=node_data.get("description", ""),
+                    status=node_data.get("status", "todo"),
+                    priority=node_data.get("priority", "medium"),
+                    difficulty=int(node_data.get("difficulty", 3)),
+                    category_id=node_data.get("category_id") or None,
+                    due_date=node_data.get("due_date") or None,
+                    estimated_minutes=node_data.get("estimated_minutes") or None,
+                    recurrence_pattern=node_data.get("recurrence_pattern", "none"),
+                    parent_todo_id=node_data.get("parent_todo_id") or None,
+                    created_at=node_data.get("created_at", _utc_now_iso()),
+                    updated_at=node_data.get("updated_at"),
+                    completed_at=node_data.get("completed_at"),
+                )
+                # Apply filters
+                if status and todo.status != status:
+                    continue
+                if category_id and todo.category_id != category_id:
+                    continue
+                if priority and todo.priority != priority:
+                    continue
+                if parent_todo_id is not None and todo.parent_todo_id != parent_todo_id:
+                    continue
+                todos.append(todo)
+            return todos
+
+        # Fallback to local graph
+        todos: List[Todo] = []
+        for node_id, data in self._graph.graph.nodes(data=True):
+            if data.get("label") != "Todo":
+                continue
+            todo = Todo(
+                id=node_id,
+                title=data.get("title", ""),
+                description=data.get("description", ""),
+                status=data.get("status", "todo"),
+                priority=data.get("priority", "medium"),
+                difficulty=int(data.get("difficulty", 3)),
+                category_id=data.get("category_id") or None,
+                due_date=data.get("due_date") or None,
+                estimated_minutes=data.get("estimated_minutes") or None,
+                recurrence_pattern=data.get("recurrence_pattern", "none"),
+                parent_todo_id=data.get("parent_todo_id") or None,
+                created_at=data.get("created_at", _utc_now_iso()),
+                updated_at=data.get("updated_at"),
+                completed_at=data.get("completed_at"),
+            )
+            # Apply filters
+            if status and todo.status != status:
+                continue
+            if category_id and todo.category_id != category_id:
+                continue
+            if priority and todo.priority != priority:
+                continue
+            if parent_todo_id is not None and todo.parent_todo_id != parent_todo_id:
+                continue
+            todos.append(todo)
+        return todos
+
+    def update_todo(
+        self,
+        todo_id: str,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        status: Optional[str] = None,
+        priority: Optional[str] = None,
+        difficulty: Optional[int] = None,
+        category_id: Optional[str] = None,
+        due_date: Optional[str] = None,
+        estimated_minutes: Optional[int] = None,
+        recurrence_pattern: Optional[str] = None,
+        completed_at: Optional[str] = None,
+    ) -> Optional[Todo]:
+        """Update an existing todo."""
+        data = self._read_node(todo_id)
+        if not data or data.get("label") != "Todo":
+            return None
+
+        updates: Dict[str, Any] = {}
+        if title is not None:
+            updates["title"] = title
+        if description is not None:
+            updates["description"] = description
+        if status is not None:
+            updates["status"] = status
+            # Set completed_at when marking as completed
+            if status == "completed" and completed_at is None:
+                updates["completed_at"] = _utc_now_iso()
+        if priority is not None:
+            updates["priority"] = priority
+        if difficulty is not None:
+            updates["difficulty"] = difficulty
+        if category_id is not None:
+            updates["category_id"] = category_id
+        if due_date is not None:
+            updates["due_date"] = due_date
+        if estimated_minutes is not None:
+            updates["estimated_minutes"] = estimated_minutes
+        if recurrence_pattern is not None:
+            updates["recurrence_pattern"] = recurrence_pattern
+        if completed_at is not None:
+            updates["completed_at"] = completed_at
+        updates["updated_at"] = _utc_now_iso()
+
+        self._update_node(todo_id, **updates)
+        return self.get_todo(todo_id)
+
+    def delete_todo(self, todo_id: str) -> bool:
+        """Delete a todo node."""
+        return self._delete_node(todo_id)
+
+    def get_todos_by_category(self, category_id: str) -> List[Todo]:
+        """Get all todos in a specific category."""
+        return self.list_todos(category_id=category_id)
+
+    def get_todos_by_status(self, status: str) -> List[Todo]:
+        """Get all todos with a specific status."""
+        return self.list_todos(status=status)
+
+    def link_todo_to_idea(self, todo_id: str, idea_id: str) -> bool:
+        """Create an IMPLEMENTS relationship from todo to idea.
+
+        Args:
+            todo_id: The todo ID
+            idea_id: The idea ID
+
+        Returns:
+            True if link was created successfully
+        """
+        # Verify both nodes exist
+        todo = self.get_todo(todo_id)
+        idea = self.get_idea(idea_id)
+        if not todo or not idea:
+            return False
+
+        self._create_relationship(
+            todo_id,
+            idea_id,
+            relationship_type="IMPLEMENTS",
+            created_at=_utc_now_iso(),
+        )
+        logger.info("Linked todo %s to idea %s", todo_id, idea_id)
+        return True
+
+    def add_todo_dependency(self, todo_id: str, depends_on_id: str) -> bool:
+        """Create a DEPENDS_ON relationship between todos.
+
+        Args:
+            todo_id: The dependent todo ID
+            depends_on_id: The todo this one depends on
+
+        Returns:
+            True if dependency was created successfully
+        """
+        # Verify both nodes exist
+        todo = self.get_todo(todo_id)
+        depends_on = self.get_todo(depends_on_id)
+        if not todo or not depends_on:
+            return False
+
+        self._create_relationship(
+            todo_id,
+            depends_on_id,
+            relationship_type="DEPENDS_ON",
+            created_at=_utc_now_iso(),
+        )
+        logger.info("Added dependency: todo %s depends on %s", todo_id, depends_on_id)
+        return True
+
+    def get_subtasks(self, parent_todo_id: str) -> List[Todo]:
+        """Get all subtasks for a given parent todo.
+
+        Args:
+            parent_todo_id: The parent todo ID
+
+        Returns:
+            List of subtask Todo objects
+        """
+        return self.list_todos(parent_todo_id=parent_todo_id)
+
+    def check_and_create_recurring_todos(self, user_id: Optional[str] = None) -> List[Todo]:
+        """Check for recurring todos and create new instances as needed.
+
+        This should be called daily or on app startup to generate todo instances
+        based on recurrence patterns.
+
+        Args:
+            user_id: Optional user ID to filter recurring todos
+
+        Returns:
+            List of newly created todo instances
+        """
+        from datetime import datetime, timedelta, timezone
+
+        # Get all todos with recurrence patterns
+        all_todos = self.list_todos()
+        recurring_todos = [t for t in all_todos if t.recurrence_pattern != "none"]
+
+        created_todos = []
+        now = datetime.now(timezone.utc)
+
+        for template in recurring_todos:
+            # Skip if not for this user (if user_id specified)
+            if user_id:
+                # Check if this todo belongs to the user
+                user_node_id = f"user:{user_id}"
+                if user_node_id not in self._get_neighbors(template.id):
+                    continue
+
+            # Determine if we need to create a new instance
+            # Check if there's already a non-completed instance created recently
+            last_created = template.created_at
+            if template.updated_at:
+                last_created = template.updated_at
+
+            try:
+                last_created_dt = datetime.fromisoformat(last_created.replace('Z', '+00:00'))
+            except (ValueError, AttributeError):
+                last_created_dt = datetime.now(timezone.utc) - timedelta(days=1)
+
+            should_create = False
+            if template.recurrence_pattern == "daily":
+                # Create if last created was yesterday or earlier
+                if (now - last_created_dt).days >= 1:
+                    should_create = True
+            elif template.recurrence_pattern == "weekly":
+                # Create if last created was a week or more ago
+                if (now - last_created_dt).days >= 7:
+                    should_create = True
+            elif template.recurrence_pattern == "monthly":
+                # Create if last created was a month or more ago
+                if (now - last_created_dt).days >= 30:
+                    should_create = True
+
+            if should_create:
+                # Create new todo instance based on template
+                new_todo = self.create_todo(
+                    title=template.title,
+                    description=template.description,
+                    priority=template.priority,
+                    difficulty=template.difficulty,
+                    category_id=template.category_id,
+                    due_date=None,  # Calculate new due date based on recurrence
+                    estimated_minutes=template.estimated_minutes,
+                    recurrence_pattern="none",  # Individual instances don't recur
+                    parent_todo_id=None,
+                    user_id=user_id,
+                )
+
+                # Link to original recurring todo template
+                self._create_relationship(
+                    new_todo.id,
+                    template.id,
+                    relationship_type="INSTANCE_OF",
+                    created_at=_utc_now_iso(),
+                )
+
+                created_todos.append(new_todo)
+                logger.info(
+                    f"Created recurring todo instance: {new_todo.title} (from template {template.id})"
+                )
+
+                # Update template's updated_at to track last generation
+                self.update_todo(template.id, updated_at=_utc_now_iso())
+
+        return created_todos
+
+    # ------------------------------------------------------------------
     # Utility
     # ------------------------------------------------------------------
     @staticmethod
@@ -707,9 +1272,21 @@ class KnowledgeService:
         """Convert Preference dataclass to plain dict."""
         return asdict(pref)
 
+    @staticmethod
+    def category_to_dict(category: Category) -> Dict[str, Any]:
+        """Convert Category dataclass to plain dict."""
+        return asdict(category)
+
+    @staticmethod
+    def todo_to_dict(todo: Todo) -> Dict[str, Any]:
+        """Convert Todo dataclass to plain dict."""
+        return asdict(todo)
+
 
 __all__ = [
     "KnowledgeService",
     "Idea",
     "Preference",
+    "Category",
+    "Todo",
 ]

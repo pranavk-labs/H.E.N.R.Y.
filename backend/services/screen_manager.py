@@ -43,6 +43,12 @@ class ScreenState:
     active_idea_text: str = ""
     idea_last_updated: Optional[float] = None
     
+    # Active todo tracking
+    active_todo_id: Optional[str] = None
+    active_todo_title: str = ""
+    todo_filter_status: Optional[str] = None  # Filter: todo, in_progress, completed, etc.
+    selected_category_id: Optional[str] = None  # Selected category filter
+    
     # Concurrent active states - tracks which features are currently running
     # Example: ["timer", "idea"] means both timer and idea are active
     active_states: List[str] = field(default_factory=list)
@@ -303,6 +309,80 @@ class ScreenManager:
         if self.is_idea_active():
             return self._state.active_idea_id
         return None
+
+    # ------------------------------------------------------------------
+    # Todo-related methods
+    # ------------------------------------------------------------------
+    def show_todo_list(
+        self,
+        status: Optional[str] = None,
+        category_id: Optional[str] = None,
+    ) -> None:
+        """Show the todo list view with optional filters.
+        
+        Args:
+            status: Filter by status (todo, in_progress, completed, etc.)
+            category_id: Filter by category ID
+        """
+        self._state.todo_filter_status = status
+        self._state.selected_category_id = category_id
+        
+        # Navigate to todo list view
+        if self._state.active_view != "todo_list":
+            self.push_view("todo_list")
+        
+        logger.info("Showing todo list (status=%s, category=%s)", status, category_id)
+
+    def set_active_todo(self, todo_id: str, title: str) -> None:
+        """Set the currently active todo.
+        
+        Args:
+            todo_id: The todo ID
+            title: The todo title
+        """
+        self._state.active_todo_id = todo_id
+        self._state.active_todo_title = title
+        logger.info("Active todo set: %s - %s", todo_id[:8] if todo_id else "none", title)
+
+    def clear_active_todo(self) -> None:
+        """Clear the active todo."""
+        self._state.active_todo_id = None
+        self._state.active_todo_title = ""
+        logger.debug("Active todo cleared")
+
+    def get_active_todo_id(self) -> Optional[str]:
+        """Get the active todo ID if one is set."""
+        return self._state.active_todo_id
+
+    def update_todo_list(
+        self,
+        status: Optional[str] = None,
+        category_id: Optional[str] = None,
+    ) -> None:
+        """Update todo list filters.
+        
+        Args:
+            status: New status filter
+            category_id: New category filter
+        """
+        if status is not None:
+            self._state.todo_filter_status = status
+        if category_id is not None:
+            self._state.selected_category_id = category_id
+        logger.debug("Todo list filters updated (status=%s, category=%s)", status, category_id)
+
+    def get_todo_state(self) -> Dict[str, Any]:
+        """Get current todo-related state.
+        
+        Returns:
+            Dict with active_todo_id, filter_status, and selected_category_id
+        """
+        return {
+            "active_todo_id": self._state.active_todo_id,
+            "active_todo_title": self._state.active_todo_title,
+            "filter_status": self._state.todo_filter_status,
+            "selected_category_id": self._state.selected_category_id,
+        }
 
 
 __all__ = ["ScreenManager", "ScreenState"]
