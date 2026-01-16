@@ -59,7 +59,7 @@ class TodoTool(BaseTool):
             return self._delete_category(**kwargs)
 
         # Subtask actions
-        if action == "add_subtask":
+        if action == "add_subtask" or action == "create_subtask":
             return self._add_subtask(**kwargs)
 
         if action == "get_subtasks":

@@ -350,12 +350,12 @@ class OllamaClient:
                     "properties": {
                         "action": {
                             "type": "string",
-                            "enum": ["create", "update", "delete", "complete", "list", "get", "create_category", "list_categories", "add_subtask", "get_subtasks", "link_to_idea", "add_dependency", "start_timer"],
+                            "enum": ["create", "update", "delete", "complete", "list", "get", "create_category", "list_categories", "add_subtask", "create_subtask", "get_subtasks", "link_to_idea", "add_dependency", "start_timer"],
                             "description": "Action to perform on todos/tasks"
                         },
                         "title": {
                             "type": "string",
-                            "description": "Task title (required for create, add_subtask)"
+                            "description": "Task title (required for create, add_subtask, create_subtask)"
                         },
                         "description": {
                             "type": "string",

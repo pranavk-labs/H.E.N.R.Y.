@@ -33,12 +33,12 @@ class CreateTodoRequest(BaseModel):
 
     title: str
     description: str = ""
-    priority: str = Field("medium", regex="^(low|medium|high|critical)$")
+    priority: str = Field("medium", pattern="^(low|medium|high|critical)$")
     difficulty: int = Field(3, ge=1, le=5)
     category_id: Optional[str] = None
     due_date: Optional[str] = None
     estimated_minutes: Optional[int] = None
-    recurrence_pattern: str = Field("none", regex="^(none|daily|weekly|monthly)$")
+    recurrence_pattern: str = Field("none", pattern="^(none|daily|weekly|monthly)$")
     parent_todo_id: Optional[str] = None
     user_id: Optional[str] = None
 
@@ -48,13 +48,13 @@ class UpdateTodoRequest(BaseModel):
 
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = Field(None, regex="^(todo|in_progress|completed|cancelled)$")
-    priority: Optional[str] = Field(None, regex="^(low|medium|high|critical)$")
+    status: Optional[str] = Field(None, pattern="^(todo|in_progress|completed|cancelled)$")
+    priority: Optional[str] = Field(None, pattern="^(low|medium|high|critical)$")
     difficulty: Optional[int] = Field(None, ge=1, le=5)
     category_id: Optional[str] = None
     due_date: Optional[str] = None
     estimated_minutes: Optional[int] = None
-    recurrence_pattern: Optional[str] = Field(None, regex="^(none|daily|weekly|monthly)$")
+    recurrence_pattern: Optional[str] = Field(None, pattern="^(none|daily|weekly|monthly)$")
 
 
 class CreateCategoryRequest(BaseModel):
@@ -76,9 +76,9 @@ class UpdateCategoryRequest(BaseModel):
 # Todo routes
 @router.get("/todos")
 def list_todos(
-    status: Optional[str] = Query(None, regex="^(todo|in_progress|completed|cancelled)$"),
+    status: Optional[str] = Query(None, pattern="^(todo|in_progress|completed|cancelled)$"),
     category_id: Optional[str] = None,
-    priority: Optional[str] = Query(None, regex="^(low|medium|high|critical)$"),
+    priority: Optional[str] = Query(None, pattern="^(low|medium|high|critical)$"),
     parent_todo_id: Optional[str] = None,
 ):
     """List todos with optional filtering."""
