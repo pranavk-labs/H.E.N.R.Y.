@@ -27,3 +27,9 @@ class UIState:
     selected_category_id: Optional[str] = None
     active_todo_id: Optional[str] = None
 
+    # Calendar state
+    calendar_view_mode: str = "upcoming"
+    calendar_selected_date: Optional[str] = None
+    calendar_filter_type: Optional[str] = None
+    active_event_id: Optional[str] = None
+

@@ -41,6 +41,11 @@ class UIStateResponse(BaseModel):
     todo_filter_status: Optional[str] = None
     selected_category_id: Optional[str] = None
     active_todo_id: Optional[str] = None
+    # Calendar state
+    calendar_view_mode: str = "upcoming"
+    calendar_selected_date: Optional[str] = None
+    calendar_filter_type: Optional[str] = None
+    active_event_id: Optional[str] = None
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -92,6 +97,10 @@ async def ui_state() -> Any:
         todo_filter_status=state.todo_filter_status,
         selected_category_id=state.selected_category_id,
         active_todo_id=state.active_todo_id,
+        calendar_view_mode=state.calendar_view_mode,
+        calendar_selected_date=state.calendar_selected_date,
+        calendar_filter_type=state.calendar_filter_type,
+        active_event_id=state.active_event_id,
     )
 
 
@@ -126,6 +135,44 @@ async def show_todo_list(status: Optional[str] = None, category_id: Optional[str
     screen = ScreenManager.get_instance()
     screen.show_todo_list(status=status, category_id=category_id)
     return {"success": True, "view": "todo_list"}
+
+
+class CalendarViewRequest(BaseModel):
+    """Request to update calendar view settings."""
+    view_mode: Optional[str] = None
+    selected_date: Optional[str] = None
+    filter_type: Optional[str] = None
+
+
+@router.post("/ui/update_calendar_view")
+async def update_calendar_view(request: CalendarViewRequest) -> Any:
+    """Update calendar view settings."""
+    screen = ScreenManager.get_instance()
+    screen.update_calendar_view(
+        view_mode=request.view_mode,
+        selected_date=request.selected_date,
+        filter_type=request.filter_type,
+    )
+    return {
+        "success": True,
+        "calendar_state": {
+            "view_mode": request.view_mode,
+            "selected_date": request.selected_date,
+            "filter_type": request.filter_type,
+        }
+    }
+
+
+@router.post("/ui/show_calendar")
+async def show_calendar(
+    view_mode: str = "upcoming",
+    selected_date: Optional[str] = None,
+    filter_type: Optional[str] = None
+) -> Any:
+    """Show the calendar view with optional configuration."""
+    screen = ScreenManager.get_instance()
+    screen.show_calendar(view_mode=view_mode, selected_date=selected_date, filter_type=filter_type)
+    return {"success": True, "view": "calendar"}
 
 
 

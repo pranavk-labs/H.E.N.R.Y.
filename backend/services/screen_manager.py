@@ -48,7 +48,13 @@ class ScreenState:
     active_todo_title: str = ""
     todo_filter_status: Optional[str] = None  # Filter: todo, in_progress, completed, etc.
     selected_category_id: Optional[str] = None  # Selected category filter
-    
+
+    # Active calendar tracking
+    active_event_id: Optional[str] = None
+    calendar_view_mode: str = "upcoming"  # upcoming, today, week, month
+    calendar_selected_date: Optional[str] = None  # ISO format date string
+    calendar_filter_type: Optional[str] = None  # Filter by event_type
+
     # Concurrent active states - tracks which features are currently running
     # Example: ["timer", "idea"] means both timer and idea are active
     active_states: List[str] = field(default_factory=list)
@@ -373,7 +379,7 @@ class ScreenManager:
 
     def get_todo_state(self) -> Dict[str, Any]:
         """Get current todo-related state.
-        
+
         Returns:
             Dict with active_todo_id, filter_status, and selected_category_id
         """
@@ -382,6 +388,94 @@ class ScreenManager:
             "active_todo_title": self._state.active_todo_title,
             "filter_status": self._state.todo_filter_status,
             "selected_category_id": self._state.selected_category_id,
+        }
+
+    # ------------------------------------------------------------------
+    # Calendar-related methods
+    # ------------------------------------------------------------------
+    def show_calendar(
+        self,
+        view_mode: str = "upcoming",
+        selected_date: Optional[str] = None,
+        filter_type: Optional[str] = None,
+    ) -> None:
+        """Show the calendar view with optional configuration.
+
+        Args:
+            view_mode: Calendar view mode (upcoming, today, week, month)
+            selected_date: ISO format date string for focused date
+            filter_type: Filter by event type (event, meeting, task, reminder)
+        """
+        self._state.calendar_view_mode = view_mode
+        self._state.calendar_selected_date = selected_date
+        self._state.calendar_filter_type = filter_type
+
+        # Navigate to calendar view
+        if self._state.active_view != "calendar":
+            self.push_view("calendar")
+
+        logger.info(
+            "Showing calendar (mode=%s, date=%s, filter=%s)",
+            view_mode,
+            selected_date,
+            filter_type,
+        )
+
+    def set_active_event(self, event_id: str) -> None:
+        """Set the currently active/selected event.
+
+        Args:
+            event_id: The event ID
+        """
+        self._state.active_event_id = event_id
+        logger.info("Active event set: %s", event_id[:8] if event_id else "none")
+
+    def clear_active_event(self) -> None:
+        """Clear the active event."""
+        self._state.active_event_id = None
+        logger.debug("Active event cleared")
+
+    def get_active_event_id(self) -> Optional[str]:
+        """Get the active event ID if one is set."""
+        return self._state.active_event_id
+
+    def update_calendar_view(
+        self,
+        view_mode: Optional[str] = None,
+        selected_date: Optional[str] = None,
+        filter_type: Optional[str] = None,
+    ) -> None:
+        """Update calendar view configuration.
+
+        Args:
+            view_mode: New view mode
+            selected_date: New selected date
+            filter_type: New event type filter
+        """
+        if view_mode is not None:
+            self._state.calendar_view_mode = view_mode
+        if selected_date is not None:
+            self._state.calendar_selected_date = selected_date
+        if filter_type is not None:
+            self._state.calendar_filter_type = filter_type
+        logger.debug(
+            "Calendar view updated (mode=%s, date=%s, filter=%s)",
+            view_mode,
+            selected_date,
+            filter_type,
+        )
+
+    def get_calendar_state(self) -> Dict[str, Any]:
+        """Get current calendar-related state.
+
+        Returns:
+            Dict with active_event_id, view_mode, selected_date, and filter_type
+        """
+        return {
+            "active_event_id": self._state.active_event_id,
+            "view_mode": self._state.calendar_view_mode,
+            "selected_date": self._state.calendar_selected_date,
+            "filter_type": self._state.calendar_filter_type,
         }
 
 

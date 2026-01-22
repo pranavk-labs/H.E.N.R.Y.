@@ -11,8 +11,10 @@ __all__ = [
     "IdeaNotification",
     "IdeaNotebook",
     "TodoList",
+    "CalendarView",
 ]
 
+from app.ui.calendar_view import CalendarView
 from app.ui.dialogs import ConfirmationDialog
 from app.ui.idea_notebook import IdeaNotebook
 from app.ui.idea_notification import IdeaNotification

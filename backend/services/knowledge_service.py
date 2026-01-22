@@ -1,8 +1,8 @@
-"""Knowledge service using Neo4jClient directly with local fallback.
+"""Knowledge service using Neo4jClient directly with optional local fallback.
 
 This provides a higher-level API for working with user preferences,
 ideas, and concepts. Uses Neo4jClient directly (no adapter layer),
-with automatic fallback to local GraphFallback for offline operation.
+with optional fallback to local GraphFallback for offline operation (requires networkx).
 """
 
 from __future__ import annotations
@@ -12,12 +12,25 @@ import logging
 import uuid
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
 
-from backend.services.graph_fallback import GraphFallback
 from backend.services.neo4j_client import Neo4jClient
 
 logger = logging.getLogger(__name__)
+
+# Optional import - GraphFallback only available if networkx is installed
+try:
+    from backend.services.graph_fallback import GraphFallback
+    GRAPH_FALLBACK_AVAILABLE = True
+except ImportError:
+    if TYPE_CHECKING:
+        from backend.services.graph_fallback import GraphFallback
+    GraphFallback = None  # type: ignore
+    GRAPH_FALLBACK_AVAILABLE = False
+    logger.warning(
+        "NetworkX not available - graph fallback disabled. "
+        "Neo4j is required. Install networkx for offline support: pip install networkx"
+    )
 
 
 def _utc_now_iso() -> str:
@@ -82,12 +95,20 @@ class Todo:
 
 
 class KnowledgeService:
-    """High-level knowledge service using Neo4jClient directly with local fallback."""
+    """High-level knowledge service using Neo4jClient directly with optional local fallback."""
 
     _instance: Optional["KnowledgeService"] = None
 
-    def __init__(self, graph: Optional[GraphFallback] = None) -> None:
-        self._graph = graph or GraphFallback()
+    def __init__(self, graph: Optional["GraphFallback"] = None) -> None:
+        # Only use GraphFallback if networkx is available
+        if graph is not None:
+            self._graph = graph
+        elif GRAPH_FALLBACK_AVAILABLE and GraphFallback is not None:
+            self._graph = GraphFallback()
+        else:
+            self._graph = None
+            logger.info("KnowledgeService initialized without fallback - Neo4j required")
+
         self._neo4j_client = Neo4jClient.get_instance()
         self._use_neo4j = True  # Try Neo4j first
         self._preferences_cache: Dict[str, List[Preference]] = {}  # Cache preferences by user_id

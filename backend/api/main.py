@@ -73,6 +73,11 @@ from backend.api.routes import todos as todos_router
 
 app.include_router(todos_router.router)
 
+# Calendar router
+from backend.api.routes import calendar as calendar_router
+
+app.include_router(calendar_router.router)
+
 
 @app.get("/")
 async def root():

@@ -30,6 +30,7 @@ sys.path.insert(0, str(project_root))
 
 from app.state import UIState
 from app.ui import (
+    CalendarView,
     ConfirmationDialog,
     IdeaNotebook,
     IdeaNotification,
@@ -147,6 +148,7 @@ class HenryGUI(tk.Tk):
         self.idea_notification: Optional[IdeaNotification] = None
         self.idea_notebook: Optional[IdeaNotebook] = None
         self.todo_list: Optional[TodoList] = None
+        self.calendar_view: Optional[CalendarView] = None
         
         # Track last interaction time for bored state
         # Initialize to current time to ensure we start in a happy state
@@ -379,6 +381,10 @@ class HenryGUI(tk.Tk):
                     todo_filter_status=data.get("todo_filter_status"),
                     selected_category_id=data.get("selected_category_id"),
                     active_todo_id=data.get("active_todo_id"),
+                    calendar_view_mode=data.get("calendar_view_mode", "upcoming"),
+                    calendar_selected_date=data.get("calendar_selected_date"),
+                    calendar_filter_type=data.get("calendar_filter_type"),
+                    active_event_id=data.get("active_event_id"),
                 )
                 
                 # Connection successful
@@ -509,8 +515,8 @@ class HenryGUI(tk.Tk):
         
         # Handle different views with swipe animation
         previous_view = getattr(self, '_previous_view', None)
-        is_tool_view = self._state.active_view in ("pomodoro", "ideas", "todo_list")
-        was_tool_view = previous_view in ("pomodoro", "ideas", "todo_list")
+        is_tool_view = self._state.active_view in ("pomodoro", "ideas", "todo_list", "calendar")
+        was_tool_view = previous_view in ("pomodoro", "ideas", "todo_list", "calendar")
         
         # Trigger swipe animation if switching TO a tool view
         swipe_animating = False
@@ -623,6 +629,14 @@ class HenryGUI(tk.Tk):
             if self._timer_update_job:
                 self.after_cancel(self._timer_update_job)
                 self._timer_update_job = None
+        elif self._state.active_view == "calendar":
+            # Show calendar view
+            if not swipe_animating:
+                self._show_calendar(canvas_width, canvas_height)
+            # Stop timer updates
+            if self._timer_update_job:
+                self.after_cancel(self._timer_update_job)
+                self._timer_update_job = None
         else:
             # Idle view - show smiley face
             if self.smiley_face is None or view_changed:
@@ -645,6 +659,9 @@ class HenryGUI(tk.Tk):
             # Hide todo list if visible
             if self.todo_list:
                 self.todo_list.hide()
+            # Hide calendar if visible
+            if self.calendar_view:
+                self.calendar_view.hide()
             # Stop timer updates
             if self._timer_update_job:
                 self.after_cancel(self._timer_update_job)
@@ -760,6 +777,11 @@ class HenryGUI(tk.Tk):
         # Check todo list (if visible)
         if self.todo_list:
             if self.todo_list.handle_touch((x, y)):
+                return
+        
+        # Check calendar view (if visible)
+        if self.calendar_view:
+            if self.calendar_view.handle_touch((x, y)):
                 return
         
         # Check idea notebook (if visible)
@@ -1218,6 +1240,79 @@ class HenryGUI(tk.Tk):
         """Handle todo item tap."""
         logger.info(f"Todo tapped: {todo_id}")
         # TODO: Show todo detail view or edit dialog
+    
+    def _show_calendar(self, screen_width: int, screen_height: int) -> None:
+        """Show calendar view.
+
+        Args:
+            screen_width: Screen width
+            screen_height: Screen height
+        """
+        if self.calendar_view is None:
+            self.calendar_view = CalendarView(self.content_canvas, screen_width, screen_height)
+            # Set callbacks
+            self.calendar_view.set_close_callback(self._on_calendar_close)
+            self.calendar_view.set_view_mode_change_callback(self._on_calendar_view_mode_change)
+            self.calendar_view.set_event_tap_callback(self._on_event_tap)
+        
+        # Fetch events from backend
+        try:
+            if self._client:
+                # Get view mode from state
+                view_mode = self._state.calendar_view_mode if hasattr(self._state, 'calendar_view_mode') else "upcoming"
+                
+                # Fetch events based on view mode
+                if view_mode == "today":
+                    response = self._client.get(f"{self._api_base_url}/api/calendar/events/today")
+                else:  # upcoming
+                    response = self._client.get(f"{self._api_base_url}/api/calendar/events/upcoming")
+                
+                events_data = response.json() if response.status_code == 200 else {"events": []}
+                events = events_data.get("events", [])
+                
+                # Update calendar view
+                self.calendar_view.show(
+                    events=events,
+                    view_mode=view_mode,
+                    filter_type=None,
+                )
+        except Exception as e:
+            logger.error(f"Failed to fetch calendar events: {e}")
+            # Show empty calendar
+            self.calendar_view.show(events=[], view_mode="upcoming", filter_type=None)
+
+    def _on_calendar_close(self) -> None:
+        """Handle calendar view close button click."""
+        logger.info("Calendar closed by user")
+        # Request backend to navigate back
+        try:
+            if self._client:
+                self._client.post(f"{self._api_base_url}/conversation/ui/back")
+        except Exception as e:
+            logger.error(f"Failed to pop view: {e}")
+
+    def _on_calendar_view_mode_change(self, view_mode: str) -> None:
+        """Handle calendar view mode change."""
+        logger.info(f"Calendar view mode changed: {view_mode}")
+        # Update backend state and refresh
+        try:
+            if self._client:
+                self._client.post(
+                    f"{self._api_base_url}/conversation/ui/update_calendar_view",
+                    json={"view_mode": view_mode}
+                )
+                # Refresh the calendar view
+                canvas_width = self.content_canvas.winfo_width()
+                canvas_height = self.content_canvas.winfo_height()
+                if canvas_width > 1 and canvas_height > 1:
+                    self._show_calendar(canvas_width, canvas_height)
+        except Exception as e:
+            logger.error(f"Failed to update calendar view mode: {e}")
+
+    def _on_event_tap(self, event_id: str) -> None:
+        """Handle event item tap."""
+        logger.info(f"Event tapped: {event_id}")
+        # TODO: Show event detail view or edit dialog
     
     def _start_animation_loop(self) -> None:
         """Start the animation loop for smiley face."""

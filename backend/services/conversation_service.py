@@ -415,6 +415,46 @@ class ConversationService:
         # The LLM will handle idea creation through the ideas_tool function call,
         # which allows it to elaborate on the user's input and remove formatting
 
+        # Calendar / Event intents
+        if any(word in lowered for word in ["calendar", "event", "meeting", "schedule", "appointment"]):
+            # Check for viewing/listing events
+            if any(word in lowered for word in ["show", "list", "view", "what", "tell", "today", "upcoming"]):
+                if "today" in lowered:
+                    result = self._tools.execute_tool("calendar", "get_today")
+                    events = result.get("events", [])
+                    if not events:
+                        return "calendar.today", {"message": "You have no events scheduled for today."}
+                    count = len(events)
+                    event_list = ", ".join([e["title"] for e in events[:3]])
+                    suffix = f" and {count - 3} more" if count > 3 else ""
+                    return "calendar.today", {
+                        "message": f"Today you have {count} event{'s' if count > 1 else ''}: {event_list}{suffix}.",
+                        "events": events,
+                    }
+                elif "upcoming" in lowered:
+                    result = self._tools.execute_tool("calendar", "get_upcoming", limit=5)
+                    events = result.get("events", [])
+                    if not events:
+                        return "calendar.upcoming", {"message": "You have no upcoming events scheduled."}
+                    count = len(events)
+                    event_list = ", ".join([e["title"] for e in events[:3]])
+                    suffix = f" and {count - 3} more" if count > 3 else ""
+                    return "calendar.upcoming", {
+                        "message": f"You have {count} upcoming event{'s' if count > 1 else ''}: {event_list}{suffix}.",
+                        "events": events,
+                    }
+                else:
+                    # Default to showing upcoming events
+                    result = self._tools.execute_tool("calendar", "get_upcoming", limit=5)
+                    events = result.get("events", [])
+                    if not events:
+                        return "calendar.list", {"message": "You have no events scheduled."}
+                    count = len(events)
+                    return "calendar.list", {
+                        "message": f"You have {count} upcoming event{'s' if count > 1 else ''}.",
+                        "events": events,
+                    }
+
         return None, None
 
 

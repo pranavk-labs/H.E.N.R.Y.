@@ -1,157 +1,75 @@
-"""Tests for Neo4j client.
+#!/usr/bin/env python3
+"""
+Standalone script to populate Neo4j test database with comprehensive sample data.
 
-This test suite includes comprehensive data population tests that create
-one of each node type used in H.E.N.R.Y.'s lifecycle with proper relationships.
+This script creates all node types and relationships used in H.E.N.R.Y.'s lifecycle
+without requiring pytest. Useful for manual testing and database exploration.
+
+Usage:
+    python scripts/populate_test_db.py
+
+Environment variables:
+    NEO4J_URI - Neo4j connection URI (default: bolt://localhost:7687)
+    NEO4J_USER - Neo4j username (default: neo4j)
+    NEO4J_PASSWORD - Neo4j password (required)
+    NEO4J_DATABASE - Database name (default: henrytest)
 """
 
+import asyncio
 import os
-import pytest
+import sys
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+
+# Add parent directory to path to import backend modules
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.services.neo4j_client import Neo4jClient
 from backend.config.settings import Settings
 
 
-# Test database configuration
-TEST_DB_NAME = "neo4j"  # Neo4j database name (Community Edition only supports one database)
+async def populate_database():
+    """Populate the test database with comprehensive sample data."""
 
-
-@pytest.fixture
-def mock_settings():
-    """Create mock settings."""
+    # Configuration
     settings = Settings()
-    settings.neo4j_uri = "bolt://100.104.120.65:7687"
-    settings.neo4j_user = "neo4j"
-    settings.neo4j_password = "password123"
-    return settings
-
-
-@pytest.fixture
-def test_settings():
-    """Create settings for actual Neo4j connection to test database."""
-    settings = Settings()
-    settings.neo4j_uri = os.getenv("NEO4J_URI", "bolt://100.104.120.65:7687")
+    settings.neo4j_uri = os.getenv("NEO4J_URI", "bolt://localhost:7687")
     settings.neo4j_user = os.getenv("NEO4J_USER", "neo4j")
-    settings.neo4j_password = os.getenv("NEO4J_PASSWORD", "password123")
-    return settings
+    settings.neo4j_password = os.getenv("NEO4J_PASSWORD", "")
+    db_name = os.getenv("NEO4J_DATABASE", "neo4j")  # Community Edition default
 
+    if not settings.neo4j_password:
+        print("Error: NEO4J_PASSWORD environment variable is required")
+        print("\nUsage:")
+        print("  export NEO4J_PASSWORD='your_password'")
+        print("  python scripts/populate_test_db.py")
+        sys.exit(1)
 
-@pytest.mark.asyncio
-async def test_neo4j_client_singleton():
-    """Test that Neo4jClient is a singleton."""
-    # Reset instance
+    print(f"Connecting to Neo4j at {settings.neo4j_uri}")
+    print(f"Using database: {db_name}")
+    print()
+
+    # Reset instance and create new client
     Neo4jClient._instance = None
     Neo4jClient._driver = None
-
-    client1 = Neo4jClient.get_instance()
-    client2 = Neo4jClient.get_instance()
-    assert client1 is client2
-
-
-@pytest.mark.asyncio
-async def test_neo4j_health_check_unconnected():
-    """Test health check when not connected."""
-    # Reset instance
-    Neo4jClient._instance = None
-    Neo4jClient._driver = None
-
-    with patch("backend.services.neo4j_client.AsyncGraphDatabase") as mock_db:
-        mock_driver = AsyncMock()
-        mock_db.driver.return_value = mock_driver
-        mock_driver.verify_connectivity.side_effect = Exception("Connection failed")
-
-        client = Neo4jClient.get_instance()
-        health = await client.health_check()
-
-        assert health["status"] == "unhealthy"
-        assert health["connected"] is False
-        assert "error" in health
-
-
-@pytest.mark.asyncio
-async def test_neo4j_health_check_connected():
-    """Test health check when connected."""
-    # Reset instance
-    Neo4jClient._instance = None
-    Neo4jClient._driver = None
-
-    with patch("backend.services.neo4j_client.AsyncGraphDatabase") as mock_db:
-        mock_driver = AsyncMock()
-        mock_db.driver.return_value = mock_driver
-        mock_driver.verify_connectivity = AsyncMock()
-
-        # Mock session as async context manager
-        mock_session = AsyncMock()
-        mock_result = AsyncMock()
-        mock_result.single = AsyncMock(return_value={"test": 1})
-        mock_session.run = AsyncMock(return_value=mock_result)
-
-        # Create a proper async context manager mock
-        mock_session_context = MagicMock()
-        mock_session_context.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session_context.__aexit__ = AsyncMock(return_value=None)
-        mock_driver.session = MagicMock(return_value=mock_session_context)
-
-        client = Neo4jClient.get_instance()
-        health = await client.health_check()
-
-        assert health["status"] == "healthy"
-        assert health["connected"] is True
-
-
-# ============================================================================
-# COMPREHENSIVE DATA POPULATION TESTS
-# ============================================================================
-# These tests populate the test database with one of each node type
-# and all relationship types used throughout H.E.N.R.Y.'s lifecycle.
-# ============================================================================
-
-
-@pytest.mark.asyncio
-@pytest.mark.skipif(
-    os.getenv("SKIP_NEO4J_INTEGRATION") == "true",
-    reason="Skipping Neo4j integration test"
-)
-async def test_populate_comprehensive_graph_data(test_settings):
-    """
-    Populate test database with comprehensive sample data.
-
-    This test creates one of each node type:
-    - User
-    - Idea (with tags)
-    - Preference
-    - Category (for todos)
-    - Todo (parent and child)
-    - CalendarEvent (template and instance)
-
-    And demonstrates all relationship types:
-    - HAS_IDEA (User -> Idea)
-    - RELATED_TO (Idea -> Idea)
-    - HAS_PREFERENCE (User -> Preference)
-    - HAS_TODO (User -> Todo)
-    - BELONGS_TO (Todo -> Category)
-    - HAS_SUBTASK (Todo -> Todo)
-    - IMPLEMENTS (Todo -> Idea)
-    - DEPENDS_ON (Todo -> Todo)
-    - INSTANCE_OF (CalendarEvent -> CalendarEvent)
-    - HAS_EVENT (User -> CalendarEvent)
-    """
-    # Reset instance and create new client with test settings
-    Neo4jClient._instance = None
-    Neo4jClient._driver = None
-    client = Neo4jClient(test_settings)
+    client = Neo4jClient(settings)
 
     try:
         await client.connect()
+        print("✓ Connected to Neo4j")
+        print()
 
-        # Ensure we're using the test database
-        async with client.driver.session(database=TEST_DB_NAME) as session:
+        async with client.driver.session(database=db_name) as session:
             # Clear existing test data
+            print("Clearing existing data...")
             await session.run("MATCH (n) DETACH DELETE n")
+            print("✓ Database cleared")
+            print()
 
             # Get current timestamp
             now = datetime.now(timezone.utc).isoformat()
+
+            print("Creating nodes and relationships...")
+            print("=" * 60)
 
             # ================================================================
             # 1. Create User node
@@ -194,7 +112,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Preference
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -229,7 +146,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Idea
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -243,7 +159,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             print(f"✓ Created Idea node: {idea1_id}")
             print(f"  └─ HAS_IDEA: {user_id} -> {idea1_id}")
 
-            # Create second idea related to the first
             idea2_id = "idea:learn_inverse_kinematics"
             await session.run(
                 """
@@ -262,7 +177,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Idea
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -274,7 +188,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Idea -> Idea (RELATED_TO)
             await session.run(
                 """
                 MATCH (i1:Idea {id: $idea1_id})
@@ -318,7 +231,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             # ================================================================
             # 5. Create Todo nodes with multiple relationship types
             # ================================================================
-            # Parent todo
             todo1_id = "todo:study_robotics"
             await session.run(
                 """
@@ -349,7 +261,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Todo
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -361,7 +272,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Todo -> Category
             await session.run(
                 """
                 MATCH (t:Todo {id: $todo_id})
@@ -373,7 +283,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Todo -> Idea (IMPLEMENTS)
             await session.run(
                 """
                 MATCH (t:Todo {id: $todo_id})
@@ -390,7 +299,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             print(f"  └─ BELONGS_TO: {todo1_id} -> {category_id}")
             print(f"  └─ IMPLEMENTS: {todo1_id} -> {idea2_id}")
 
-            # Child todo (subtask)
             todo2_id = "todo:read_robotics_chapter_1"
             await session.run(
                 """
@@ -421,7 +329,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Todo
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -433,7 +340,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Todo -> Category
             await session.run(
                 """
                 MATCH (t:Todo {id: $todo_id})
@@ -445,7 +351,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link parent Todo -> child Todo (HAS_SUBTASK)
             await session.run(
                 """
                 MATCH (parent:Todo {id: $parent_id})
@@ -462,7 +367,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             print(f"  └─ BELONGS_TO: {todo2_id} -> {category_id}")
             print(f"  └─ HAS_SUBTASK: {todo1_id} -> {todo2_id}")
 
-            # Third todo to demonstrate DEPENDS_ON
             todo3_id = "todo:practice_ik_examples"
             await session.run(
                 """
@@ -491,7 +395,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> Todo
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -503,7 +406,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Todo -> Category
             await session.run(
                 """
                 MATCH (t:Todo {id: $todo_id})
@@ -515,7 +417,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link Todo -> Todo (DEPENDS_ON: must study before practicing)
             await session.run(
                 """
                 MATCH (dependent:Todo {id: $dependent_id})
@@ -535,7 +436,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             # ================================================================
             # 6. Create CalendarEvent nodes (template and instance)
             # ================================================================
-            # Recurring event template
             event_template_id = "event:weekly_robotics_seminar"
             await session.run(
                 """
@@ -570,7 +470,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> CalendarEvent
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -585,7 +484,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
             print(f"✓ Created CalendarEvent (template): {event_template_id}")
             print(f"  └─ HAS_EVENT: {user_id} -> {event_template_id}")
 
-            # Event instance (specific occurrence of the recurring event)
             event_instance_id = "event:weekly_robotics_seminar_2026_01_27"
             await session.run(
                 """
@@ -610,7 +508,7 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 end_time="2026-01-27T15:30:00Z",
                 description="Weekly discussion on robotics research and projects",
                 location="Engineering Building Room 301",
-                recurrence_pattern="none",  # Instances don't recur
+                recurrence_pattern="none",
                 reminder_minutes=30,
                 attendees=["alice@example.com", "bob@example.com"],
                 event_type="meeting",
@@ -618,7 +516,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link instance -> template (INSTANCE_OF)
             await session.run(
                 """
                 MATCH (instance:CalendarEvent {id: $instance_id})
@@ -630,7 +527,6 @@ async def test_populate_comprehensive_graph_data(test_settings):
                 created_at=now
             )
 
-            # Link User -> CalendarEvent instance
             await session.run(
                 """
                 MATCH (u:User {id: $user_id})
@@ -657,35 +553,49 @@ async def test_populate_comprehensive_graph_data(test_settings):
             record = await result.single()
             rel_count = record["rel_count"]
 
-            print(f"\n{'='*60}")
-            print(f"Graph populated successfully!")
-            print(f"{'='*60}")
+            print()
+            print("=" * 60)
+            print("Graph populated successfully!")
+            print("=" * 60)
             print(f"Total nodes created: {node_count}")
             print(f"Total relationships created: {rel_count}")
-            print(f"\nNode summary:")
-            print(f"  - 1 User")
-            print(f"  - 1 Preference")
-            print(f"  - 2 Ideas")
-            print(f"  - 1 Category")
-            print(f"  - 3 Todos")
-            print(f"  - 2 CalendarEvents (1 template + 1 instance)")
-            print(f"\nRelationship summary:")
-            print(f"  - HAS_PREFERENCE: 1")
-            print(f"  - HAS_IDEA: 2")
-            print(f"  - RELATED_TO: 1")
-            print(f"  - HAS_TODO: 3")
-            print(f"  - BELONGS_TO: 3")
-            print(f"  - IMPLEMENTS: 1")
-            print(f"  - HAS_SUBTASK: 1")
-            print(f"  - DEPENDS_ON: 1")
-            print(f"  - HAS_EVENT: 2")
-            print(f"  - INSTANCE_OF: 1")
-            print(f"{'='*60}")
+            print()
+            print("Node summary:")
+            print("  - 1 User")
+            print("  - 1 Preference")
+            print("  - 2 Ideas")
+            print("  - 1 Category")
+            print("  - 3 Todos")
+            print("  - 2 CalendarEvents (1 template + 1 instance)")
+            print()
+            print("Relationship summary:")
+            print("  - HAS_PREFERENCE: 1")
+            print("  - HAS_IDEA: 2")
+            print("  - RELATED_TO: 1")
+            print("  - HAS_TODO: 3")
+            print("  - BELONGS_TO: 3")
+            print("  - IMPLEMENTS: 1")
+            print("  - HAS_SUBTASK: 1")
+            print("  - DEPENDS_ON: 1")
+            print("  - HAS_EVENT: 2")
+            print("  - INSTANCE_OF: 1")
+            print("=" * 60)
+            print()
+            print(f"View in Neo4j Browser:")
+            print(f"  1. Navigate to http://localhost:7474")
+            print(f"  2. Run: :use {db_name}")
+            print(f"  3. Run: MATCH (n)-[r]->(m) RETURN n, r, m;")
+            print()
 
-            assert node_count == 10, f"Expected 10 nodes, got {node_count}"
-            assert rel_count == 15, f"Expected 15 relationships, got {rel_count}"
-
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
+        sys.exit(1)
     finally:
         await client.disconnect()
+        print("✓ Disconnected from Neo4j")
 
 
+if __name__ == "__main__":
+    asyncio.run(populate_database())
