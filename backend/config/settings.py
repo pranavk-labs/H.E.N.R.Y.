@@ -41,13 +41,15 @@ class Settings(BaseSettings):
     wake_word: str = Field(default="Hey HENRY", alias="WAKE_WORD")
 
     # STT Configuration (Speech-to-Text)
-    # Options: "none" (raise if called), "dummy" (return empty string), "whisper" (free, open-source, offline)
+    # Options: "none" (raise if called), "dummy" (return empty string), "whisper" (server-side, requires openai-whisper), "remote" (send to server)
     stt_engine: str = Field(default="none", alias="STT_ENGINE")
     # Whisper model size: "tiny" (fastest, lowest accuracy), "base" (balanced), "small", "medium", "large" (best accuracy, slowest)
-    # For Raspberry Pi, recommend "tiny" or "base" for speed, "small" for better accuracy
+    # For server, recommend "small" for better accuracy
     whisper_model_size: str = Field(
-        default="base", alias="WHISPER_MODEL_SIZE"
+        default="small", alias="WHISPER_MODEL_SIZE"
     )
+    # STT server URL for remote transcription (Pi sends audio to this server)
+    stt_server_url: str = Field(default="", alias="STT_SERVER_URL")
 
     # TTS Configuration (Text-to-Speech)
     # Options: "log" (just logs), "piper" (default, neural TTS, natural, offline), "pyttsx3" (free, offline, uses system voices)

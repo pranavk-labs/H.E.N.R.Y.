@@ -1,0 +1,81 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info
+dist
+build
+.eggs
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+.tox/
+htmlcov/
+*.cover
+.hypothesis/
+
+# Environment files
+.env
+.env.local
+.env.pi
+.env.deploy
+
+# Data and logs
+data/
+logs/
+*.log
+*.db
+*.sqlite
+
+# Documentation
+docs/
+*.md
+!README.md
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Scripts (except those needed for container)
+scripts/*.sh
+
+# Config files not needed in container
+config/henry.service
+.env.example
+.env.server.example
+.env.deploy.example
+
+# Tests
+tests/
+
+# Mobile apps
+mobile/
+
+# Misc
+.DS_Store
+*.pyc
+.mypy_cache/
+.ruff_cache/

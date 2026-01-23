@@ -17,7 +17,7 @@ def mock_settings():
     """Create mock settings."""
     settings = Settings()
     settings.stt_engine = "none"
-    settings.whisper_model_size = "base"
+    settings.whisper_model_size = "small"
     return settings
 
 
@@ -59,31 +59,32 @@ def test_stt_service_dummy_engine():
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_engine_success(mock_import):
-    """Test STT service with Whisper engine successfully transcribes."""
+    """Test STT service with OpenAI Whisper engine successfully transcribes."""
     # Reset instance
     SpeechToTextService._instance = None
 
-    # Mock Whisper module and model
+    # Mock OpenAI Whisper module and model
     mock_model = MagicMock()
     mock_model.transcribe.return_value = {"text": "hello world"}
+    mock_load_model = MagicMock(return_value=mock_model)
     mock_whisper_module = MagicMock()
-    mock_whisper_module.load_model.return_value = mock_model
-    
+    mock_whisper_module.load_model = mock_load_model
+
     def import_side_effect(name, *args, **kwargs):
         if name == "whisper":
             return mock_whisper_module
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
     settings.stt_engine = "whisper"
-    settings.whisper_model_size = "base"
+    settings.whisper_model_size = "small"
     service = SpeechToTextService(settings)
 
     # Verify model was loaded
     assert service._whisper_model is not None
-    mock_whisper_module.load_model.assert_called_once_with("base")
+    mock_load_model.assert_called_once_with("small")
 
     # Test transcription
     audio_bytes = np.zeros(16000, dtype=np.int16).tobytes()  # 1 second at 16kHz
@@ -91,37 +92,41 @@ def test_stt_service_whisper_engine_success(mock_import):
 
     assert result == "hello world"
     mock_model.transcribe.assert_called_once()
+    # Verify fp16=False for CPU compatibility
+    call_kwargs = mock_model.transcribe.call_args[1]
+    assert call_kwargs.get("fp16") is False
 
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_engine_custom_model_size(mock_import):
-    """Test STT service with Whisper loads custom model size."""
+    """Test STT service with OpenAI Whisper loads custom model size."""
     # Reset instance
     SpeechToTextService._instance = None
 
     mock_model = MagicMock()
     mock_model.transcribe.return_value = {"text": "test"}
+    mock_load_model = MagicMock(return_value=mock_model)
     mock_whisper_module = MagicMock()
-    mock_whisper_module.load_model.return_value = mock_model
-    
+    mock_whisper_module.load_model = mock_load_model
+
     def import_side_effect(name, *args, **kwargs):
         if name == "whisper":
             return mock_whisper_module
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
     settings.stt_engine = "whisper"
-    settings.whisper_model_size = "tiny"
+    settings.whisper_model_size = "base"
     service = SpeechToTextService(settings)
 
-    mock_whisper_module.load_model.assert_called_once_with("tiny")
+    mock_load_model.assert_called_once_with("base")
 
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_import_error(mock_import):
-    """Test STT service falls back to 'none' when Whisper import fails."""
+    """Test STT service falls back to 'none' when OpenAI Whisper import fails."""
     # Reset instance
     SpeechToTextService._instance = None
 
@@ -129,7 +134,7 @@ def test_stt_service_whisper_import_error(mock_import):
         if name == "whisper":
             raise ImportError("No module named 'whisper'")
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
@@ -147,18 +152,19 @@ def test_stt_service_whisper_import_error(mock_import):
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_load_error(mock_import):
-    """Test STT service handles Whisper model load errors gracefully."""
+    """Test STT service handles OpenAI Whisper model load errors gracefully."""
     # Reset instance
     SpeechToTextService._instance = None
 
+    mock_load_model = MagicMock(side_effect=Exception("Model load failed"))
     mock_whisper_module = MagicMock()
-    mock_whisper_module.load_model.side_effect = Exception("Model load failed")
-    
+    mock_whisper_module.load_model = mock_load_model
+
     def import_side_effect(name, *args, **kwargs):
         if name == "whisper":
             return mock_whisper_module
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
@@ -172,20 +178,21 @@ def test_stt_service_whisper_load_error(mock_import):
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_transcribe_error(mock_import):
-    """Test STT service handles Whisper transcription errors gracefully."""
+    """Test STT service handles OpenAI Whisper transcription errors gracefully."""
     # Reset instance
     SpeechToTextService._instance = None
 
     mock_model = MagicMock()
     mock_model.transcribe.side_effect = Exception("Transcription failed")
+    mock_load_model = MagicMock(return_value=mock_model)
     mock_whisper_module = MagicMock()
-    mock_whisper_module.load_model.return_value = mock_model
-    
+    mock_whisper_module.load_model = mock_load_model
+
     def import_side_effect(name, *args, **kwargs):
         if name == "whisper":
             return mock_whisper_module
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
@@ -199,25 +206,26 @@ def test_stt_service_whisper_transcribe_error(mock_import):
 
 @patch("builtins.__import__")
 def test_stt_service_whisper_audio_format_conversion(mock_import):
-    """Test STT service converts audio format correctly for Whisper."""
+    """Test STT service converts audio format correctly for OpenAI Whisper."""
     # Reset instance
     SpeechToTextService._instance = None
 
     mock_model = MagicMock()
     mock_model.transcribe.return_value = {"text": "converted"}
+    mock_load_model = MagicMock(return_value=mock_model)
     mock_whisper_module = MagicMock()
-    mock_whisper_module.load_model.return_value = mock_model
-    
+    mock_whisper_module.load_model = mock_load_model
+
     def import_side_effect(name, *args, **kwargs):
         if name == "whisper":
             return mock_whisper_module
         return _original_import(name, *args, **kwargs)
-    
+
     mock_import.side_effect = import_side_effect
 
     settings = Settings()
     settings.stt_engine = "whisper"
-    settings.whisper_model_size = "base"
+    settings.whisper_model_size = "small"
     service = SpeechToTextService(settings)
 
     # Create int16 audio bytes (typical microphone format)
@@ -245,4 +253,3 @@ def test_stt_service_unknown_engine():
 
     with pytest.raises(RuntimeError, match="Speech-to-text engine.*not configured"):
         service.transcribe(b"test", 16000)
-

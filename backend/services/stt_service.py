@@ -1,9 +1,9 @@
-"""Speech-to-text (STT) service with Whisper support (free, open-source, offline).
+"""Speech-to-text (STT) service with OpenAI Whisper support (free, open-source, offline).
 
 Supported engines:
 - "none": raise if transcribe is called (default)
 - "dummy": return empty string for development
-- "whisper": use OpenAI Whisper (free, open-source, offline) - requires openai-whisper package
+- "whisper": use OpenAI Whisper - requires openai-whisper package
 """
 
 from __future__ import annotations
@@ -32,20 +32,19 @@ class SpeechToTextService:
             try:
                 import whisper
 
-                # Load base model (balanced speed/accuracy; can use "tiny" or "base" for faster)
-                # Models: tiny, base, small, medium, large
-                # For Pi, recommend "tiny" or "base" for speed, "small" for better accuracy
-                model_size = getattr(settings, "whisper_model_size", "base")
-                logger.info(f"Loading Whisper model: {model_size}")
+                # Load model (tiny, base, small, medium, large)
+                # For server, recommend "small" for better accuracy or "base" for speed
+                model_size = getattr(settings, "whisper_model_size", "small")
+                logger.info(f"Loading OpenAI Whisper model: {model_size}")
                 self._whisper_model = whisper.load_model(model_size)
-                logger.info("Whisper model loaded successfully")
+                logger.info("OpenAI Whisper model loaded successfully")
             except ImportError:
                 logger.warning(
-                    "Whisper not available. Install with: poetry add openai-whisper"
+                    "openai-whisper not available. Install with: poetry install --extras server"
                 )
                 self.engine = "none"
             except Exception as e:
-                logger.error(f"Failed to load Whisper model: {e}")
+                logger.error(f"Failed to load OpenAI Whisper model: {e}")
                 self.engine = "none"
 
     @classmethod
@@ -76,27 +75,25 @@ class SpeechToTextService:
                     np.float32
                 ) / 32768.0
 
-                # Whisper expects 16kHz, but we'll let it handle resampling if needed
-                # Transcribe using Whisper
+                # OpenAI Whisper expects 16kHz audio
+                # Transcribe using OpenAI Whisper
                 result = self._whisper_model.transcribe(
                     audio_array,
-                    fp16=False,  # Use fp32 for Pi compatibility
                     language="en",  # Can be None for auto-detect
+                    fp16=False,  # Use FP32 for CPU compatibility
                 )
-                text = result["text"].strip()
-                logger.info(f"Whisper transcription: {text}")
+                text = result.get("text", "").strip()
+                logger.info(f"OpenAI Whisper transcription: {text}")
                 return text
             except Exception as e:
-                logger.error(f"Whisper transcription failed: {e}")
+                logger.error(f"OpenAI Whisper transcription failed: {e}")
                 return ""
 
         raise RuntimeError(
             f"Speech-to-text engine '{self.engine}' is not configured or available. "
-            "Set STT_ENGINE=whisper (requires: poetry add openai-whisper) or "
+            "Set STT_ENGINE=whisper (requires: poetry install --extras server) or "
             "STT_ENGINE=dummy (for development placeholder)."
         )
 
 
 __all__ = ["SpeechToTextService"]
-
-

@@ -13,8 +13,15 @@ import logging
 import tempfile
 from pathlib import Path
 
-import sounddevice as sd
 import numpy as np
+
+# Conditional import for sounddevice (only needed on Pi)
+try:
+    import sounddevice as sd
+    SOUNDDEVICE_AVAILABLE = True
+except ImportError:
+    sd = None  # type: ignore
+    SOUNDDEVICE_AVAILABLE = False
 
 from backend.config.settings import Settings, get_settings
 
@@ -241,8 +248,11 @@ class TextToSpeechService:
                     logger.debug(f"Could not get output device from AudioService: {e}")
                 
                 # Play audio with optional device selection
-                sd.play(audio_data, samplerate=sample_rate, device=output_device)
-                sd.wait()  # Wait until playback is finished
+                if SOUNDDEVICE_AVAILABLE and sd is not None:
+                    sd.play(audio_data, samplerate=sample_rate, device=output_device)
+                    sd.wait()  # Wait until playback is finished
+                else:
+                    logger.error("sounddevice not available for audio playback")
                 
                 # Clean up temp file
                 tmp_path.unlink()

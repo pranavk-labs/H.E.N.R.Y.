@@ -8,10 +8,21 @@ from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import pyaudio
-import sounddevice as sd
-from openwakeword import Model
-import openwakeword.utils
+
+# Conditional imports for audio libraries (only needed on Pi)
+try:
+    import pyaudio
+    import sounddevice as sd
+    from openwakeword import Model
+    import openwakeword.utils
+    AUDIO_LIBS_AVAILABLE = True
+except ImportError:
+    # Audio libraries not available (server mode)
+    AUDIO_LIBS_AVAILABLE = False
+    pyaudio = None  # type: ignore
+    sd = None  # type: ignore
+    Model = None  # type: ignore
+    openwakeword = None  # type: ignore
 
 try:
     from scipy.io import wavfile
@@ -38,7 +49,10 @@ class AudioService:
     def __init__(self, settings: Settings):
         """Initialize audio service."""
         self.settings = settings
-        self.audio_enabled = settings.audio_enabled
+        # Disable audio if libraries aren't available
+        self.audio_enabled = settings.audio_enabled and AUDIO_LIBS_AVAILABLE
+        if settings.audio_enabled and not AUDIO_LIBS_AVAILABLE:
+            logger.info("Audio libraries not available (server mode)")
         self.wake_word = settings.wake_word
         self._wake_word_detected = False
         self._current_input_device: Optional[int] = None

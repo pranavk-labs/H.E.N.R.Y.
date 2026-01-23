@@ -35,7 +35,7 @@ bash scripts/deploy_to_pi.sh
 ### Data Flow
 
 ```
-Voice Input → Wake Word Detection → STT (Whisper) → ConversationService →
+Voice Input → Wake Word Detection → STT (faster-whisper) → ConversationService →
 OllamaClient → PersonalityService → TTS (Piper) → Audio Output
 ```
 

@@ -1,19 +1,21 @@
 [Unit]
-Description=H.E.N.R.Y. Backend Service
-After=network.target
+Description=H.E.N.R.Y. GUI and Voice Interface
+After=network.target sound.target graphical.target
 
 [Service]
 Type=simple
 User=pi
 WorkingDirectory=/home/pi/H.E.N.R.Y.
-Environment="PATH=/home/pi/H.E.N.R.Y/.venv/bin:/usr/local/bin:/usr/bin:/bin"
-ExecStart=/home/pi/H.E.N.R.Y/.venv/bin/uvicorn backend.api.main:app --host 0.0.0.0 --port 8000
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/pi/.Xauthority"
+ExecStart=/usr/bin/env bash -l -c 'cd /home/pi/H.E.N.R.Y. && poetry run python scripts/henry_app.py'
 Restart=always
 RestartSec=10
 StandardOutput=journal
 StandardError=journal
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=graphical.target
 
 

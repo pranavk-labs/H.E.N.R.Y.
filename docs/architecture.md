@@ -2,45 +2,59 @@
 
 ## System Overview
 
-H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice interface hub and a home server handling resource-intensive services. The Pi manages voice I/O, robot control, and API gateway functions, while the home server (accessible via Tailscale VPN) runs the LLM (Ollama) and Graph Database (Neo4j). This architecture optimizes resource usage while maintaining local-first, privacy-focused operation.
+H.E.N.R.Y. follows a **distributed client-server architecture** with the Raspberry Pi as the voice interface client and a home server (Docker) handling all resource-intensive services. The Pi manages wake word detection, audio I/O, TTS, robot control, and GUI display, while the home server (accessible via Tailscale VPN) runs the Backend API, STT (OpenAI Whisper), LLM (Ollama), and Graph Database (Neo4j). This architecture offloads heavy processing from the Pi while maintaining local-first, privacy-focused operation.
 
 ## High-Level Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│              Raspberry Pi (Assistant Hub)                   │
-│                                                             │
-│  ┌──────────────┐  ┌──────────────────────────┐           │
-│  │   Backend    │  │   Native UI (Python GUI) │           │
-│  │   (FastAPI)  │  │   Face + Tools Display   │           │
-│  └──────────────┘  └──────────────────────────┘           │
-│        │                        ▲                         │
-│        │ ToolsService /         │ ScreenManager           │
-│        ▼                        │                         │
-│  ┌──────────────┐        ┌──────────────┐                  │
-│  │  Tools       │        │ Screen       │                  │
-│  │  (Timer,     │        │ Manager      │                  │
-│  │   Ideas, …)  │        └──────────────┘                  │
-│  └──────────────┘                                          │
+│            Home Server (Docker Container)                   │
 │                                                             │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
-│  │  Voice/STT   │  │  Knowledge   │  │  Audio I/O   │      │
-│  │  Pipeline    │  │  Service     │  │  Service     │      │
+│  │   Backend    │  │   STT        │  │  Knowledge   │      │
+│  │   API        │  │   (Whisper)  │  │  Service     │      │
+│  │   (FastAPI)  │  │  small:500MB │  │              │      │
+│  └──────────────┘  └──────────────┘  └──────────────┘      │
+│        │                    ▲                │             │
+│        │  REST API          │ Audio bytes    │ Graph ops  │
+│        ▼                    │                ▼             │
+│  ┌──────────────┐    ┌──────────────┐  ┌──────────────┐    │
+│  │  Personality │    │  Conversation│  │  Graph DB    │    │
+│  │  Service     │    │  Service     │  │  (Neo4j)     │    │
+│  └──────────────┘    └──────────────┘  └──────────────┘    │
+│        │                                                    │
+│        │ LLM requests                                       │
+│        ▼                                                    │
+│  ┌──────────────┐                                           │
+│  │  LLM Service │                                           │
+│  │  (Ollama)    │                                           │
+│  └──────────────┘                                           │
+└─────────────────────────────────────────────────────────────┘
+                        ↕  (Tailscale VPN / Local Network)
+┌─────────────────────────────────────────────────────────────┐
+│         Raspberry Pi (Voice Interface Client)               │
+│                                                             │
+│  ┌──────────────┐  ┌──────────────────────────┐           │
+│  │  Voice Loop  │  │   Native UI (Python GUI) │           │
+│  │  Service     │  │   Face + Tools Display   │           │
+│  └──────────────┘  └──────────────────────────┘           │
+│        │                        ▲                         │
+│        │ Send audio to server   │ ScreenManager           │
+│        ▼                        │                         │
+│  ┌──────────────┐        ┌──────────────┐                  │
+│  │  Audio I/O   │        │ Tools        │                  │
+│  │  Recording   │        │ (Timer,      │                  │
+│  │  + VAD       │        │  Ideas, …)   │                  │
+│  └──────────────┘        └──────────────┘                  │
+│        ▲                                                    │
+│        │ Wake word detected                                │
+│        │                                                    │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐      │
+│  │  Wake Word   │  │  TTS         │  │  Robot       │      │
+│  │  Detection   │  │  (Piper)     │  │  Control     │      │
+│  │ (OpenWakeWrd)│  │  local       │  │  GPIO        │      │
 │  └──────────────┘  └──────────────┘  └──────────────┘      │
 └─────────────────────────────────────────────────────────────┘
-                        ↕  (Tailscale VPN)
-        ┌──────────────────────────┐
-        │       Home Server        │
-        │                          │
-        │  ┌──────────────┐        │
-        │  │  LLM Service │        │
-        │  │  (Ollama)    │        │
-        │  └──────────────┘        │
-        │  ┌──────────────┐        │
-        │  │  Graph DB    │        │
-        │  │  (Neo4j)     │        │
-        │  └──────────────┘        │
-        └──────────────────────────┘
 ```
 
 ## Component Architecture
@@ -63,25 +77,39 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 
 **Note**: Authentication is not required for single-user local system. Can be added later if multi-user or remote access is needed.
 
-### Voice Service
+### Voice Service (Pi-Side)
 
 **Responsibilities:**
 
 -   Always-on audio capture for wake word detection
--   Wake word detection (HENRY only processes when name is called)
--   Speech-to-text conversion (activated after wake word)
--   Text-to-speech synthesis
--   Audio processing pipeline
--   Conversation management
+-   Wake word detection (OpenWakeWord - HENRY only processes when name is called)
+-   Audio recording with Voice Activity Detection (VAD)
+-   Send audio to server for STT transcription
+-   Text-to-speech synthesis (Piper TTS - local)
+-   Audio output management
 
 **Key Components:**
 
--   Wake word detection service
--   Audio capture service
--   STT engine integration
--   TTS engine integration
--   Conversation state manager
+-   Wake word detection service (OpenWakeWord)
+-   Audio capture service (PyAudio + WebRTC VAD)
+-   Remote STT client (sends audio to server via HTTP)
+-   TTS engine (Piper TTS - local)
 -   Audio queue manager
+
+### STT Service (Server-Side)
+
+**Responsibilities:**
+
+-   Receive audio bytes from Pi
+-   Transcribe audio using OpenAI Whisper
+-   Return text transcription to Pi
+
+**Key Components:**
+
+-   API endpoint (`POST /stt/transcribe`)
+-   OpenAI Whisper model (small: 500MB, better accuracy)
+-   Audio format handling (base64 encoding/decoding)
+-   Error handling and retry logic
 
 ### Knowledge & Tools Layer
 
@@ -162,7 +190,7 @@ H.E.N.R.Y. follows a distributed architecture with the Raspberry Pi as the voice
 ### Voice Interaction Flow
 
 ```
-User Voice → Audio Capture → Wake Word Detection → STT (Whisper) → Intent Recognition →
+User Voice → Audio Capture → Wake Word Detection → STT (faster-whisper) → Intent Recognition →
 Knowledge Query → LLM Processing (Ollama) → Personality Injection →
 Response Generation → TTS → Audio Output → User
 ```
@@ -283,11 +311,11 @@ Event Bus → Relevant Service → Action/Response
 -   **Benefits**: Lower memory footprint (~100-200MB vs 1-2GB), faster startup, simpler deployment
 -   **Trade-offs**: Less powerful query language, manual relationship management
 
-### Voice: Whisper (STT)
+### Voice: faster-whisper (STT)
 
--   **Rationale**: High accuracy, offline capability, open source
--   **Alternatives Considered**: Cloud STT services, DeepSpeech
--   **Decision**: Whisper offers best balance of accuracy and privacy
+-   **Rationale**: High accuracy, offline capability, open source, ARM-optimized
+-   **Alternatives Considered**: Cloud STT services, DeepSpeech, openai-whisper
+-   **Decision**: faster-whisper offers best balance of accuracy, privacy, and performance on ARM CPUs
 
 ### LLM: Ollama (Local)
 
@@ -327,7 +355,7 @@ Event Bus → Relevant Service → Action/Response
     -   **LLM**: Keep on Pi (Ollama) or move to more powerful device
 -   **Cloud Offload**: Move heavy processing to cloud (if desired)
     -   **LLM**: Optional cloud API fallback for complex tasks
-    -   **STT**: Keep Whisper local for privacy
+    -   **STT**: Keep faster-whisper local for privacy
 -   **Clustering**: Multiple Pi instances (unlikely needed)
 -   **Hardware Upgrade**: Pi 5 or more powerful SBC for better LLM performance
 
@@ -367,9 +395,9 @@ Event Bus → Relevant Service → Action/Response
 -   **LLM (Ollama)**: 3-4GB RAM (Q4 quantized model)
 -   **Graph DB (NetworkX)**: 200-500MB RAM (in-memory)
 -   **Backend API**: 200-300MB RAM
--   **Voice/STT**: 500MB-1GB RAM (Whisper model)
+-   **Voice/STT**: 300-500MB RAM (faster-whisper with int8 quantization)
 -   **System/O.S.**: 1-2GB RAM
--   **Total**: ~5-8GB (tight on 4GB Pi, comfortable on 8GB Pi)
+-   **Total**: ~5-7.5GB (comfortable on 8GB Pi, tight on 4GB Pi)
 
 ### Optimizations
 

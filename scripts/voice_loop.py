@@ -42,7 +42,6 @@ sys.path.insert(0, str(project_root))
 
 from backend.config.settings import get_settings
 from backend.services.audio_service import AudioService
-from backend.services.conversation_service import ConversationService
 from backend.services.stt_service import SpeechToTextService
 from backend.services.tts_service import TextToSpeechService
 
@@ -80,7 +79,11 @@ class VoiceLoop:
             else:
                 self.http_client = httpx.Client(timeout=30.0, base_url=self.api_base_url)
                 logger.info(f"Using API mode: {self.api_base_url}")
-        else:
+
+        if not self.use_api:
+            # Only import ConversationService when not using API mode
+            # This avoids loading heavy dependencies (neo4j, ollama) on client devices
+            from backend.services.conversation_service import ConversationService
             self.conversation_service = ConversationService.get_instance()
             logger.info("Using direct service calls mode")
         

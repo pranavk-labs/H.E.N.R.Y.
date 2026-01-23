@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import collections
 import logging
 import os
@@ -36,7 +37,6 @@ sys.path.insert(0, str(project_root))
 
 from backend.config.settings import get_settings
 from backend.services.audio_service import AudioService
-from backend.services.conversation_service import ConversationService
 from backend.services.stt_service import SpeechToTextService
 from backend.services.tts_service import TextToSpeechService
 
@@ -73,7 +73,11 @@ class VoiceLoop:
             else:
                 self.http_client = httpx.Client(timeout=30.0, base_url=self.api_base_url)
                 logger.info(f"Using API mode: {self.api_base_url}")
-        else:
+
+        if not self.use_api:
+            # Only import ConversationService when not using API mode
+            # This avoids loading heavy dependencies (neo4j, ollama) on client devices
+            from backend.services.conversation_service import ConversationService
             self.conversation_service = ConversationService.get_instance()
             logger.info("Using direct service calls mode")
         
@@ -474,24 +478,29 @@ class VoiceLoop:
 
     def _get_user_input(self) -> str:
         """Get user input via STT transcription or typed fallback.
-        
-        Records audio after wake word detection and transcribes it using STT service.
+
+        Records audio after wake word detection and transcribes it using remote or local STT.
         Falls back to typed input if STT is not configured.
-        
+
         Returns:
             User's input text
         """
-        # Check if STT is configured and available
-        if self.stt_service.engine in ("none", "dummy"):
-            # STT not configured - fall back to typed input
+        # Check if remote STT is configured
+        use_remote_stt = (
+            self.settings.stt_engine == "remote" or
+            (self.settings.stt_server_url and self.settings.stt_server_url.strip())
+        )
+
+        # If neither remote nor local STT is configured, fall back to typed input
+        if not use_remote_stt and self.stt_service.engine in ("none", "dummy"):
             logger.info("STT not configured, using typed input fallback")
             try:
                 user_input = input("\n[Wake word detected] What did you say? (or press Enter to skip): ").strip()
                 return user_input
             except (EOFError, KeyboardInterrupt):
                 return ""
-        
-        # STT is configured - record audio with VAD and transcribe
+
+        # Record audio with VAD
         audio_data = self._record_audio_with_vad(
             sample_rate=16000,
             max_duration=30.0,
@@ -504,17 +513,23 @@ class VoiceLoop:
             if self.gui:
                 self.gui.display_transcription("")
             return ""
-        
+
         audio_bytes, sample_rate = audio_data
-        
-        # Transcribe using STT service
+
+        # Transcribe using remote or local STT
         try:
             logger.info("Transcribing audio...")
             # Show "Transcribing..." status
             if self.gui:
                 self.gui.display_transcription("Transcribing...")
-            
-            text = self.stt_service.transcribe(audio_bytes, sample_rate)
+
+            if use_remote_stt:
+                # Send audio to remote STT server
+                text = self._transcribe_remote(audio_bytes, sample_rate)
+            else:
+                # Use local STT service
+                text = self.stt_service.transcribe(audio_bytes, sample_rate)
+
             if text:
                 logger.info(f"Transcribed: {text}")
                 # Display transcribed text on GUI immediately
@@ -533,6 +548,53 @@ class VoiceLoop:
             if self.gui:
                 self.gui.display_transcription("")
             return ""
+
+    def _transcribe_remote(self, audio_bytes: bytes, sample_rate: int) -> str:
+        """Send audio to remote STT server for transcription.
+
+        Args:
+            audio_bytes: PCM audio data (int16 format)
+            sample_rate: Sample rate in Hz
+
+        Returns:
+            Transcribed text
+
+        Raises:
+            Exception: If server request fails
+        """
+        if not HAS_HTTPX:
+            logger.error("httpx not available for remote STT. Install with: poetry add httpx")
+            return ""
+
+        try:
+            # Encode audio as base64
+            audio_b64 = base64.b64encode(audio_bytes).decode()
+
+            # Send to STT server
+            stt_url = self.settings.stt_server_url.rstrip("/")
+            logger.info(f"Sending audio to remote STT server: {stt_url}/stt/transcribe")
+
+            response = httpx.post(
+                f"{stt_url}/stt/transcribe",
+                json={"audio_data": audio_b64, "sample_rate": sample_rate},
+                timeout=30.0,
+            )
+            response.raise_for_status()
+
+            result = response.json()
+            text = result.get("text", "")
+            logger.info(f"Remote STT transcription: {text}")
+            return text
+
+        except httpx.RequestError as e:
+            logger.error(f"Remote STT request failed: {e}")
+            raise
+        except httpx.HTTPStatusError as e:
+            logger.error(f"Remote STT server error {e.response.status_code}: {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Remote STT failed: {e}")
+            raise
 
     def _wait_for_api(self) -> bool:
         """Wait for API server to be ready.
