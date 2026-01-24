@@ -60,6 +60,7 @@ if [ -n "$PI_PASSWORD" ]; then
         echo 'Cleaning poetry cache (keeping virtual environment)...'
         rm -rf ~/.cache/pypoetry/cache 2>/dev/null || true
         rm -rf ~/.cache/pypoetry/artifacts 2>/dev/null || true
+        sudo systemctl stop henry.service
         echo 'Cleanup complete.'
     "
 else
@@ -148,6 +149,10 @@ WorkingDirectory=${PI_PATH}
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/${PI_USER}/.Xauthority"
+Environment="XDG_RUNTIME_DIR=/run/user/1000"
+Environment="PULSE_SERVER=unix:/run/user/1000/pulse/native"
+Environment="PULSE_RUNTIME_PATH=/run/user/1000/pulse"
+Environment="APP_ENV=production"
 ExecStart=/usr/bin/env bash -l -c 'cd ${PI_PATH} && poetry run python scripts/henry_app.py'
 Restart=always
 RestartSec=10
@@ -200,6 +205,9 @@ if [ -n "$PI_PASSWORD" ]; then
         echo '${PI_PASSWORD}' | sudo -S systemctl enable henry.service
         echo 'Stopping old service if running...'
         echo '${PI_PASSWORD}' | sudo -S systemctl stop henry.service 2>/dev/null || true
+        echo 'Clearing service logs...'
+        echo '${PI_PASSWORD}' | sudo -S journalctl --rotate
+        echo '${PI_PASSWORD}' | sudo -S journalctl --vacuum-time=1s -u henry.service
         echo 'Starting service...'
         echo '${PI_PASSWORD}' | sudo -S systemctl start henry.service
         echo 'Vacuuming old logs...'
@@ -215,6 +223,9 @@ else
         sudo systemctl enable henry.service
         echo 'Stopping old service if running...'
         sudo systemctl stop henry.service 2>/dev/null || true
+        echo 'Clearing service logs...'
+        sudo journalctl --rotate
+        sudo journalctl --vacuum-time=1s -u henry.service
         echo 'Starting service...'
         sudo systemctl start henry.service
         echo 'Vacuuming old logs...'
@@ -228,6 +239,7 @@ echo "Deployment complete!"
 echo "==========================================="
 echo ""
 echo "Log rotation configured:"
+echo "  - Service logs cleared on deploy"
 echo "  - Max journal size: 100MB"
 echo "  - Max retention: 7 days"
 echo "  - Logs auto-pruned to save SSD space"

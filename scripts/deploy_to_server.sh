@@ -153,6 +153,42 @@ else
     DOCKER_COMPOSE_CMD="sudo docker compose"
 fi
 
+# Stop and clean up old containers
+echo "Stopping old containers..."
+if [ "$DEPLOY_MODE" = "local" ]; then
+    cd "${SERVER_PATH}"
+    ${DOCKER_COMPOSE_CMD} down || true
+else
+    if [ -n "$SERVER_PASSWORD" ]; then
+        sshpass -p "$SERVER_PASSWORD" ssh -t "${SERVER_USER}@${SERVER_HOST}" "
+            cd ${SERVER_PATH} 2>/dev/null && echo '${SERVER_PASSWORD}' | sudo -S ${DOCKER_COMPOSE_CMD#sudo } down || true
+        "
+    else
+        ssh -t "${SERVER_USER}@${SERVER_HOST}" "
+            cd ${SERVER_PATH} 2>/dev/null && ${DOCKER_COMPOSE_CMD} down || true
+        "
+    fi
+fi
+
+# Clean up dangling images and unused resources
+echo "Cleaning up unused Docker resources..."
+if [ "$DEPLOY_MODE" = "local" ]; then
+    sudo docker image prune -f
+    sudo docker volume prune -f
+else
+    if [ -n "$SERVER_PASSWORD" ]; then
+        sshpass -p "$SERVER_PASSWORD" ssh -t "${SERVER_USER}@${SERVER_HOST}" "
+            echo '${SERVER_PASSWORD}' | sudo -S docker image prune -f
+            echo '${SERVER_PASSWORD}' | sudo -S docker volume prune -f
+        "
+    else
+        ssh -t "${SERVER_USER}@${SERVER_HOST}" "
+            sudo docker image prune -f
+            sudo docker volume prune -f
+        "
+    fi
+fi
+
 # Build and start Docker containers (all in one SSH session)
 echo "Building and starting Docker containers..."
 if [ "$DEPLOY_MODE" = "local" ]; then

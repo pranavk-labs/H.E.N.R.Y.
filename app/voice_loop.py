@@ -61,10 +61,12 @@ class VoiceLoop:
         self.audio_service = AudioService.get_instance()
         self.stt_service = SpeechToTextService.get_instance()
         self.tts_service = TextToSpeechService.get_instance()
-        
+
         # API mode vs direct service mode
         self.api_base_url = api_base_url or os.getenv("API_BASE_URL")
         self.use_api = self.api_base_url is not None
+
+        logger.info(f"VoiceLoop initializing - API_BASE_URL: {self.api_base_url or '(not set)'}")
         
         if self.use_api:
             if not HAS_HTTPX:
@@ -284,18 +286,23 @@ class VoiceLoop:
 
     def _record_audio(self, duration_seconds: float = 3.0, sample_rate: int = 16000) -> Optional[Tuple[bytes, int]]:
         """Record audio from the microphone.
-        
+
         Args:
             duration_seconds: How long to record (default: 3 seconds)
             sample_rate: Sample rate in Hz (default: 16000)
-        
+
         Returns:
             Tuple of (audio_bytes, sample_rate) or None if recording failed
         """
         if not HAS_PYAUDIO:
             logger.error("PyAudio not available. Install with: poetry add pyaudio")
             return None
-        
+
+        # Pause wake word detection stream to free the audio device
+        if not self.audio_service.pause_wake_word_stream(timeout=2.0):
+            logger.error("Failed to pause wake word stream, cannot record audio")
+            return None
+
         try:
             audio = pyaudio.PyAudio()
             chunk_size = 1024
@@ -328,23 +335,26 @@ class VoiceLoop:
                 stream.stop_stream()
                 stream.close()
                 audio.terminate()
-                
+
                 if self._shutdown_requested:
                     return None
-                
+
                 # Concatenate all frames into a single bytes object
                 audio_bytes = b''.join(frames)
                 logger.info(f"Recorded {len(audio_bytes)} bytes of audio")
                 return (audio_bytes, sample_rate)
-                
+
             except Exception as e:
                 logger.error(f"Error during audio recording: {e}")
                 audio.terminate()
                 return None
-                
+
         except Exception as e:
             logger.error(f"Failed to record audio: {e}")
             return None
+        finally:
+            # Always resume wake word stream after recording
+            self.audio_service.resume_wake_word_stream()
 
     def _record_audio_with_vad(
         self,
@@ -371,6 +381,11 @@ class VoiceLoop:
         if not HAS_WEBRTCVAD:
             logger.warning("webrtcvad not available, falling back to fixed duration recording")
             return self._record_audio(duration_seconds=5.0, sample_rate=sample_rate)
+
+        # Pause wake word detection stream to free the audio device
+        if not self.audio_service.pause_wake_word_stream(timeout=2.0):
+            logger.error("Failed to pause wake word stream, cannot record audio")
+            return None
 
         try:
             # Initialize VAD
@@ -475,6 +490,9 @@ class VoiceLoop:
         except Exception as e:
             logger.error(f"Failed to initialize VAD: {e}", exc_info=True)
             return None
+        finally:
+            # Always resume wake word stream after VAD recording
+            self.audio_service.resume_wake_word_stream()
 
     def _get_user_input(self) -> str:
         """Get user input via STT transcription or typed fallback.

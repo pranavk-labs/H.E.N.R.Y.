@@ -46,7 +46,7 @@ class ConfirmationDialog:
         # Dialog sizing
         self.width = int(screen_width * 0.4)  # 40% of width
         self.height = int(screen_width * 0.15)  # 15% of width
-        self.button_height = max(50, int(screen_width * 0.06))
+        self.button_height = max(int(screen_width * 0.05), int(screen_width * 0.06))  # 6% of width, min 5% for small screens
         self.button_width = int(self.width * 0.35)
         
         self._draw()
@@ -85,7 +85,7 @@ class ConfirmationDialog:
 
         # Message text
         message_y = y1 + int(self.height * 0.35)
-        font_size = max(16, int(self.screen_width * 0.025))
+        font_size = max(int(self.screen_width * 0.018), int(self.screen_width * 0.025))  # 2.5% of width, min 1.8% for small screens
         message = self.canvas.create_text(
             self.center_x, message_y,
             text="End focus session?",
@@ -130,7 +130,7 @@ class ConfirmationDialog:
         cancel_text = self.canvas.create_text(
             (cancel_x1 + cancel_x2) // 2, button_y,
             text="Cancel",
-            font=("Arial", max(14, int(self.screen_width * 0.022)), "bold"),
+            font=("Arial", max(int(self.screen_width * 0.016), int(self.screen_width * 0.022)), "bold"),  # 2.2% of width, min 1.6% for small screens
             fill="white"
         )
         self.items.append(cancel_text)
@@ -164,7 +164,7 @@ class ConfirmationDialog:
         confirm_text = self.canvas.create_text(
             (confirm_x1 + confirm_x2) // 2, button_y,
             text="Yes",
-            font=("Arial", max(14, int(self.screen_width * 0.022)), "bold"),
+            font=("Arial", max(int(self.screen_width * 0.016), int(self.screen_width * 0.022)), "bold"),  # 2.2% of width, min 1.6% for small screens
             fill="white"
         )
         self.items.append(confirm_text)

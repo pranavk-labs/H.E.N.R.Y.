@@ -9,6 +9,7 @@ WorkingDirectory=/home/pi/H.E.N.R.Y.
 Environment="PATH=/usr/local/bin:/usr/bin:/bin"
 Environment="DISPLAY=:0"
 Environment="XAUTHORITY=/home/pi/.Xauthority"
+Environment="APP_ENV=production"
 ExecStart=/usr/bin/env bash -l -c 'cd /home/pi/H.E.N.R.Y. && poetry run python scripts/henry_app.py'
 Restart=always
 RestartSec=10

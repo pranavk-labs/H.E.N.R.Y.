@@ -1,10 +1,14 @@
 """Environment configuration management using Pydantic Settings."""
 
+import logging
 import os
 from typing import Literal
 
+from dotenv import load_dotenv
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -72,6 +76,9 @@ class Settings(BaseSettings):
     gui_sleepy_duration: int = Field(default=600, alias="GUI_SLEEPY_DURATION")  # Sleepy state (300-600s, default 10 min)
     # After sleepy_duration, HENRY becomes "very sleepy" (asleep)
 
+    # GUI Display Configuration
+    fullscreen: bool = Field(default=False, alias="FULLSCREEN")  # Enable fullscreen mode (True for Pi)
+
     # Voice Loop Configuration
     wake_word_cooldown: float = Field(default=3.0, alias="WAKE_WORD_COOLDOWN")  # Seconds to debounce wake word (prevent multiple triggers)
 
@@ -90,11 +97,62 @@ def get_settings() -> Settings:
     """Get or create the global settings instance."""
     global _settings
     if _settings is None:
-        # Try to load from .env.local first, then .env.pi
-        env_file = os.getenv("APP_ENV", "development")
-        if env_file == "production":
-            _settings = Settings(_env_file=".env.pi")
+        # Get current working directory for debugging
+        cwd = os.getcwd()
+        print(f"DEBUG: Current working directory: {cwd}")
+
+        # Determine which .env file to load based on APP_ENV
+        app_env = os.getenv("APP_ENV", "development")
+        print(f"DEBUG: APP_ENV = {app_env}")
+
+        # Try different .env files in order of preference
+        if app_env == "production":
+            # Production (Pi): try .env, .env.pi, then .env.local
+            env_files = [".env", ".env.pi", ".env.server", ".env.local"]
         else:
-            _settings = Settings(_env_file=".env.local")
+            # Development: try .env.local, .env, .env.pi (also check .env.pi for dev)
+            env_files = [".env.local", ".env", ".env.pi"]
+
+        # Debug: Check which files exist
+        print("DEBUG: Checking for environment files:")
+        for env_file in env_files:
+            abs_path = os.path.abspath(env_file)
+            exists = os.path.exists(env_file)
+            print(f"  - {env_file} -> {abs_path} [{'EXISTS' if exists else 'NOT FOUND'}]")
+
+        # Find first existing file and load it explicitly with dotenv
+        env_file_to_use = None
+        for env_file in env_files:
+            if os.path.exists(env_file):
+                env_file_to_use = env_file
+                abs_path = os.path.abspath(env_file)
+                # Explicitly load environment variables from the file
+                # This ensures API_BASE_URL and other vars are in os.environ
+                result = load_dotenv(env_file, override=False)
+                msg = f"Loaded environment from {env_file_to_use} (full path: {abs_path}, APP_ENV={app_env}, load_dotenv returned: {result})"
+                print(msg)  # Print to stdout as backup
+                logger.info(msg)
+                break
+
+        if env_file_to_use:
+            _settings = Settings(_env_file=env_file_to_use)
+        else:
+            # No .env file found, use defaults
+            msg = f"No .env file found (tried: {', '.join(env_files)}), using defaults (APP_ENV={app_env})"
+            print(f"WARNING: {msg}")  # Print to stdout as backup
+            logger.warning(msg)
+            _settings = Settings()
+
+        # Log important configuration
+        api_base_url = os.getenv("API_BASE_URL")
+        if api_base_url:
+            msg = f"API_BASE_URL configured: {api_base_url}"
+            print(msg)  # Print to stdout as backup
+            logger.info(msg)
+        else:
+            msg = "API_BASE_URL not set (will use direct service calls)"
+            print(msg)  # Print to stdout as backup
+            logger.info(msg)
+
     return _settings
 

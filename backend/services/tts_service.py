@@ -192,6 +192,9 @@ class TextToSpeechService:
         if not text:
             return
 
+        logger.info(f"TTS speak called with text: {text[:100]}...")
+        logger.info(f"TTS engine: {self.engine_name}, SOUNDDEVICE_AVAILABLE: {SOUNDDEVICE_AVAILABLE}")
+
         if self.engine_name == "piper" and self._piper_voice is not None:
             try:
                 # Generate audio with Piper
@@ -249,15 +252,17 @@ class TextToSpeechService:
                 
                 # Play audio with optional device selection
                 if SOUNDDEVICE_AVAILABLE and sd is not None:
+                    logger.info(f"Playing TTS audio: {len(audio_data)} samples at {sample_rate}Hz, device={output_device}")
                     sd.play(audio_data, samplerate=sample_rate, device=output_device)
                     sd.wait()  # Wait until playback is finished
+                    logger.info("TTS playback completed")
                 else:
-                    logger.error("sounddevice not available for audio playback")
-                
+                    logger.error(f"sounddevice not available for audio playback (SOUNDDEVICE_AVAILABLE={SOUNDDEVICE_AVAILABLE}, sd={sd})")
+
                 # Clean up temp file
                 tmp_path.unlink()
-                
-                logger.debug(f"Spoke via Piper TTS: {text[:50]}...")
+
+                logger.info(f"Spoke via Piper TTS: {text[:50]}...")
             except Exception as e:
                 logger.error(f"Piper TTS speak error: {e}")
                 logger.info(f"TTS(fallback): {text}")

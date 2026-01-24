@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import math
 import os
+import subprocess
 import sys
 import threading
 import time
@@ -35,6 +36,7 @@ from app.ui import (
     IdeaNotebook,
     IdeaNotification,
     SevenSegmentDisplay,
+    Sidebar,
     SmileyFace,
     TimerControls,
     TimerDisplay,
@@ -74,6 +76,10 @@ class HenryGUI(tk.Tk):
         
         super().__init__()
         self.title("H.E.N.R.Y.")
+
+        # Load settings first
+        self._settings = get_settings()
+
         # Get actual screen dimensions and use them
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -84,6 +90,11 @@ class HenryGUI(tk.Tk):
             self.geometry("800x480")
         self.configure(bg=colors.MAIN_BG)
 
+        # Enable fullscreen mode if configured (removes window decorations)
+        if self._settings.fullscreen:
+            self.attributes("-fullscreen", True)
+            logger.info("Fullscreen mode enabled")
+
         self._state = UIState()
         self._api_base_url = api_base_url or os.getenv("API_BASE_URL") or API_BASE_URL
         self._client = httpx.Client(timeout=CONNECTION_TIMEOUT) if HAS_HTTPX else None
@@ -92,13 +103,12 @@ class HenryGUI(tk.Tk):
         self._retry_count = 0
         self._voice_loop = voice_loop
 
-        # Load settings for personality timing
-        self._settings = get_settings()
+        # Load personality timing settings
         self._happy_duration = self._settings.gui_happy_duration
         self._neutral_duration = self._settings.gui_neutral_duration
         self._sleepy_duration = self._settings.gui_sleepy_duration
         logger.info(f"GUI personality timings: Happy={self._happy_duration}s, Neutral={self._neutral_duration}s, Sleepy={self._sleepy_duration}s")
-        logger.debug(f"GUI initialized: screen={screen_width}x{screen_height}, api_base_url={self._api_base_url}")
+        logger.debug(f"GUI initialized: screen={screen_width}x{screen_height}, fullscreen={self._settings.fullscreen}, api_base_url={self._api_base_url}")
 
         self._build_layout()
         
@@ -136,9 +146,11 @@ class HenryGUI(tk.Tk):
         
         # Bind to canvas resize to update layout
         self.content_canvas.bind("<Configure>", self._on_canvas_configure)
-        
-        # Bind click events for timer controls
-        self.content_canvas.bind("<Button-1>", self._on_canvas_click)
+
+        # Bind swipe gesture events for sidebar (also handles clicks)
+        self.content_canvas.bind("<ButtonPress-1>", self._on_swipe_start)
+        self.content_canvas.bind("<B1-Motion>", self._on_swipe_move)
+        self.content_canvas.bind("<ButtonRelease-1>", self._on_swipe_end)
         
         # Initialize UI components
         self.smiley_face: Optional[SmileyFace] = None
@@ -149,6 +161,7 @@ class HenryGUI(tk.Tk):
         self.idea_notebook: Optional[IdeaNotebook] = None
         self.todo_list: Optional[TodoList] = None
         self.calendar_view: Optional[CalendarView] = None
+        self.sidebar: Optional[Sidebar] = None
         
         # Track last interaction time for bored state
         # Initialize to current time to ensure we start in a happy state
@@ -174,6 +187,13 @@ class HenryGUI(tk.Tk):
         # Transcription text display
         self._transcription_text: str = ""
         self._transcription_text_id: Optional[int] = None
+
+        # Sidebar swipe detection
+        self._swipe_start_x: Optional[int] = None
+        self._swipe_start_y: Optional[int] = None
+        self._swipe_start_time: float = 0
+        self._sidebar_visible: bool = False
+        self._sidebar_animation_job: Optional[str] = None
 
         # Footer with connection status
         self.footer = ttk.Frame(self, padding=(16, 8))
@@ -763,7 +783,12 @@ class HenryGUI(tk.Tk):
     def _on_canvas_click(self, event) -> None:
         """Handle canvas click events for timer controls, confirmation dialog, and todo list."""
         x, y = event.x, event.y
-        
+
+        # Check sidebar first (if visible)
+        if self._sidebar_visible and self.sidebar:
+            if self.sidebar.handle_touch((x, y)):
+                return
+
         # Check confirmation dialog first (if visible)
         if self.confirmation_dialog:
             if self.confirmation_dialog.handle_click(x, y):
@@ -825,7 +850,288 @@ class HenryGUI(tk.Tk):
 
                 # Refresh UI will recreate elements at new center
                 self._refresh_ui()
-    
+
+    def _on_swipe_start(self, event) -> None:
+        """Handle swipe gesture start."""
+        self._swipe_start_x = event.x
+        self._swipe_start_y = event.y
+        self._swipe_start_time = time.time()
+
+    def _on_swipe_move(self, event) -> None:
+        """Handle swipe gesture movement."""
+        # If sidebar is visible and user is dragging it, update position
+        if self._sidebar_visible and self.sidebar:
+            if self._swipe_start_x is not None:
+                delta_x = event.x - self._swipe_start_x
+                # Only allow dragging to the left (closing)
+                if delta_x < 0:
+                    new_offset = max(-self.sidebar.sidebar_width, int(delta_x))
+                    self.sidebar.update_position(new_offset)
+
+    def _on_swipe_end(self, event) -> None:
+        """Handle swipe gesture end and regular clicks."""
+        if self._swipe_start_x is None or self._swipe_start_y is None:
+            return
+
+        # Calculate swipe distance and velocity
+        delta_x = event.x - self._swipe_start_x
+        delta_y = event.y - self._swipe_start_y
+        delta_time = time.time() - self._swipe_start_time
+
+        # Prevent division by zero
+        if delta_time < 0.01:
+            delta_time = 0.01
+
+        velocity_x = delta_x / delta_time
+
+        # Detect right swipe from left edge (show sidebar)
+        # Must start from left 20% of screen and swipe right at least 100px or 500px/s
+        screen_width = self.content_canvas.winfo_width()
+        if screen_width <= 1:
+            screen_width = 800
+
+        left_edge_threshold = screen_width * 0.2
+
+        # Check if this was a swipe or just a click (small movement)
+        is_swipe = abs(delta_x) > 20 or abs(delta_y) > 20 or abs(velocity_x) > 200
+
+        if not self._sidebar_visible:
+            # Check for right swipe from left edge
+            if is_swipe and ((self._swipe_start_x < left_edge_threshold and
+                delta_x > 100 and abs(delta_y) < 100) or velocity_x > 500):
+                # Show sidebar
+                logger.info(f"Right swipe detected from left edge (delta_x={delta_x:.0f}px, velocity={velocity_x:.0f}px/s)")
+                self._show_sidebar()
+            elif not is_swipe:
+                # Regular click - handle with existing click logic
+                self._on_canvas_click(event)
+        else:
+            # Sidebar is visible - check if we should close it
+            # Close if: swiped left significantly OR clicked outside sidebar
+            if is_swipe and (delta_x < -50 or velocity_x < -300):
+                # Swiped left - close
+                logger.info(f"Left swipe detected, closing sidebar (delta_x={delta_x:.0f}px, velocity={velocity_x:.0f}px/s)")
+                self._hide_sidebar()
+            elif not is_swipe and event.x > self.sidebar.sidebar_width:
+                # Clicked outside sidebar - close
+                logger.info("Click outside sidebar detected, closing")
+                self._hide_sidebar()
+            elif not is_swipe:
+                # Regular click on sidebar - handle with existing click logic
+                self._on_canvas_click(event)
+            else:
+                # Incomplete swipe - snap back to open position
+                logger.debug("Incomplete swipe, snapping sidebar back to open position")
+                if self.sidebar:
+                    self._animate_sidebar(self.sidebar.x_offset, 0, 200)
+
+        # Reset swipe tracking
+        self._swipe_start_x = None
+        self._swipe_start_y = None
+        self._swipe_start_time = 0
+
+    def _show_sidebar(self) -> None:
+        """Show the sidebar with animation."""
+        if self._sidebar_visible:
+            return
+
+        logger.info("Showing sidebar")
+        self._sidebar_visible = True
+
+        # Get canvas dimensions
+        self.update_idletasks()
+        screen_width = self.content_canvas.winfo_width()
+        screen_height = self.content_canvas.winfo_height()
+        if screen_width <= 1:
+            screen_width = 800
+        if screen_height <= 1:
+            screen_height = 480
+
+        # Create sidebar if needed
+        if self.sidebar is None:
+            self.sidebar = Sidebar(
+                self.content_canvas,
+                screen_width,
+                screen_height,
+                on_close=self._hide_sidebar,
+                on_exit=self._on_exit_button,
+                on_volume_change=self._on_volume_change,
+            )
+
+        # Fetch data for sidebar
+        todos = []
+        events = []
+        current_volume = 0.7
+
+        if self._client:
+            try:
+                # Fetch upcoming todos ordered by due date (about 10 items)
+                todo_response = self._client.get(
+                    f"{self._api_base_url}/api/todos",
+                    params={"limit": 10}
+                )
+                if todo_response.status_code == 200:
+                    todos_list = todo_response.json().get("todos", [])
+                    # Sort by due_date (None values go to end)
+                    todos = sorted(
+                        todos_list,
+                        key=lambda t: (t.get("due_date") is None, t.get("due_date") or "")
+                    )
+                    logger.info(f"Fetched {len(todos)} todos for sidebar")
+
+                # Fetch today's events
+                event_response = self._client.get(
+                    f"{self._api_base_url}/calendar/events/today"
+                )
+                if event_response.status_code == 200:
+                    events = event_response.json().get("events", [])
+                    logger.info(f"Fetched {len(events)} events for sidebar")
+            except Exception as e:
+                logger.error(f"Failed to fetch sidebar data: {e}")
+
+        # Show sidebar starting from off-screen left
+        self.sidebar.x_offset = -self.sidebar.sidebar_width
+        self.sidebar.show(todos, events)
+
+        # Animate in from left
+        self._animate_sidebar(-self.sidebar.sidebar_width, 0, 300)
+
+    def _hide_sidebar(self) -> None:
+        """Hide the sidebar with animation."""
+        if not self._sidebar_visible or not self.sidebar:
+            return
+
+        logger.info("Hiding sidebar")
+        self._sidebar_visible = False
+
+        # Animate out to left
+        self._animate_sidebar(self.sidebar.x_offset, -self.sidebar.sidebar_width, 300)
+
+    def _animate_sidebar(self, start_x: int, target_x: int, duration_ms: int) -> None:
+        """Animate sidebar position.
+
+        Args:
+            start_x: Starting x offset
+            target_x: Target x offset
+            duration_ms: Animation duration in milliseconds
+        """
+        if not self.sidebar:
+            return
+
+        # Cancel existing animation
+        if self._sidebar_animation_job:
+            self.after_cancel(self._sidebar_animation_job)
+
+        start_time = time.time() * 1000
+
+        def animate_frame():
+            if not self.sidebar:
+                self._sidebar_animation_job = None
+                return
+
+            current_time = time.time() * 1000
+            elapsed = current_time - start_time
+
+            if elapsed >= duration_ms:
+                # Animation complete
+                self.sidebar.update_position(target_x)
+
+                # Clean up sidebar if it's now hidden
+                if target_x <= -self.sidebar.sidebar_width:
+                    self.sidebar.hide()
+                    self.sidebar = None
+
+                self._sidebar_animation_job = None
+                return
+
+            # Calculate position using ease-out curve
+            t = min(1.0, elapsed / duration_ms)
+            ease_t = 1 - pow(1 - t, 3)
+            current_x = int(start_x + (target_x - start_x) * ease_t)
+
+            self.sidebar.update_position(current_x)
+
+            # Schedule next frame
+            self._sidebar_animation_job = self.after(16, animate_frame)
+
+        # Start animation
+        animate_frame()
+
+    def _on_exit_button(self) -> None:
+        """Handle exit button click from sidebar."""
+        logger.info("=" * 60)
+        logger.info("EXIT BUTTON CLICKED - Initiating shutdown sequence")
+        logger.info("=" * 60)
+        self.on_close()
+
+    def _on_volume_change(self, direction: str) -> None:
+        """Handle volume change from sidebar.
+
+        Args:
+            direction: "up" or "down"
+        """
+        logger.info(f"Sidebar: Volume {direction} button clicked")
+
+        # Volume change amount (5%)
+        volume_step = "5%"
+
+        try:
+            # Try PulseAudio first (common on modern Linux systems)
+            if direction == "up":
+                cmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"+{volume_step}"]
+            else:
+                cmd = ["pactl", "set-sink-volume", "@DEFAULT_SINK@", f"-{volume_step}"]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=2.0
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Volume adjusted using pactl: {direction} by {volume_step}")
+                return
+            else:
+                logger.debug(f"pactl failed (code {result.returncode}), trying amixer...")
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception) as e:
+            logger.debug(f"pactl not available or failed: {e}, trying amixer...")
+
+        # Fallback to ALSA amixer (common on Raspberry Pi)
+        try:
+            if direction == "up":
+                cmd = ["amixer", "sset", "Master", f"{volume_step}+"]
+            else:
+                cmd = ["amixer", "sset", "Master", f"{volume_step}-"]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=2.0
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Volume adjusted using amixer: {direction} by {volume_step}")
+
+                # Parse output to show current volume level
+                output = result.stdout
+                if "%" in output:
+                    # Extract percentage from output like "[75%]"
+                    import re
+                    match = re.search(r'\[(\d+)%\]', output)
+                    if match:
+                        current_volume = match.group(1)
+                        logger.info(f"Current volume: {current_volume}%")
+            else:
+                logger.warning(f"amixer command failed with code {result.returncode}: {result.stderr}")
+        except FileNotFoundError:
+            logger.error("Neither pactl nor amixer found. Volume control not available on this system.")
+        except subprocess.TimeoutExpired:
+            logger.error("Volume control command timed out")
+        except Exception as e:
+            logger.error(f"Failed to adjust volume: {e}", exc_info=True)
+
     def _animate_swipe_in(self, center_x: int, center_y: int, screen_width: int, sleepiness_level: int) -> None:
         """Animate swipe-in from right when switching to tool view.
         
@@ -1263,9 +1569,9 @@ class HenryGUI(tk.Tk):
                 
                 # Fetch events based on view mode
                 if view_mode == "today":
-                    response = self._client.get(f"{self._api_base_url}/api/calendar/events/today")
+                    response = self._client.get(f"{self._api_base_url}/calendar/events/today")
                 else:  # upcoming
-                    response = self._client.get(f"{self._api_base_url}/api/calendar/events/upcoming")
+                    response = self._client.get(f"{self._api_base_url}/calendar/events/upcoming")
                 
                 events_data = response.json() if response.status_code == 200 else {"events": []}
                 events = events_data.get("events", [])
@@ -1372,10 +1678,14 @@ class HenryGUI(tk.Tk):
 
     def on_close(self) -> None:
         """Handle window close event."""
-        logger.info("Closing GUI and shutting down...")
+        logger.info("=" * 60)
+        logger.info("SHUTTING DOWN H.E.N.R.Y. GUI")
+        logger.info("=" * 60)
+        logger.info("on_close() called - initiating shutdown sequence")
         self._running = False
-        
+
         # Cancel animation jobs
+        logger.info("Cancelling animation jobs...")
         if self._animation_job:
             self.after_cancel(self._animation_job)
             self._animation_job = None
@@ -1385,18 +1695,29 @@ class HenryGUI(tk.Tk):
         if self._swipe_animation_job:
             self.after_cancel(self._swipe_animation_job)
             self._swipe_animation_job = None
-        
+        if self._sidebar_animation_job:
+            self.after_cancel(self._sidebar_animation_job)
+            self._sidebar_animation_job = None
+        logger.info("Animation jobs cancelled")
+
         # Stop voice loop if it exists
         if self._voice_loop:
+            logger.info("Stopping voice loop...")
             self._voice_loop.stop()
-        
+            logger.info("Voice loop stopped")
+
         # Close HTTP client
         if self._client:
             try:
+                logger.info("Closing HTTP client...")
                 self._client.close()
-            except Exception:
-                pass
-        
+                logger.info("HTTP client closed")
+            except Exception as e:
+                logger.warning(f"Error closing HTTP client: {e}")
+
         # Destroy window
+        logger.info("Destroying GUI window...")
         self.destroy()
+        logger.info("GUI SHUTDOWN COMPLETE")
+        logger.info("=" * 60)
 

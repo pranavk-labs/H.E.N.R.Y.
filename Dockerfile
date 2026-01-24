@@ -29,6 +29,10 @@ RUN poetry config virtualenvs.create false &&\
 COPY backend/ ./backend/
 COPY tools/ ./tools/
 
+# Copy .env.server as .env inside the container
+# Docker Compose also injects these vars via env_file, this just makes the file visible
+COPY .env.server .env
+
 # Create directory for Whisper model cache
 RUN mkdir -p /root/.cache/whisper
 

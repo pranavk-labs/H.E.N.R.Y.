@@ -34,7 +34,7 @@ class HenryApp:
 
     def __init__(self, enable_voice: bool = True, api_base_url: Optional[str] = None) -> None:
         """Initialize combined application.
-        
+
         Args:
             enable_voice: Whether to enable voice loop (default: True)
             api_base_url: API base URL (default: from environment or module constant)
@@ -45,6 +45,10 @@ class HenryApp:
         self.voice_thread: Optional[threading.Thread] = None
         self.gui: Optional[HenryGUI] = None
         self._shutdown_requested = False
+
+        # Log configuration
+        logger.info(f"HenryApp initialized with API_BASE_URL: {self.api_base_url}")
+        logger.info(f"Voice enabled: {self.enable_voice}")
 
     def start(self) -> None:
         """Start the combined application."""

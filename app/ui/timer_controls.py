@@ -45,7 +45,7 @@ class TimerControls:
         self.is_paused = False
         
         # Button sizing - touch-friendly
-        self.button_height = max(60, int(screen_width * 0.08))  # 8% of width, min 60px
+        self.button_height = max(int(screen_width * 0.06), int(screen_width * 0.08))  # 8% of width, min 6% for small screens
         self.button_width = int(screen_width * 0.15)  # 15% of width
         self.button_spacing = int(screen_width * 0.03)  # 3% spacing
         
@@ -93,7 +93,7 @@ class TimerControls:
 
         # Draw pause/play icon (simple text for now)
         icon_text = "⏸" if not self.is_paused else "▶"
-        font_size = max(20, int(self.screen_width * 0.03))
+        font_size = max(int(self.screen_width * 0.02), int(self.screen_width * 0.03))  # 3% of width, min 2% for small screens
         pause_play_text = self.canvas.create_text(
             (pause_play_x1 + pause_play_x2) // 2,
             (pause_play_y1 + pause_play_y2) // 2,
@@ -135,7 +135,7 @@ class TimerControls:
             (end_x1 + end_x2) // 2,
             (end_y1 + end_y2) // 2,
             text="End",
-            font=("Arial", max(16, int(self.screen_width * 0.025)), "bold"),
+            font=("Arial", max(int(self.screen_width * 0.018), int(self.screen_width * 0.025)), "bold"),  # 2.5% of width, min 1.8% for small screens
             fill="white"
         )
         self.items.append(end_text)

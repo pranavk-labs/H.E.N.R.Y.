@@ -237,8 +237,8 @@ class TimerTool(BaseTool):
             session.completed_at = now
             logger.info("Completed Pomodoro session %s", session_id)
 
-            # Return to idle view when completed
-            self._screen.set_view("idle")
+            # Update timer state with completed status (triggers cleanup in screen manager)
+            self._update_timer_state(session)
             self._screen.update_status("Pomodoro completed")
             # Clear timer state from screen
             self._screen.state.timer_state.clear()
@@ -263,8 +263,8 @@ class TimerTool(BaseTool):
             session.completed_at = now
             logger.info("Stopped Pomodoro session %s", session_id)
 
-            # Return to idle view when stopped (before updating timer state)
-            self._screen.set_view("idle")
+            # Update timer state with completed status (triggers cleanup in screen manager)
+            self._update_timer_state(session)
             self._screen.update_status("Focus session ended")
             # Clear timer state from screen
             self._screen.state.timer_state.clear()
