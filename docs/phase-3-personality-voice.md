@@ -27,7 +27,7 @@ Phase 3 implements the conversational interface and personality system that make
 - Noise filtering and echo cancellation
 
 **Voice Recognition:**
-- Speech-to-text conversion (Whisper or alternative)
+- Speech-to-text conversion (faster-whisper, optimized for ARM CPUs)
 - Real-time transcription
 - Offline processing capability
 - Multi-language support (if needed)
@@ -162,10 +162,10 @@ Phase 3 implements the conversational interface and personality system that make
 7. Test audio quality and processing latency
 
 ### Step 2: Speech-to-Text Integration
-1. Choose and integrate STT engine (Whisper recommended)
+1. Choose and integrate STT engine (faster-whisper recommended for ARM CPUs)
 2. Implement real-time transcription
 3. Add offline processing support
-4. Optimize model size for Pi (quantized models)
+4. Optimize model size for Pi (quantized models with int8 compute)
 5. Implement streaming transcription
 6. Add error handling and fallbacks
 
@@ -271,26 +271,94 @@ Phase 3 implements the conversational interface and personality system that make
 
 Phase 3 is complete when:
 
-- [ ] Wake word detection is working (HENRY only activates when name is called)
-- [ ] Always-on voice listening for wake word is working
-- [ ] Speech-to-text is functional with acceptable accuracy
-- [ ] Personality system is implemented and configurable
-- [ ] Natural language understanding works for core intents
-- [ ] Response generation includes personality
-- [ ] Text-to-speech is working with natural voice
-- [ ] Conversation context is tracked and used
-- [ ] Multi-turn conversations work correctly
-- [ ] Knowledge graph integration is functional
-- [ ] Performance is acceptable on Pi hardware
-- [ ] Error handling and recovery works
-- [ ] All tests pass
-- [ ] Documentation is updated
+- [x] Wake word detection is working (HENRY only activates when name is called) *(implemented in `AudioService` with OpenWakeWord and custom model support)*
+- [x] Always-on voice listening for wake word is working *(implemented in `AudioService.start_listening` using PyAudio streaming)*
+- [ ] Speech-to-text is functional with acceptable accuracy *(service interface to be wired to concrete engine such as faster-whisper in a later iteration)*
+- [x] Personality system is implemented and configurable *(see `PersonalityService`, backed by `KnowledgeService` preferences)*
+- [x] Natural language understanding works for core intents *(minimal rules-based NLU in `ConversationService` for Pomodoro and idea capture)*
+- [x] Response generation includes personality *(personality-aware system prompt + response decoration via `PersonalityService`)*
+- [ ] Text-to-speech is working with natural voice *(stubbed for now; concrete TTS engine to be selected)*
+- [x] Conversation context is tracked and used *(per-user conversation history in `ConversationService` with bounded context window)*
+- [x] Multi-turn conversations work correctly *(tested via `tests/test_conversation_service.py` and `tests/test_conversation_api.py`)*
+- [x] Knowledge graph integration is functional *(personality preferences persisted via `KnowledgeService.set_preference`)*
+- [ ] Performance is acceptable on Pi hardware *(measure and tune once deployed on target Pi)*
+- [x] Error handling and recovery works *(Ollama client health + retry logic, conversation fallbacks)*
+- [x] All tests pass *(Phase 3 tests run via `scripts/test_phase3.sh`)*
+- [x] Documentation is updated *(this document + README run instructions updated)*
+
+## Running the Phase 3 Stack (Backend + GUI)
+
+### Local development
+
+1. **Start the backend API** (with conversation + productivity routes):
+
+   ```bash
+   cd /home/pi/H.E.N.R.Y.  # or your project root
+   poetry run python scripts/dev_server.py
+   # Backend will listen on http://127.0.0.1:8000 by default
+   ```
+
+2. **In a second terminal, start the Phase 3 GUI** (tkinter-based, polling `ScreenManager.state` via the API):
+
+   ```bash
+   cd /home/pi/H.E.N.R.Y.
+   API_BASE_URL="http://127.0.0.1:8000" poetry run python scripts/henry_gui.py
+   ```
+
+   - The GUI will:
+     - Show the current `active_view` (e.g., `pomodoro`, `ideas`, `idle`)
+     - Display `status_text` (e.g., "Pomodoro started", "Idea captured")
+     - Render a JSON view of `timer_state` and `idea_view`
+
+3. **Drive tools and conversation through the API**:
+
+   - Call the **conversation endpoint**:
+
+     ```bash
+     curl -X POST "http://127.0.0.1:8000/conversation/chat" \
+       -H "Content-Type: application/json" \
+       -d '{"text": "Start a pomodoro timer", "user_id": "dev"}'
+     ```
+
+   - The GUI should update to the `pomodoro` view and show timer state.
+
+4. **Run Phase 3 tests**:
+
+   ```bash
+   cd /home/pi/H.E.N.R.Y.
+   bash scripts/test_phase3.sh
+   ```
+
+   This runs:
+
+   - `tests/test_personality_service.py`
+   - `tests/test_conversation_service.py`
+   - `tests/test_conversation_api.py`
+
+### Optional: Full dev stack with one command
+
+For rapid local development, you can start **backend + GUI + voice loop** together:
+
+```bash
+cd /home/pi/H.E.N.R.Y.
+bash scripts/dev_run_all.sh
+```
+
+This will:
+
+- Run the FastAPI dev server (`scripts/dev_server.py`)
+- Launch the Phase 3 GUI (`scripts/henry_gui.py`)
+- Start the voice loop (`scripts/voice_loop.py`), which:
+  - Listens for the wake word via `AudioService`
+  - When triggered, prompts you in the terminal to type what you said (STT stub)
+  - Sends that text into `ConversationService`
+  - Speaks/logs the response via `TextToSpeechService`
 
 ## Questions to Answer
 
 1. **Wake Word**: What wake word/phrase should trigger HENRY? (e.g., "Hey HENRY", "HENRY", etc.) - **Required**: HENRY only processes audio when wake word is detected
-2. **STT Engine**: Whisper (offline, accurate) vs cloud services (better accuracy, requires internet)?
-3. **Model Size**: Full Whisper model or quantized/smaller version? (trade-off between accuracy and performance)
+2. **STT Engine**: faster-whisper (offline, accurate, ARM-optimized) vs cloud services (better accuracy, requires internet)?
+3. **Model Size**: Full faster-whisper model or smaller version with int8 quantization? (trade-off between accuracy and performance)
 4. **LLM Choice**: Ollama on home server (recommended) or Langchain + Cloud?
 5. **Ollama Model on Home Server**: Which model? (Can use larger models: 7B-13B or even 70B depending on server RAM)
 6. **Connection Latency**: What is acceptable latency for LLM responses? (Tailscale typically <50ms, but LLM inference adds time)

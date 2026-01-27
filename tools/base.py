@@ -2,6 +2,9 @@
 
 This is the canonical place for shared tool infrastructure, so that
 tools can be used from the backend, voice pipeline, or future clients.
+
+NOTE: Services are lazy-loaded to avoid importing heavy dependencies
+(neo4j via KnowledgeService) on client devices.
 """
 
 from __future__ import annotations
@@ -9,20 +12,25 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any, Dict, Optional, Type
+from typing import Any, Dict, Optional, Type, TYPE_CHECKING
 
-from backend.services.knowledge_service import KnowledgeService
-from backend.services.screen_manager import ScreenManager
+if TYPE_CHECKING:
+    from backend.services.knowledge_service import KnowledgeService
+    from backend.services.screen_manager import ScreenManager
 
 logger = logging.getLogger(__name__)
 
 
 @dataclass
 class ToolContext:
-    """Shared context injected into all tools."""
+    """Shared context injected into all tools.
 
-    knowledge_service: KnowledgeService
-    screen_manager: ScreenManager
+    Services are loaded lazily when the context is created,
+    not when this module is imported.
+    """
+
+    knowledge_service: Any  # KnowledgeService (lazy-loaded)
+    screen_manager: Any  # ScreenManager (lazy-loaded)
 
 
 class BaseTool(ABC):
@@ -45,10 +53,20 @@ class ToolsRegistry:
 
     def __init__(self) -> None:
         self._tools: Dict[str, Type[BaseTool]] = {}
-        self._context = ToolContext(
-            knowledge_service=KnowledgeService.get_instance(),
-            screen_manager=ScreenManager.get_instance(),
-        )
+        self._context: Optional[ToolContext] = None  # Lazy-loaded
+
+    def _ensure_context(self) -> ToolContext:
+        """Lazy-load the tool context with service dependencies."""
+        if self._context is None:
+            # Import services only when first needed
+            from backend.services.knowledge_service import KnowledgeService
+            from backend.services.screen_manager import ScreenManager
+
+            self._context = ToolContext(
+                knowledge_service=KnowledgeService.get_instance(),
+                screen_manager=ScreenManager.get_instance(),
+            )
+        return self._context
 
     @classmethod
     def get_instance(cls) -> "ToolsRegistry":
@@ -64,8 +82,23 @@ class ToolsRegistry:
     def create_tool(self, name: str) -> BaseTool:
         """Instantiate a tool by name."""
         if name not in self._tools:
-            raise KeyError(f"Tool '{name}' is not registered")
-        return self._tools[name](self._context)
+            # Trigger lazy tool registration if needed
+            self._ensure_tools_registered()
+            if name not in self._tools:
+                raise KeyError(f"Tool '{name}' is not registered")
+        context = self._ensure_context()
+        return self._tools[name](context)
+
+    def _ensure_tools_registered(self) -> None:
+        """Ensure tools are registered (triggers lazy registration)."""
+        if not self._tools:
+            # Import and register tools lazily
+            try:
+                import tools
+                if hasattr(tools, '_register_tools_lazy'):
+                    tools._register_tools_lazy()
+            except ImportError:
+                logger.warning("Could not import tools package for lazy registration")
 
     def list_tools(self) -> Dict[str, str]:
         """Return a mapping of tool names to class names."""

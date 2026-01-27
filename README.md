@@ -8,9 +8,25 @@ A personalized, open-source conversational desk assistant running on Raspberry P
 
 ## About
 
-H.E.N.R.Y. is a Raspberry Pi-based conversational desk assistant that you talk to continuously throughout your work. Unlike traditional assistants, H.E.N.R.Y. maintains a rich, graph-based understanding of your preferences, habits, and context, enabling natural, continuous conversations. Built to run entirely on your home server (Raspberry Pi), it combines productivity tools, home automation integrations, and a physical robot component with wheels for a unique, personalized experience.
+H.E.N.R.Y. is a Raspberry Pi-based conversational desk assistant that you talk to continuously throughout your work. Unlike traditional assistants, H.E.N.R.Y. maintains a rich, graph-based understanding of your preferences, habits, and context, enabling natural, continuous conversations. Built to run in a distributed architecture with resource-intensive services on a home server and the voice interface on Raspberry Pi, it combines productivity tools, calendar integration, and a visual GUI interface for a complete productivity companion.
+
+**Current Status**: Phase 3 complete! H.E.N.R.Y. now features full voice interaction with wake word detection, an interactive GUI display, comprehensive productivity tools (timer, todos, ideas, calendar), and production deployment capabilities.
 
 **Key Philosophy**: Open source by design, personalized by nature. While the codebase is fully open source, H.E.N.R.Y. learns and adapts to you, creating a unique assistant tailored to your needs.
+
+## Recent Updates
+
+**Phase 3 Complete** - Major milestone achieved with full voice and GUI integration:
+
+-   **Todo Management System**: Complete todo tracking with categories, status management, and GUI integration
+-   **Calendar Integration**: Bidirectional sync with Google Calendar, event viewing and management
+-   **Enhanced Timer**: Break phases, auto-transitions between work/break, improved controls
+-   **Idea Refinement**: Ability to refine and update ideas before storing in knowledge graph
+-   **Interactive GUI**: Pygame-based interface with timer display, todo list, idea notebook, and calendar views
+-   **Voice Loop**: Fully integrated voice conversation loop with wake word detection
+-   **Production Deployment**: Complete deployment automation for both server (Docker) and Pi (systemd)
+-   **Comprehensive Testing**: Full test suite covering API, services, and tools
+-   **Backend Services**: Enhanced ConversationService, KnowledgeService, PersonalityService, and ScreenManager
 
 ## Features
 
@@ -19,15 +35,17 @@ H.E.N.R.Y. is a Raspberry Pi-based conversational desk assistant that you talk t
 -   **Graph-Based Knowledge System**: Maintains a rich, interconnected understanding of your preferences, habits, and context
 -   **Continuous Voice Interaction**: Always-on conversational interface optimized for desk use
 -   **Productivity Tools**:
-    -   Pomodoro timer with voice control
-    -   Idea storage and retrieval system
-    -   Task management integration
+    -   Pomodoro timer with voice control, break phases, and auto-transitions
+    -   Idea storage with refinement and retrieval system
+    -   Todo management with categories, status tracking, and GUI integration
+    -   Calendar integration with Google Calendar sync
 -   **Home Automation**: Seamless integration with your home management system
 -   **Physical Robot**: Wheels and sensors for mobility and personality expression
 -   **Mobile Companion App**: Remote access and control via Flutter/Swift mobile apps
 
 ### Integrations
 
+-   **Google Calendar**: Full calendar sync with bidirectional updates
 -   **Beeper/Matrix**: Secure messaging integration
 -   **n8n**: Workflow automation and triggers
 -   **Home Management Systems**: Smart home device control
@@ -39,19 +57,31 @@ H.E.N.R.Y. isn't just functional—it has personality. Through continuous conver
 
 ## Architecture
 
-H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the central hub:
+H.E.N.R.Y. follows a **distributed architecture** with resource-intensive services on a home server and the voice interface on Raspberry Pi:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Raspberry Pi (Central Hub)                  │
+│                   Home Server (Docker)                   │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │   Backend    │  │  Voice/STT   │  │  Graph DB    │  │
-│  │   (Python)   │  │   Service    │  │  (Neo4j)     │  │
+│  │   Backend    │  │   STT        │  │  Graph DB    │  │
+│  │   API        │  │   (Whisper)  │  │  (Neo4j)     │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │   LLM        │  │  Integrations│                    │
+│  │   (Ollama)   │  │  (n8n, etc)  │                    │
+│  └──────────────┘  └──────────────┘                    │
+└─────────────────────────────────────────────────────────┘
+                        ↕ (Tailscale VPN)
+┌─────────────────────────────────────────────────────────┐
+│              Raspberry Pi (Voice Interface)              │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │  Robot       │  │  Integrations│  │  Automation  │  │
-│  │  Control     │  │  (n8n, etc)  │  │  Engine      │  │
+│  │  Wake Word   │  │  Audio I/O   │  │   TTS        │  │
+│  │  Detection   │  │  Recording   │  │   (Piper)    │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
+│  ┌──────────────┐  ┌──────────────┐                    │
+│  │  Robot       │  │   GUI        │                    │
+│  │  Control     │  │  Display     │                    │
+│  └──────────────┘  └──────────────┘                    │
 └─────────────────────────────────────────────────────────┘
                         ↕
         ┌───────────────────────────────┐
@@ -60,29 +90,77 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
         └───────────────────────────────┘
 ```
 
+### Voice Interaction Flow
+
+The complete voice interaction pipeline on the Raspberry Pi:
+
+```
+Wake Word → Audio Capture → STT (Server) → ConversationService →
+Intent Recognition → Tool Execution → PersonalityService →
+LLM Response → ScreenManager Update → TTS → Audio Output + GUI Update
+```
+
+**Key Design Patterns:**
+-   **Singleton Services**: All services use lazy-initialized singletons via `ServiceClass.get_instance()`
+-   **Async/Await**: I/O operations are async with sync wrappers for compatibility
+-   **Plugin Architecture**: Tools inherit from `BaseTool` and register with `ToolsRegistry`
+-   **State Management**: `ScreenManager` provides single source of truth for UI state
+-   **Hub-and-Spoke**: Raspberry Pi handles voice I/O, server handles compute-intensive tasks
+
 ### Components
 
+#### Server (Docker Container)
 -   **Backend API** (Python/FastAPI): Core service layer handling all requests
--   **Voice Service**: Always-on speech-to-text and text-to-speech
--   **LLM Service** (Ollama): Local language model for conversational AI
--   **Graph Database**: NetworkX + SQLite (lightweight, on-Pi) or external Neo4j (optional)
--   **Robot Controller**: GPIO-based motor and sensor control
+-   **Core Services**:
+    -   **ConversationService**: Utterance handling, intent routing, conversation history
+    -   **KnowledgeService**: Graph operations (ideas, todos, preferences, calendar events)
+    -   **PersonalityService**: Personality trait management and response generation
+    -   **ScreenManager**: Single source of truth for UI state and navigation
+    -   **ToolsService**: Tool registry and execution framework
+-   **STT Service** (OpenAI Whisper): Speech-to-text transcription (server-side)
+-   **LLM Service** (Ollama): Language model for conversational AI
+-   **Graph Database** (Neo4j): Knowledge graph storage
+-   **Tools Plugin System**: Extensible tools (Timer, Ideas, Todos, Calendar)
 -   **Integration Layer**: Webhooks and APIs for external services
+
+#### Raspberry Pi (Voice Client)
+-   **Wake Word Detection** (OpenWakeWord): Always-on voice activation
+-   **Audio Recording**: Captures voice input with VAD
+-   **TTS Service** (Piper): Text-to-speech output
+-   **Voice Loop**: Integrated conversation and audio processing loop
+-   **Robot Controller**: GPIO-based motor and sensor control
+-   **GUI Display** (Pygame): Interactive visual interface with:
+    -   Timer display with controls
+    -   Todo list with status tracking
+    -   Idea notebook with notifications
+    -   Calendar view
+    -   Sidebar navigation
+    -   Seven-segment and smiley face animations
 -   **Mobile App**: Flutter (cross-platform) and Swift (iOS native) options
 
 ## Tech Stack
 
-### Backend (Raspberry Pi)
+### Server (Docker)
+
+-   **Language**: Python 3.11
+-   **Framework**: FastAPI
+-   **Graph Database**: Neo4j
+-   **LLM**: Ollama with quantized models (Llama 3.2 3B Q4, Mistral 7B Q4, Qwen 2.5 7B)
+-   **Speech-to-Text**: OpenAI Whisper (small model, ~500MB)
+-   **Containerization**: Docker with auto-restart
+-   **Network**: Tailscale VPN for secure Pi-to-Server communication
+
+### Raspberry Pi (Voice Client)
 
 -   **Language**: Python 3.9, 3.10, or 3.11 (required for OpenWakeWord's tflite-runtime dependency)
--   **Framework**: FastAPI
--   **Graph Database**: NetworkX + SQLite (primary, on-Pi) or Neo4j (optional, external)
--   **LLM**: Ollama with quantized models (Llama 3.2 3B Q4 or Mistral 7B Q4)
 -   **Voice Processing**:
-    -   Speech-to-Text: Whisper (offline)
-    -   Text-to-Speech: pyttsx3/Coqui TTS
+    -   Wake Word Detection: OpenWakeWord (local, always-on)
+    -   Speech-to-Text: Remote (sends audio to server)
+    -   Text-to-Speech: Piper TTS (local)
+-   **GUI Framework**: Pygame (hardware-accelerated)
 -   **Hardware Control**: RPi.GPIO, gpiozero
 -   **Service Management**: systemd
+-   **OS**: Raspberry Pi OS (64-bit recommended)
 
 ### Mobile Companion
 
@@ -92,29 +170,37 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
 
 ### Infrastructure
 
--   **OS**: Raspberry Pi OS (64-bit recommended)
--   **Containerization**: Docker (optional)
--   **Process Management**: systemd
--   **Network**: Local network with optional cloud sync
+-   **Networking**: Tailscale VPN mesh network
+-   **Deployment**: Automated scripts for both server and Pi
+-   **Monitoring**: Docker healthchecks and systemd
 
 ## Hardware Requirements
 
-### Minimum Requirements
+### Server Requirements
 
--   **Raspberry Pi**: 4B (8GB RAM recommended) or Pi 5 (4GB minimum, 8GB recommended)
--   **Storage**: 32GB+ microSD card (Class 10 or better)
+-   **CPU**: Multi-core processor (4+ cores recommended)
+-   **RAM**: 8GB minimum, 16GB+ recommended (for Whisper + Ollama)
+-   **Storage**: 20GB+ for Docker images and models
+-   **Network**: Reliable internet connection for Tailscale
+-   **OS**: Any Linux distribution with Docker support
+
+### Raspberry Pi Requirements
+
+#### Minimum
+-   **Model**: Raspberry Pi 4B (4GB RAM) or Pi 5
+-   **Storage**: 16GB+ microSD card (Class 10 or better)
 -   **Audio**: USB microphone or compatible audio HAT
 -   **Power**: Official Raspberry Pi power supply (5V, 3A)
 
-### Recommended
-
--   **Raspberry Pi**: 4B (8GB RAM) or Pi 5 (8GB recommended for LLM)
--   **Storage**: 64GB+ microSD card (Class 10) or USB SSD
+#### Recommended
+-   **Model**: Raspberry Pi 4B (8GB RAM) or Pi 5 (8GB)
+-   **Storage**: 32GB+ microSD card (Class 10) or USB SSD
 -   **Audio**: High-quality USB microphone array
--   **Robot Components**:
+-   **Display**: Small HDMI display for GUI (optional)
+-   **Robot Components** (optional):
     -   Motor controller (e.g., L298N or TB6612FNG)
     -   DC motors with wheels
-    -   Ultrasonic sensors (optional)
+    -   Ultrasonic sensors
     -   LED indicators
     -   Battery pack for mobility
 
@@ -122,81 +208,167 @@ H.E.N.R.Y. follows a hub-and-spoke architecture with the Raspberry Pi as the cen
 
 ### Prerequisites
 
+#### Server
+1. Linux machine with Docker and Docker Compose installed
+2. At least 8GB RAM, 16GB+ recommended
+3. Network connection
+4. Tailscale installed and configured (optional but recommended)
+
+#### Raspberry Pi
 1. Raspberry Pi 4B or newer with Raspberry Pi OS installed
-2. Python 3.9, 3.10, or 3.11 installed (not 3.12+ due to `tflite-runtime` dependency for OpenWakeWord)
+2. Python 3.9, 3.10, or 3.11 (not 3.12+ due to OpenWakeWord dependency)
 3. Network connection (WiFi or Ethernet)
 4. Audio input/output devices configured
+5. Tailscale installed and configured
 
-### Installation
+### Quick Start
 
-#### Local Development Setup
+#### 1. Local Development Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/pranavk-labs/H.E.N.R.Y..git
 cd H.E.N.R.Y.
 
-# Install Poetry (if not already installed)
-# macOS/Linux: curl -sSL https://install.python-poetry.org | python3 -
-# Windows: (Invoke-WebRequest -Uri https://install.python-poetry.org -UseBasicParsing).Content | python -
+# Install Poetry
+curl -sSL https://install.python-poetry.org | python3 -
 
-# Install dependencies (Poetry creates virtual environment automatically)
+# Install dependencies for local development
 poetry install
 
-# Configure environment for local development
+# Configure environment
 cp .env.example .env.local
-# Edit .env.local with your configuration (connect to home server or use local services)
+# Edit .env.local with your configuration
 
-# Run development server
+# Run development server (local mode)
 poetry run python scripts/dev_server.py
-# Or: poetry run uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
+
+# The dev server includes:
+# - Auto-reload on file changes
+# - Signal handling for graceful shutdown
+# - Neo4j warning suppression
+# - Comprehensive logging
 ```
 
-#### Raspberry Pi Setup
+#### 2. Server Deployment (Docker)
 
 ```bash
-# On Raspberry Pi, after deploying code:
-cd /home/pi/H.E.N.R.Y.
+# Configure server environment
+cp .env.server.example .env.server
+# Edit .env.server with your configuration:
+#   - Set STT_ENGINE=whisper
+#   - Configure Neo4j connection
+#   - Configure Ollama URL
 
-# Install dependencies
-poetry install --no-dev
+# Update deployment configuration
+cp .env.deploy.example .env.deploy
+# Edit .env.deploy with your server details:
+#   - SERVER_USER, SERVER_HOST, SERVER_PATH
 
-# Configure environment
-cp .env.example .env.pi
-# Edit .env.pi with your configuration
+# Deploy to server
+bash scripts/deploy_to_server.sh
 
-# Set up systemd service
-sudo cp config/henry.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable henry.service
-sudo systemctl start henry.service
+# The script will:
+# - Copy files to server
+# - Build Docker image
+# - Start container with auto-restart
+# - Run health checks
 ```
+
+#### 3. Raspberry Pi Deployment
+
+```bash
+# Configure Pi environment
+# Create .env.pi on your Pi with:
+#   - STT_ENGINE=remote
+#   - STT_SERVER_URL=http://your-server-ip:8000
+#   - AUDIO_ENABLED=True
+
+# Update deployment configuration (if not already done)
+cp .env.deploy.example .env.deploy
+# Edit .env.deploy with your Pi details:
+#   - PI_USER, PI_HOST, PI_PATH
+
+# Deploy to Pi
+bash scripts/deploy_to_pi.sh
+
+# The script will:
+# - Copy files to Pi
+# - Install dependencies (without server extras)
+# - Set up systemd service
+# - Start the voice interface with GUI
+
+# Alternatively, run the GUI app directly for testing:
+poetry run python scripts/henry_app.py
+```
+
+### API Endpoints
+
+The backend provides a comprehensive REST API:
+
+**Conversation & Voice**
+-   `POST /conversation/chat` - Send text input and get response
+-   `GET /conversation/history` - Retrieve conversation history
+-   `GET /conversation/ui/state` - Get current UI state from ScreenManager
+-   `POST /stt/transcribe` - Speech-to-text transcription
+
+**Productivity Tools**
+-   `POST /productivity/timer/start` - Start Pomodoro timer
+-   `POST /productivity/timer/stop` - Stop timer
+-   `POST /productivity/timer/pause` - Pause/resume timer
+-   `GET /productivity/timer/status` - Get timer state
+-   `POST /productivity/ideas` - Create new idea
+-   `GET /productivity/ideas` - List all ideas
+-   `PUT /productivity/ideas/{id}` - Update idea
+-   `POST /productivity/todos` - Create new todo
+-   `GET /productivity/todos` - List todos with filtering
+-   `PUT /productivity/todos/{id}` - Update todo
+-   `GET /calendar/events` - Get calendar events
+-   `POST /calendar/sync` - Sync with Google Calendar
+
+**System**
+-   `GET /health` - Service health checks (Ollama, Neo4j)
 
 ### Initial Setup
 
-1. **Configure Audio**: Set up microphone and speaker in Raspberry Pi OS
-2. **Network Setup**: Ensure Pi is accessible on your local network
-3. **Database Setup**: Initialize graph database (NetworkX + SQLite) or connect to external Neo4j
-4. **LLM Setup**: Install Ollama and download quantized model
-5. **Voice Training**: Complete initial voice recognition setup
-6. **Mobile App**: Connect companion app to Pi's IP address
+1. **Tailscale VPN** (recommended): Set up Tailscale on both server and Pi for secure communication
+2. **Server Setup**:
+   - Install Neo4j database
+   - Install and configure Ollama with your preferred model
+   - Configure `.env.server` with connection details
+3. **Pi Audio Setup**: Configure microphone and speaker in Raspberry Pi OS
+4. **Deploy**: Run deployment scripts for server, then Pi
+5. **Test**: Trigger wake word and verify audio → server → response flow
 
 For detailed setup instructions, see:
-
--   [Phase 1: Foundation](docs/phase-1-foundation.md) - Complete setup guide
--   [Local Development Guide](docs/local-development.md) - Develop locally, deploy to Pi
--   [Poetry Setup Guide](docs/poetry-setup.md) - Package management with Poetry
+-   [Architecture Documentation](docs/architecture.md) - System design
+-   [Development Guide](docs/development-guide.md) - Development workflow
+-   [Deployment Guide](docs/phase-8-deployment.md) - Production deployment
 
 ## Project Structure
 
 ```
 H.E.N.R.Y./
 ├── backend/              # Python backend services
-│   ├── api/             # FastAPI application
-│   ├── services/        # Core services (voice, knowledge, etc.)
-│   ├── models/          # Data models
+│   ├── api/             # FastAPI application and routes
+│   ├── services/        # Core services (conversation, knowledge, personality, etc.)
+│   ├── models/          # Data models and schemas
+│   ├── config/          # Configuration management
 │   ├── integrations/    # External service integrations
 │   └── robot/           # Robot control code
+├── app/                 # Raspberry Pi GUI application (Pygame)
+│   ├── ui/              # UI components (timer, todos, ideas, calendar)
+│   ├── coordinator.py   # Application coordinator
+│   ├── voice_loop.py    # Voice interaction loop
+│   ├── gui.py           # Main GUI application
+│   └── state.py         # Application state management
+├── tools/               # Productivity tools plugin system
+│   ├── base.py          # BaseTool abstract class
+│   ├── timer_tool.py    # Pomodoro timer with break phases
+│   ├── idea_tool.py     # Idea storage and refinement
+│   ├── todo_tool.py     # Todo management with categories
+│   ├── calendar_tool.py # Google Calendar integration
+│   └── calendar_sync.py # Calendar sync utilities
 ├── mobile/              # Mobile companion apps
 │   ├── flutter/         # Flutter app
 │   └── swift/           # Swift iOS app
@@ -204,25 +376,52 @@ H.E.N.R.Y./
 │   ├── phase-*.md       # Phase-based development guides
 │   ├── architecture.md  # System architecture
 │   └── development-guide.md
-├── scripts/             # Utility scripts
-├── config/              # Configuration files
-└── tests/               # Test suites
+├── scripts/             # Utility and deployment scripts
+├── config/              # Configuration files (systemd, etc.)
+└── tests/               # Comprehensive test suites
 ```
+
+## Testing
+
+H.E.N.R.Y. includes a comprehensive test suite covering all major components:
+
+```bash
+# Run all tests
+pytest
+
+# Run specific test file
+pytest tests/test_conversation_service.py
+
+# Run specific test with verbose output
+pytest tests/test_api.py::test_chat -v
+
+# Run with coverage
+pytest --cov=backend --cov-report=html
+```
+
+**Test Coverage:**
+-   API endpoints (conversation, todos, ideas, calendar, timer)
+-   Core services (conversation, knowledge, personality, screen manager)
+-   Tool implementations (timer, todos, ideas, calendar)
+-   Neo4j graph operations
+-   STT/TTS service integration
 
 ## Documentation
 
 Comprehensive documentation is organized by development phases:
 
+-   **[CLAUDE.md](CLAUDE.md)** - AI assistant guidance for working with this codebase
 -   **[Phase 1: Foundation](docs/phase-1-foundation.md)** - Project setup, Pi configuration, backend foundation
 -   **[Phase 2: Core Features](docs/phase-2-core-features.md)** - Graph knowledge system, productivity tools
 -   **[Phase 3: Personality & Voice](docs/phase-3-personality-voice.md)** - Conversational interface, personality system
 -   **[Phase 4: Pi Services](docs/phase-4-pi-services.md)** - Service architecture, always-on systems
--   **[Phase 5: Integrations](docs/phase-5-integrations.md)** - Beeper, n8n, home automation
+-   **[Phase 5: Integrations](docs/phase-5-integrations.md)** - Calendar, Beeper, n8n, home automation
 -   **[Phase 6: Robot Features](docs/phase-6-robot-features.md)** - Physical components, movement, sensors
 -   **[Phase 7: Companion App](docs/phase-7-companion-app.md)** - Mobile app development
 -   **[Phase 8: Deployment](docs/phase-8-deployment.md)** - Production deployment, optimization
 -   **[Architecture](docs/architecture.md)** - System design and architecture
 -   **[Development Guide](docs/development-guide.md)** - Development workflow and guidelines
+-   **[Calendar Integration Roadmap](docs/CALENDAR_INTEGRATION_ROADMAP.md)** - Calendar feature planning
 
 ## Contributing
 
@@ -253,27 +452,32 @@ H.E.N.R.Y. is open source and welcomes contributions! However, keep in mind that
 -   [x] Backend API foundation
 -   [x] Graph database setup
 
-### Phase 2: Core Features 🚧
+### Phase 2: Core Features ✅
 
--   [ ] Graph-based knowledge system
--   [ ] Productivity tools (Pomodoro, idea storage)
--   [ ] Core API endpoints
+-   [x] Graph-based knowledge system
+-   [x] Productivity tools (Pomodoro timer with breaks, idea storage, todo management)
+-   [x] Core API endpoints
+-   [x] Calendar integration with Google Calendar
+-   [x] Tools plugin system with extensible architecture
 
-### Phase 3: Personality & Voice 🚧
+### Phase 3: Personality & Voice ✅
 
--   [ ] Conversational interface
--   [ ] Personality system
--   [ ] Voice recognition and synthesis
--   [ ] Context management
+-   [x] Conversational interface
+-   [x] Personality system with configurable traits
+-   [x] Voice recognition (Whisper) and synthesis (Piper TTS)
+-   [x] Context management with conversation history
+-   [x] GUI display with Pygame
+-   [x] Voice loop with wake word detection
 
-### Phase 4: Pi Services 📋
+### Phase 4: Pi Services ✅
 
--   [ ] Service architecture
--   [ ] Always-on voice listening
--   [ ] Resource optimization
+-   [x] Service architecture (singleton pattern)
+-   [x] Always-on voice listening with wake word detection
+-   [x] Resource optimization for Raspberry Pi
 
-### Phase 5: Integrations 📋
+### Phase 5: Integrations 🚧
 
+-   [x] Google Calendar integration (bidirectional sync)
 -   [ ] Beeper/Matrix integration
 -   [ ] n8n automation
 -   [ ] Home management systems
@@ -290,11 +494,14 @@ H.E.N.R.Y. is open source and welcomes contributions! However, keep in mind that
 -   [ ] Swift iOS app
 -   [ ] Remote synchronization
 
-### Phase 8: Deployment 📋
+### Phase 8: Deployment ✅
 
--   [ ] Production deployment guide
--   [ ] Performance optimization
--   [ ] Monitoring and maintenance
+-   [x] Production deployment guide
+-   [x] Automated deployment scripts (server and Pi)
+-   [x] Docker containerization with auto-restart
+-   [x] systemd service management
+-   [x] Performance optimization
+-   [x] Health check monitoring
 
 ## License
 

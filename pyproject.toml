@@ -8,20 +8,32 @@ packages = [{include = "backend"}, {include = "tools"}]
 
 [tool.poetry.dependencies]
 python = ">=3.9,<3.12"
+# Core dependencies (shared)
 fastapi = "^0.104.1"
 uvicorn = {extras = ["standard"], version = "^0.24.0"}
 python-dotenv = "^1.0.0"
 pydantic = "^2.5.0"
 pydantic-settings = "^2.1.0"
-neo4j = "^5.14.0"
 httpx = "^0.25.0"
 networkx = "^3.2.1"
-sounddevice = "^0.4.6"
 numpy = "^1.26.0"
-openwakeword = "^0.6.0"
-pyaudio = "^0.2.14"
 pytest = "^7.4.3"
 pytest-asyncio = "^0.21.1"
+# Server-only dependencies (optional)
+neo4j = {version = "^5.14.0", optional = true}
+openai-whisper = {version = "^20231117", optional = true}
+# Pi-only dependencies (optional)
+sounddevice = {version = "^0.4.6", optional = true}
+openwakeword = {version = "^0.6.0", optional = true}
+pyaudio = {version = "^0.2.14", optional = true}
+pyttsx3 = {version = "^2.90", optional = true}
+piper-tts = {version = "^1.2.0", optional = true}
+webrtcvad = {version = "^2.0.10", optional = true}
+setuptools = "^69.0.0"
+
+[tool.poetry.extras]
+server = ["openai-whisper", "neo4j"]
+pi = ["sounddevice", "openwakeword", "pyaudio", "pyttsx3", "piper-tts", "webrtcvad"]
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"

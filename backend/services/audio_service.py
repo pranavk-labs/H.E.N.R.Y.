@@ -2,16 +2,28 @@
 
 import logging
 import platform
+import threading
 import time as time_module
 from time import time, sleep
 from pathlib import Path
 from typing import Optional
 
 import numpy as np
-import pyaudio
-import sounddevice as sd
-from openwakeword import Model
-import openwakeword.utils
+
+# Conditional imports for audio libraries (only needed on Pi)
+try:
+    import pyaudio
+    import sounddevice as sd
+    from openwakeword import Model
+    import openwakeword.utils
+    AUDIO_LIBS_AVAILABLE = True
+except ImportError:
+    # Audio libraries not available (server mode)
+    AUDIO_LIBS_AVAILABLE = False
+    pyaudio = None  # type: ignore
+    sd = None  # type: ignore
+    Model = None  # type: ignore
+    openwakeword = None  # type: ignore
 
 try:
     from scipy.io import wavfile
@@ -38,12 +50,18 @@ class AudioService:
     def __init__(self, settings: Settings):
         """Initialize audio service."""
         self.settings = settings
-        self.audio_enabled = settings.audio_enabled
+        # Disable audio if libraries aren't available
+        self.audio_enabled = settings.audio_enabled and AUDIO_LIBS_AVAILABLE
+        if settings.audio_enabled and not AUDIO_LIBS_AVAILABLE:
+            logger.info("Audio libraries not available (server mode)")
         self.wake_word = settings.wake_word
         self._wake_word_detected = False
         self._current_input_device: Optional[int] = None
         self._current_output_device: Optional[int] = None
         self._target_model_name: Optional[str] = None  # For filtering default models
+        self._pause_event = threading.Event()  # Event to pause wake word stream
+        self._paused_event = threading.Event()  # Event signaling stream is paused
+        self._resume_event = threading.Event()  # Event to resume wake word stream
 
     @classmethod
     def get_instance(cls) -> "AudioService":
@@ -507,6 +525,38 @@ class AudioService:
             logger.error(f"Failed to set output device: {e}")
             return False
 
+    def pause_wake_word_stream(self, timeout: float = 2.0) -> bool:
+        """
+        Request the wake word detection stream to pause and wait for confirmation.
+
+        This allows other audio operations (like VAD recording) to use the device.
+
+        Args:
+            timeout: Maximum time to wait for pause confirmation (seconds)
+
+        Returns:
+            bool: True if stream was paused successfully, False if timeout
+        """
+        logger.debug("Requesting wake word stream pause...")
+        self._pause_event.set()
+        self._paused_event.clear()
+
+        # Wait for confirmation that stream is paused
+        if self._paused_event.wait(timeout=timeout):
+            logger.debug("Wake word stream paused successfully")
+            return True
+        else:
+            logger.warning(f"Wake word stream pause timeout after {timeout}s")
+            return False
+
+    def resume_wake_word_stream(self) -> None:
+        """
+        Resume the wake word detection stream after it was paused.
+        """
+        logger.debug("Resuming wake word stream...")
+        self._pause_event.clear()
+        self._resume_event.set()
+
     def start_listening(self, callback, stop_event=None, save_audio=False, audio_dir=None, chunk_size=1280) -> None:
         """
         Start continuous audio listening for wake word detection using PyAudio streaming.
@@ -592,7 +642,34 @@ class AudioService:
                     # Check if we should stop
                     if stop_event and stop_event.is_set():
                         break
-                    
+
+                    # Check if pause is requested
+                    if self._pause_event.is_set():
+                        logger.debug("Pause requested, closing wake word stream...")
+                        mic_stream.stop_stream()
+                        mic_stream.close()
+
+                        # Signal that we're paused
+                        self._paused_event.set()
+                        logger.debug("Wake word stream paused, waiting for resume...")
+
+                        # Wait for resume signal
+                        self._resume_event.wait()
+                        self._resume_event.clear()
+
+                        logger.debug("Resume requested, reopening wake word stream...")
+                        # Reopen the stream
+                        mic_stream = audio.open(
+                            format=format_type,
+                            channels=channels,
+                            rate=sample_rate,
+                            input=True,
+                            frames_per_buffer=chunk_size,
+                            input_device_index=device_index
+                        )
+                        logger.debug("Wake word stream resumed")
+                        continue
+
                     # Read audio from microphone
                     audio_data = mic_stream.read(chunk_size, exception_on_overflow=False)
                     
@@ -633,12 +710,12 @@ class AudioService:
                                         pred_scores[mdl] = scores[-1]
                         
                         if pred_scores:
-                            # Format predictions for readable output
+                            # Format predictions for readable output (debug only - too noisy for info)
                             pred_str = ", ".join([f"{name}: {score:.3f}" for name, score in pred_scores.items()])
-                            logger.info(f"[{time_since_start:.1f}s] Predictions: {pred_str} (threshold: {threshold:.2f})")
+                            logger.debug(f"[{time_since_start:.1f}s] Predictions: {pred_str} (threshold: {threshold:.2f})")
                         elif self._frame_count == 12:
                             # First second - show that we're waiting for predictions
-                            logger.info(f"[{time_since_start:.1f}s] Waiting for predictions... (models: {len(model_names)})")
+                            logger.debug(f"[{time_since_start:.1f}s] Waiting for predictions... (models: {len(model_names)})")
                         
                         # Save periodic audio sample every 10 seconds (approximately)
                         if save_audio and self._frame_count % 120 == 0 and len(audio_buffer) > 0:

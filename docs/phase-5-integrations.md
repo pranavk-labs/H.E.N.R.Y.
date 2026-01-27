@@ -95,7 +95,48 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 - System events
 - User activity events
 
-### 6. Local Network Service Discovery
+### 6. Calendar Synchronization
+
+**External Calendar Integration:**
+- Google Calendar two-way sync
+- Apple Calendar (iCloud) two-way sync
+- Import external events to H.E.N.R.Y.
+- Export H.E.N.R.Y. events to external calendars
+- Automatic sync scheduling (real-time or periodic)
+- Conflict resolution for overlapping changes
+
+**Google Calendar Integration:**
+- OAuth 2.0 authentication flow
+- Incremental sync using sync tokens
+- Support for multiple Google calendars
+- Event creation, updates, and deletion sync
+- Recurring event synchronization
+- Google Meet link handling
+
+**Apple Calendar (iCloud) Integration:**
+- CalDAV protocol implementation
+- App-specific password authentication
+- iCalendar format parsing and generation
+- Support for multiple iCloud calendars
+- RRULE recurring event handling
+- ETag-based incremental sync
+
+**Sync Features:**
+- Selective sync (choose which calendars to sync)
+- Date range filtering (only sync recent/upcoming events)
+- Event type filtering (meetings, tasks, etc.)
+- Sync status tracking and error reporting
+- Manual sync trigger via voice command
+- Automatic conflict resolution (last-write-wins or user prompt)
+
+**Implementation Details:**
+- Store OAuth tokens encrypted in knowledge graph
+- Sync metadata tracking (last_sync_time, sync_token)
+- Background sync task scheduler
+- Rate limiting to respect API quotas
+- Comprehensive error handling and retry logic
+
+### 7. Local Network Service Discovery
 
 **Service Discovery:**
 - mDNS/Bonjour support
@@ -163,7 +204,22 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 6. Integrate with services
 7. Test event flow
 
-### Step 7: Service Discovery
+### Step 7: Calendar Synchronization
+1. Implement Google Calendar OAuth 2.0 flow
+2. Create Google Calendar API client
+3. Implement incremental sync with sync tokens
+4. Add Apple Calendar CalDAV client
+5. Implement iCalendar parsing and generation
+6. Create sync scheduling system (APScheduler or Celery)
+7. Implement conflict resolution logic
+8. Add encrypted token storage
+9. Create sync status tracking
+10. Add voice commands for sync operations
+11. Test two-way sync with both providers
+12. Test recurring event synchronization
+13. Test conflict resolution scenarios
+
+### Step 8: Service Discovery
 1. Implement mDNS/Bonjour support
 2. Create service advertisement
 3. Add service discovery queries
@@ -171,7 +227,7 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 5. Add service health checks
 6. Test discovery and connection
 
-### Step 8: Integration Testing
+### Step 9: Integration Testing
 1. Test all integrations end-to-end
 2. Test error handling
 3. Test network interruption scenarios
@@ -187,6 +243,10 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 - Event system operations
 - Service discovery functions
 - Authentication handling
+- Calendar sync token handling
+- iCalendar parsing and generation
+- Conflict resolution logic
+- Encrypted token storage/retrieval
 
 ### Integration Tests
 - Beeper/Matrix message flow
@@ -194,6 +254,11 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 - Home automation device control
 - Webhook receiving and processing
 - Event publishing and subscription
+- Google Calendar OAuth flow
+- Google Calendar two-way sync
+- Apple Calendar CalDAV operations
+- Calendar incremental sync
+- Recurring event synchronization
 
 ### End-to-End Tests
 - Voice command → Integration → Result
@@ -209,6 +274,13 @@ Phase 5 connects H.E.N.R.Y. with external services and automation systems, enabl
 - Receive webhooks from external services
 - Test service discovery
 - Test network interruption recovery
+- Connect Google Calendar account via OAuth
+- Sync events between H.E.N.R.Y. and Google Calendar
+- Connect Apple Calendar via CalDAV
+- Sync events between H.E.N.R.Y. and iCloud
+- Create recurring event and verify instances sync
+- Test conflict resolution (modify same event in both places)
+- Trigger manual sync via voice command
 
 ## Completion Criteria
 
@@ -219,10 +291,15 @@ Phase 5 is complete when:
 - [ ] Home management system integration works
 - [ ] Webhook system is implemented
 - [ ] Event-driven architecture is working
+- [ ] Google Calendar sync is functional (OAuth + two-way sync)
+- [ ] Apple Calendar sync is functional (CalDAV + two-way sync)
+- [ ] Calendar sync scheduling is working (automatic periodic sync)
+- [ ] Calendar conflict resolution is implemented
 - [ ] Service discovery is functional
 - [ ] All integrations have error handling
 - [ ] Voice commands work for all integrations
 - [ ] Authentication and security are implemented
+- [ ] OAuth tokens are stored encrypted
 - [ ] All tests pass
 - [ ] Documentation is updated
 
@@ -238,6 +315,13 @@ Phase 5 is complete when:
 8. **Error Handling**: How to handle integration failures? (retry, notify, degrade gracefully)
 9. **Rate Limiting**: What rate limits for external APIs?
 10. **Privacy**: What data is shared with external services? What stays local?
+11. **Calendar Sync**: Which calendar service to prioritize first? (Google or Apple)
+12. **Calendar Sync Frequency**: Real-time (webhook-based) or periodic (e.g., every 15 minutes)?
+13. **Calendar Conflict Resolution**: Automatic (last-write-wins) or prompt user?
+14. **Calendar Scope**: Sync all calendars or just primary calendar?
+15. **Calendar Date Range**: How far back and forward to sync? (e.g., 30 days past, 90 days future)
+16. **Background Tasks**: Use APScheduler, Celery, or simple cron?
+17. **Token Storage**: Store in knowledge graph or separate encrypted file?
 
 ## Next Steps
 
@@ -275,4 +359,43 @@ After completing Phase 5, proceed to:
 - Check network configuration
 - Review firewall settings
 - Test service advertisement
+
+**Calendar sync issues:**
+- Check OAuth token validity (Google)
+- Verify app-specific password (Apple)
+- Review API quota and rate limits
+- Test network connectivity to calendar services
+- Check sync token validity
+- Verify calendar permissions
+
+**Sync conflicts:**
+- Check conflict resolution settings
+- Review last_sync_time metadata
+- Verify event modification timestamps
+- Test conflict resolution logic
+
+**Recurring events not syncing:**
+- Verify RRULE parsing
+- Check recurrence_pattern mapping
+- Test instance generation logic
+- Verify sync token includes recurring events
+
+## Implementation References
+
+### Calendar Sync
+The calendar synchronization feature has been prepared for Phase 5 implementation:
+
+- **Placeholder Module**: `tools/calendar_sync.py` contains detailed implementation notes
+- **Required Dependencies**:
+  - Google Calendar: `google-api-python-client`, `google-auth-httplib2`, `google-auth-oauthlib`
+  - Apple Calendar: `caldav`, `icalendar`
+  - Background Tasks: `APScheduler` or `Celery`
+  - Encryption: `cryptography` for token storage
+- **Architecture Notes**: See `tools/calendar_sync.py` for detailed OAuth flows, CalDAV setup, and sync strategies
+- **Calendar Tool**: The internal calendar system is already implemented in `tools/calendar_tool.py`
+- **Knowledge Graph**: Calendar events are stored as `CalendarEvent` nodes with full CRUD support
+- **API Endpoints**: REST API for calendar operations at `/calendar/*`
+- **Documentation**: See `docs/calendar_tool_implementation.md` for internal calendar usage
+
+The internal calendar system is fully functional and ready for external sync integration in Phase 5.
 

@@ -53,15 +53,35 @@ app.add_middleware(
 # Include routers
 app.include_router(health.router)
 
-# Include graph router
+# Graph router
 from backend.api.routes import graph as graph_router
 
 app.include_router(graph_router.router)
 
-# Include productivity (tools) router
+# Productivity (tools) router
 from backend.api.routes import productivity as productivity_router
 
 app.include_router(productivity_router.router)
+
+# Conversation and UI state router (Phase 3)
+from backend.api.routes import conversation as conversation_router
+
+app.include_router(conversation_router.router)
+
+# Todo/task management router
+from backend.api.routes import todos as todos_router
+
+app.include_router(todos_router.router)
+
+# Calendar router
+from backend.api.routes import calendar as calendar_router
+
+app.include_router(calendar_router.router)
+
+# STT (Speech-to-Text) router
+from backend.api.routes import stt as stt_router
+
+app.include_router(stt_router.router)
 
 
 @app.get("/")

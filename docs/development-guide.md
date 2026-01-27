@@ -2,11 +2,20 @@
 
 ## Development Workflow
 
-### Local Development vs Pi Development
+### Development Architecture
 
-**Recommended Approach: Develop Locally, Deploy to Pi**
+**Distributed System: Server + Pi Client**
 
-Develop and test on your local machine, then deploy to Raspberry Pi for hardware-specific testing and production use.
+H.E.N.R.Y. now uses a distributed architecture:
+- **Server (Docker)**: Runs Backend API, STT (OpenAI Whisper), LLM (Ollama), Graph DB (Neo4j)
+- **Pi Client**: Runs voice interface (wake word, audio I/O, TTS, robot control, GUI)
+
+**Recommended Approach: Develop Locally, Deploy to Server and Pi**
+
+1. Develop and test locally (connect to server services or use mocks)
+2. Deploy server to Docker container (resource-intensive services)
+3. Deploy Pi client (voice interface only)
+4. Test end-to-end voice interaction
 
 ### Getting Started
 
@@ -42,21 +51,24 @@ Develop and test on your local machine, then deploy to Raspberry Pi for hardware
 
 **Local Service Options:**
 
-**Option 1: Use Home Server Services (Recommended)**
-- Connect to Neo4j on home server via Tailscale
-- Connect to Ollama on home server via Tailscale
+**Option 1: Use Server Services (Recommended)**
+- Connect to server's Backend API (Docker container)
+- Server provides: STT, LLM, Graph DB, all endpoints
+- Set `STT_ENGINE=remote` and `STT_SERVER_URL` in `.env.local`
 - No need to run services locally
 - Tests real network connectivity
 
-**Option 2: Run Services Locally**
-- Neo4j: Docker or native installation
-- Ollama: Local installation
+**Option 2: Run Server Locally via Docker**
+- Run `docker-compose up` to start server container locally
+- Includes: Backend API, STT (Whisper), all services
+- Requires: Docker, Neo4j, Ollama running locally or accessible
 - Better for offline development
-- Faster iteration (no network latency)
+- Set `STT_ENGINE=whisper` in `.env.server`
 
 **Option 3: Mock Services**
-- Mock Neo4j client for unit tests
+- Mock STT service for unit tests
 - Mock Ollama client for unit tests
+- Mock Neo4j client for unit tests
 - Fastest for development
 - Use for testing logic without services
 
@@ -141,26 +153,53 @@ API_HOST=127.0.0.1
 API_PORT=8000
 ```
 
+**`.env.server`** (Server/Docker):
+```env
+# Application
+APP_ENV=production
+DEBUG=False
+API_HOST=0.0.0.0
+API_PORT=8000
+
+# Services
+NEO4J_URI=bolt://localhost:7687  # or external Neo4j
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=your_password
+
+OLLAMA_BASE_URL=http://localhost:11434  # or external Ollama
+
+# STT Configuration (server runs Whisper)
+STT_ENGINE=whisper
+WHISPER_MODEL_SIZE=small
+
+# Audio disabled on server
+AUDIO_ENABLED=False
+```
+
 **`.env.pi`** (Raspberry Pi):
 ```env
 # Application
 APP_ENV=production
 DEBUG=False
 
-# Services - Connect to home server
-NEO4J_URI=bolt://home-server-tailscale-ip:7687
-NEO4J_USER=neo4j
-NEO4J_PASSWORD=your_password
+# STT Configuration (Pi sends audio to server)
+STT_ENGINE=remote
+STT_SERVER_URL=http://server-tailscale-ip:8000
 
-OLLAMA_BASE_URL=http://home-server-tailscale-ip:11434
+# TTS Configuration (local Piper)
+TTS_ENGINE=piper
+TTS_VOICE=en_US-lessac-medium
 
-# Audio (enabled on Pi)
+# Audio enabled on Pi
 AUDIO_ENABLED=True
-ROBOT_ENABLED=True
+WAKE_WORD="Hey Henry"
 
-# API
-API_HOST=0.0.0.0
-API_PORT=8000
+# Robot (if applicable)
+ROBOT_ENABLED=False
+
+# Services (not used by Pi directly, but kept for compatibility)
+NEO4J_URI=bolt://server-tailscale-ip:7687
+OLLAMA_BASE_URL=http://server-tailscale-ip:11434
 ```
 
 ### Running Services Locally
@@ -223,20 +262,191 @@ python scripts/dev_server.py
 uvicorn backend.api.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
-## Deployment to Raspberry Pi
+## Deployment
+
+### Deployment Overview
+
+H.E.N.R.Y. requires deploying to two locations:
+1. **Server**: Docker container with Backend API, STT, LLM, Graph DB
+2. **Pi**: Voice interface client (wake word, audio, TTS, robot, GUI)
+
+### Server Deployment (Docker)
+
+#### Initial Setup
+
+1. **Configure deployment settings:**
+```bash
+# Copy deployment configuration
+cp .env.deploy.example .env.deploy
+
+# Edit .env.deploy
+nano .env.deploy
+```
+
+```env
+# Server configuration
+SERVER_USER=your_username
+SERVER_HOST=your-server-ip  # or hostname
+SERVER_PATH=/home/your_username/H.E.N.R.Y.
+```
+
+2. **Configure server environment:**
+```bash
+# Copy server environment
+cp .env.server.example .env.server
+
+# Edit .env.server
+nano .env.server
+```
+
+Configure:
+- `STT_ENGINE=whisper`
+- `WHISPER_MODEL_SIZE=small`
+- Neo4j connection
+- Ollama URL
+
+3. **Deploy to server:**
+```bash
+bash scripts/deploy_to_server.sh
+```
+
+The script will:
+- Copy files to server via rsync
+- Build Docker image
+- Start container with auto-restart
+- Run health checks
+- Display logs
+
+#### Server Management
+
+```bash
+# View logs
+ssh user@server 'cd ~/H.E.N.R.Y. && docker-compose logs -f'
+
+# Restart container
+ssh user@server 'cd ~/H.E.N.R.Y. && docker-compose restart'
+
+# Stop container
+ssh user@server 'cd ~/H.E.N.R.Y. && docker-compose down'
+
+# Rebuild and restart (after code changes)
+bash scripts/deploy_to_server.sh
+```
+
+### Pi Deployment
+
+#### Initial Setup
+
+1. **Configure deployment settings (if not already done):**
+```bash
+# Edit .env.deploy
+nano .env.deploy
+```
+
+```env
+# Pi configuration
+PI_USER=pi
+PI_HOST=raspberrypi.local  # or IP address
+PI_PATH=/home/pi/H.E.N.R.Y.
+```
+
+2. **Configure Pi environment:**
+
+Create `.env.pi` with:
+```env
+STT_ENGINE=remote
+STT_SERVER_URL=http://your-server-ip:8000
+AUDIO_ENABLED=True
+TTS_ENGINE=piper
+WAKE_WORD="Hey Henry"
+```
+
+3. **Deploy to Pi:**
+```bash
+bash scripts/deploy_to_pi.sh
+```
+
+The script will:
+- Copy files to Pi via rsync (excludes Docker files)
+- Install dependencies (without server extras like Whisper)
+- Set up systemd service
+- Start the voice interface
+
+#### Pi Management
+
+```bash
+# Check service status
+ssh pi@raspberrypi 'sudo systemctl status henry.service'
+
+# View logs
+ssh pi@raspberrypi 'sudo journalctl -u henry.service -f'
+
+# Restart service
+ssh pi@raspberrypi 'sudo systemctl restart henry.service'
+
+# Stop service
+ssh pi@raspberrypi 'sudo systemctl stop henry.service'
+
+# Redeploy (after code changes)
+bash scripts/deploy_to_pi.sh
+```
+
+### Development Deployment Workflow
+
+**Typical workflow for making changes:**
+
+1. **Develop and test locally:**
+```bash
+# Run tests
+pytest
+
+# Test locally (mock or connect to server)
+poetry run python scripts/dev_server.py
+```
+
+2. **Deploy to server (if backend/STT changes):**
+```bash
+# Commit changes
+git add .
+git commit -m "Update STT service"
+
+# Deploy to server
+bash scripts/deploy_to_server.sh
+```
+
+3. **Deploy to Pi (if voice/GUI changes):**
+```bash
+# Deploy to Pi
+bash scripts/deploy_to_pi.sh
+```
+
+4. **Test end-to-end:**
+- Ensure server is running
+- Trigger wake word on Pi
+- Verify audio → server STT → conversation → TTS flow
 
 ### Deployment Strategies
 
-**Option 1: Git-Based Deployment (Recommended)**
+**Option 1: Automated Deployment Scripts (Recommended)**
+- Use `deploy_to_server.sh` and `deploy_to_pi.sh`
+- Handles all deployment steps automatically
+- Supports both local and remote deployment
+
+**Option 2: Git-Based Deployment**
 ```bash
+# On server (if not using Docker)
+cd ~/H.E.N.R.Y.
+git pull origin main
+docker-compose up -d --build
+
 # On Pi
 cd ~/H.E.N.R.Y.
 git pull origin main
-poetry install  # Updates dependencies if pyproject.toml changed
+poetry install
 sudo systemctl restart henry.service
 ```
 
-**Option 2: Rsync Deployment**
+**Option 3: Manual Rsync Deployment**
 ```bash
 # From local machine
 rsync -avz --exclude '.venv' --exclude '__pycache__' \
@@ -653,5 +863,5 @@ import pdb; pdb.set_trace()  # Breakpoint
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Neo4j Python Driver](https://neo4j.com/docs/python-manual/current/)
 - [Raspberry Pi GPIO](https://www.raspberrypi.org/documentation/usage/gpio/)
-- [Whisper Documentation](https://github.com/openai/whisper)
+- [faster-whisper Documentation](https://github.com/SYSTRAN/faster-whisper)
 

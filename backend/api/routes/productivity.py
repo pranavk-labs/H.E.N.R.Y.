@@ -112,6 +112,17 @@ async def complete_pomodoro(session_id: str) -> Any:
         raise HTTPException(status_code=404, detail="Session not found")
 
 
+@router.post("/pomodoro/{session_id}/stop", response_model=PomodoroSessionResponse)
+async def stop_pomodoro(session_id: str) -> Any:
+    """Stop/end a Pomodoro session immediately."""
+    tools_service = ToolsService.get_instance()
+    try:
+        result = tools_service.execute_tool("timer", "stop", session_id=session_id)
+        return result["session"]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+
 @router.get("/pomodoro/{session_id}", response_model=PomodoroSessionResponse)
 async def get_pomodoro(session_id: str) -> Any:
     tools_service = ToolsService.get_instance()
@@ -186,6 +197,14 @@ async def delete_idea(idea_id: str) -> Any:
     if not deleted:
         raise HTTPException(status_code=404, detail="Idea not found")
     return {"deleted": True, "idea_id": idea_id}
+
+
+@router.post("/ideas/close")
+async def close_idea() -> Any:
+    """Close the currently active idea view without deleting the idea."""
+    tools_service = ToolsService.get_instance()
+    result = tools_service.execute_tool("ideas", "close")
+    return result
 
 
 
