@@ -300,6 +300,9 @@ bash scripts/deploy_to_pi.sh
 
 # Alternatively, run the GUI app directly for testing:
 poetry run python scripts/henry_app.py
+
+# New GTK app shell with voice runtime controls:
+API_BASE_URL=http://127.0.0.1:8000 poetry run python scripts/henry_gtk_app.py
 ```
 
 ### API Endpoints
@@ -311,6 +314,13 @@ The backend provides a comprehensive REST API:
 -   `GET /conversation/history` - Retrieve conversation history
 -   `GET /conversation/ui/state` - Get current UI state from ScreenManager
 -   `POST /stt/transcribe` - Speech-to-text transcription
+
+**Voice Runtime**
+-   `GET /voice-runtime/status` - Get speech runtime process/model status
+-   `POST /voice-runtime/start` - Start configured speech runtime command
+-   `POST /voice-runtime/stop` - Stop speech runtime and optionally unload Ollama model
+-   `POST /voice-runtime/preload` - Preload configured or requested Ollama model
+-   `POST /voice-runtime/unload` - Unload configured or requested Ollama model
 
 **Productivity Tools**
 -   `POST /productivity/timer/start` - Start Pomodoro timer
@@ -357,10 +367,12 @@ H.E.N.R.Y./
 │   ├── integrations/    # External service integrations
 │   └── robot/           # Robot control code
 ├── app/                 # Raspberry Pi GUI application (Pygame)
+│   ├── gtk_ui/          # GTK4/libadwaita app shell
 │   ├── ui/              # UI components (timer, todos, ideas, calendar)
 │   ├── coordinator.py   # Application coordinator
 │   ├── voice_loop.py    # Voice interaction loop
 │   ├── gui.py           # Main GUI application
+│   ├── gtk_app.py       # GTK app entrypoint
 │   └── state.py         # Application state management
 ├── tools/               # Productivity tools plugin system
 │   ├── base.py          # BaseTool abstract class

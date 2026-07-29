@@ -140,6 +140,16 @@ NEO4J_PASSWORD=your_password
 
 OLLAMA_BASE_URL=http://home-server-tailscale-ip:11434
 
+# Voice runtime controls
+VOICE_RUNTIME=legacy
+VOICE_RUNTIME_URL=ws://127.0.0.1:8765/v1/realtime
+VOICE_RUNTIME_COMMAND=
+VOICE_RUNTIME_DEVICE=cuda
+VOICE_RUNTIME_AUTO_START=False
+VOICE_RUNTIME_LLM_MODEL=
+OLLAMA_KEEP_ALIVE=5m
+OLLAMA_UNLOAD_ON_STOP=True
+
 # Services - Option 2: Local services
 # NEO4J_URI=bolt://localhost:7687
 # OLLAMA_BASE_URL=http://localhost:11434
@@ -203,6 +213,25 @@ OLLAMA_BASE_URL=http://server-tailscale-ip:11434
 ```
 
 ### Running Services Locally
+
+#### Voice Runtime Controls
+
+The backend exposes model/runtime controls for the GTK app and manual operations:
+
+- `GET /voice-runtime/status`
+- `POST /voice-runtime/start`
+- `POST /voice-runtime/stop`
+- `POST /voice-runtime/preload`
+- `POST /voice-runtime/unload`
+
+Default mode is `VOICE_RUNTIME=legacy`. Heavy runtime startup requires `VOICE_RUNTIME_COMMAND`; it is not started automatically unless `VOICE_RUNTIME_AUTO_START=True`.
+
+For local UI work:
+
+```bash
+poetry run python scripts/dev_server.py
+API_BASE_URL=http://127.0.0.1:8000 poetry run python scripts/henry_gtk_app.py
+```
 
 **Neo4j with Docker:**
 ```bash
@@ -864,4 +893,3 @@ import pdb; pdb.set_trace()  # Breakpoint
 - [Neo4j Python Driver](https://neo4j.com/docs/python-manual/current/)
 - [Raspberry Pi GPIO](https://www.raspberrypi.org/documentation/usage/gpio/)
 - [faster-whisper Documentation](https://github.com/SYSTRAN/faster-whisper)
-
