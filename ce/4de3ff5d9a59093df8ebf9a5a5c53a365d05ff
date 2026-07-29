@@ -1,0 +1,22 @@
+README.md
+  s_3b1e9a1f35a35e::t_a93e3c04942cd7 303-305,318-324,370,375
+docs/development-guide.md
+  s_3b1e9a1f35a35e::t_07dbba81257ffc 143-152,218-235
+  s_3b1e9a1f35a35e::t_4294118b3cb6f7 217
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "ce4de3ff5d9a59093df8ebf9a5a5c53a365d05ff",
+  "prompts": {},
+  "sessions": {
+    "s_3b1e9a1f35a35e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac39-228d-76c0-96d6-ea765717733b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
