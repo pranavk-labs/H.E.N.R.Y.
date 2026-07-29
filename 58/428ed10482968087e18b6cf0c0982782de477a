@@ -1,0 +1,21 @@
+backend/services/voice_runtime_service.py
+  s_3b1e9a1f35a35e::t_c00fca22ecfac5 1-154
+tests/test_voice_runtime_service.py
+  s_3b1e9a1f35a35e::t_6486effaca5ad7 1-88
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "58428ed10482968087e18b6cf0c0982782de477a",
+  "prompts": {},
+  "sessions": {
+    "s_3b1e9a1f35a35e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac39-228d-76c0-96d6-ea765717733b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
