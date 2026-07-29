@@ -83,6 +83,11 @@ from backend.api.routes import stt as stt_router
 
 app.include_router(stt_router.router)
 
+# Voice runtime lifecycle router
+from backend.api.routes import voice_runtime as voice_runtime_router
+
+app.include_router(voice_runtime_router.router)
+
 
 @app.get("/")
 async def root():
@@ -102,4 +107,3 @@ async def global_exception_handler(request, exc):
         "error": "Internal server error",
         "detail": str(exc) if settings.debug else "An error occurred",
     }
-
