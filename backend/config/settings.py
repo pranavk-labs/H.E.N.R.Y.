@@ -39,10 +39,28 @@ class Settings(BaseSettings):
     ollama_base_url: str = Field(
         default="http://localhost:11434", alias="OLLAMA_BASE_URL"
     )
+    ollama_keep_alive: str = Field(default="5m", alias="OLLAMA_KEEP_ALIVE")
+    ollama_unload_on_stop: bool = Field(
+        default=True, alias="OLLAMA_UNLOAD_ON_STOP"
+    )
 
     # Audio / Voice Configuration
     audio_enabled: bool = Field(default=False, alias="AUDIO_ENABLED")
     wake_word: str = Field(default="Hey HENRY", alias="WAKE_WORD")
+
+    # Voice Runtime Configuration
+    voice_runtime: str = Field(default="legacy", alias="VOICE_RUNTIME")
+    voice_runtime_url: str = Field(
+        default="ws://127.0.0.1:8765/v1/realtime", alias="VOICE_RUNTIME_URL"
+    )
+    voice_runtime_command: str = Field(default="", alias="VOICE_RUNTIME_COMMAND")
+    voice_runtime_device: str = Field(default="cuda", alias="VOICE_RUNTIME_DEVICE")
+    voice_runtime_auto_start: bool = Field(
+        default=False, alias="VOICE_RUNTIME_AUTO_START"
+    )
+    voice_runtime_llm_model: str = Field(
+        default="", alias="VOICE_RUNTIME_LLM_MODEL"
+    )
 
     # STT Configuration (Speech-to-Text)
     # Options: "none" (raise if called), "dummy" (return empty string), "whisper" (server-side, requires openai-whisper), "remote" (send to server)
@@ -155,4 +173,3 @@ def get_settings() -> Settings:
             logger.info(msg)
 
     return _settings
-

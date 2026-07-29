@@ -3,7 +3,7 @@
 import json
 import logging
 import asyncio
-from typing import Any, AsyncGenerator, Dict, List, Optional
+from typing import Any, AsyncGenerator, Dict, List, Optional, Union
 
 import httpx
 from httpx import ConnectTimeout, PoolTimeout, ReadTimeout, RequestError
@@ -184,6 +184,28 @@ class OllamaClient:
         except Exception as e:
             logger.error(f"Failed to list Ollama models: {e}")
             raise
+
+    async def preload_model(
+        self, model: str, keep_alive: Union[str, int] = "-1"
+    ) -> Dict[str, Any]:
+        """Load a model into Ollama memory without generating text."""
+        client = await self._get_client()
+        response = await client.post(
+            "/api/generate",
+            json={"model": model, "prompt": "", "keep_alive": keep_alive},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    async def unload_model(self, model: str) -> Dict[str, Any]:
+        """Unload a model from Ollama memory."""
+        client = await self._get_client()
+        response = await client.post(
+            "/api/generate",
+            json={"model": model, "prompt": "", "keep_alive": 0},
+        )
+        response.raise_for_status()
+        return response.json()
 
     @property
     def is_connected(self) -> bool:
@@ -619,5 +641,3 @@ class OllamaClient:
         # If we hit max iterations, return the last response
         logger.warning(f"Reached max tool iterations ({max_tool_iterations})")
         return response_data if 'response_data' in locals() else {"message": {"content": "Maximum tool iterations reached"}}
-
-

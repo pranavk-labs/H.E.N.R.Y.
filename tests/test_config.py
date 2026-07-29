@@ -32,6 +32,20 @@ def test_settings_defaults():
                 os.environ[key] = value
 
 
+def test_voice_runtime_settings_defaults():
+    """Test voice runtime settings have safe defaults."""
+    settings = Settings(_env_file=None)
+
+    assert settings.voice_runtime == "legacy"
+    assert settings.voice_runtime_url == "ws://127.0.0.1:8765/v1/realtime"
+    assert settings.voice_runtime_command == ""
+    assert settings.voice_runtime_device == "cuda"
+    assert settings.voice_runtime_auto_start is False
+    assert settings.voice_runtime_llm_model == ""
+    assert settings.ollama_keep_alive == "5m"
+    assert settings.ollama_unload_on_stop is True
+
+
 def test_settings_from_env():
     """Test loading settings from environment variables."""
     os.environ["APP_ENV"] = "production"
@@ -57,5 +71,4 @@ def test_get_settings_singleton():
     settings1 = get_settings()
     settings2 = get_settings()
     assert settings1 is settings2
-
 
