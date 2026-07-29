@@ -1,0 +1,22 @@
+app/voice_loop.py
+  s_3b1e9a1f35a35e::t_6d454a3e4ccce3 61-66,658-663
+tests/test_voice_integration.py
+  s_3b1e9a1f35a35e::t_c789c9ddfd846a 52-58,64-68
+  s_3b1e9a1f35a35e::t_00163eb06f04b3 59-63
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "2aef221e5812c35486caef81d0dddb2f99478e38",
+  "prompts": {},
+  "sessions": {
+    "s_3b1e9a1f35a35e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac39-228d-76c0-96d6-ea765717733b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
