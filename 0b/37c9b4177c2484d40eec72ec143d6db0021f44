@@ -1,0 +1,23 @@
+scripts/henry_gtk_app.py
+  s_16f7ff15bb68a8::t_5e23511b161e06 4-11
+app/__init__.py
+  s_16f7ff15bb68a8::t_5e23511b161e06 7-12,14-24
+tests/test_gtk_launcher.py
+  s_16f7ff15bb68a8::t_e62bfef2e91a0a 1-37
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "0b37c9b4177c2484d40eec72ec143d6db0021f44",
+  "prompts": {},
+  "sessions": {
+    "s_16f7ff15bb68a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac78-a9b1-7590-9ee3-f1c890086f08",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
