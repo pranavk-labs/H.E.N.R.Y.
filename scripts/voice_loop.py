@@ -23,6 +23,18 @@ from pathlib import Path
 from typing import Optional, Tuple
 
 import numpy as np
+from dotenv import load_dotenv
+
+# Add project root to path and load env before audio libraries initialize.
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
+env_file = project_root / ".env.local"
+if not env_file.exists():
+    env_file = project_root / ".env"
+if env_file.exists():
+    load_dotenv(env_file, override=False)
+os.environ.setdefault("WHISPER_DEVICE", "cpu")
 
 try:
     import httpx
@@ -35,10 +47,6 @@ try:
     HAS_PYAUDIO = True
 except ImportError:
     HAS_PYAUDIO = False
-
-# Add project root to path
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
 
 from backend.config.settings import get_settings
 from backend.services.audio_service import AudioService

@@ -100,8 +100,11 @@ class ConversationService:
         if len(text.split()) <= 2:
             # Check if it's a common short command
             lowered = text.lower()
-            unclear_phrases = ["that", "it", "this", "there", "one", "thing"]
-            if any(phrase in lowered for phrase in unclear_phrases):
+            greeting_phrases = {"hello", "hi", "hey", "hello there", "hi there", "hey there"}
+            unclear_phrases = ["that", "it", "this", "one", "thing"]
+            if lowered in greeting_phrases:
+                pass
+            elif any(phrase in lowered for phrase in unclear_phrases):
                 return {
                     "response": "I'm not sure what you're referring to. Could you be more specific?",
                     "intent": "clarification_needed"
@@ -459,5 +462,4 @@ class ConversationService:
 
 
 __all__ = ["ConversationService", "ConversationTurn"]
-
 

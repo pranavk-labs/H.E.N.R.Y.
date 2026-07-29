@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 
 from backend.services.knowledge_service import KnowledgeService
@@ -89,6 +89,7 @@ class CalendarTool(BaseTool):
         reminder_minutes: Optional[int] = None,
         attendees: Optional[List[str]] = None,
         event_type: str = "event",
+        status: str = "scheduled",
         user_id: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create a new calendar event.
@@ -139,7 +140,7 @@ class CalendarTool(BaseTool):
             reminder_minutes=reminder_minutes or 0,
             attendees=attendees or [],
             event_type=event_type,
-            status="scheduled",
+            status=status,
             created_at=created_at,
         )
 

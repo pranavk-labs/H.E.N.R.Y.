@@ -24,6 +24,12 @@ class GraphFallback:
         Args:
             db_path: Path to SQLite database file (default: ./data/henry_graph.db)
         """
+        self._in_memory = db_path == ":memory:"
+        if self._in_memory:
+            self.db_path = Path(":memory:")
+            self.graph = nx.DiGraph()
+            return
+
         if db_path is None:
             db_path = Path("./data/henry_graph.db")
         else:
@@ -38,6 +44,8 @@ class GraphFallback:
 
     def _load_from_db(self) -> None:
         """Load graph from SQLite database."""
+        if self._in_memory:
+            return
         try:
             if not self.db_path.exists():
                 logger.info(f"Graph database not found at {self.db_path}, starting fresh")
@@ -93,6 +101,8 @@ class GraphFallback:
 
     def _save_to_db(self) -> None:
         """Save graph to SQLite database."""
+        if self._in_memory:
+            return
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -241,5 +251,4 @@ class GraphFallback:
     def edge_count(self) -> int:
         """Get number of edges."""
         return len(self.graph.edges)
-
 

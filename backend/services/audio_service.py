@@ -62,6 +62,11 @@ class AudioService:
         self._pause_event = threading.Event()  # Event to pause wake word stream
         self._paused_event = threading.Event()  # Event signaling stream is paused
         self._resume_event = threading.Event()  # Event to resume wake word stream
+        if self.audio_enabled:
+            if settings.audio_input_device is not None:
+                self.set_input_device(settings.audio_input_device)
+            if settings.audio_output_device is not None:
+                self.set_output_device(settings.audio_output_device)
 
     @classmethod
     def get_instance(cls) -> "AudioService":
@@ -795,5 +800,4 @@ class AudioService:
             # But we can clear the reference
             self._oww_model = None
             logger.info("Cleaned up wake word detection")
-
 

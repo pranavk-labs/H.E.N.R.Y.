@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  tests:
+    name: Python tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      KNOWLEDGE_BACKEND: fallback
+      GRAPH_FALLBACK_DB: ":memory:"
+      SKIP_NEO4J_INTEGRATION: "true"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ffmpeg \
+            libasound2-dev \
+            libcairo2-dev \
+            libgirepository-2.0-dev \
+            libportaudio2 \
+            libsndfile1 \
+            pkg-config \
+            portaudio19-dev \
+            python3-dev \
+            gir1.2-adw-1 \
+            gir1.2-gtk-4.0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: poetry
+
+      - name: Install Poetry
+        run: pipx install poetry
+
+      - name: Configure Poetry
+        run: poetry env use python3.11
+
+      - name: Install build helpers
+        run: |
+          poetry run pip install --upgrade pip setuptools wheel
+          poetry run pip install --no-build-isolation openai-whisper==20231117
+
+      - name: Install dependencies
+        run: poetry install --all-extras --no-interaction --no-ansi
+
+      - name: Check Poetry metadata
+        run: poetry check
+
+      - name: Run tests
+        run: poetry run pytest

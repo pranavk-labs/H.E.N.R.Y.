@@ -57,14 +57,21 @@ class ToolsRegistry:
 
     def _ensure_context(self) -> ToolContext:
         """Lazy-load the tool context with service dependencies."""
-        if self._context is None:
-            # Import services only when first needed
-            from backend.services.knowledge_service import KnowledgeService
-            from backend.services.screen_manager import ScreenManager
+        # Import services only when first needed.
+        from backend.services.knowledge_service import KnowledgeService
+        from backend.services.screen_manager import ScreenManager
 
+        knowledge_service = KnowledgeService.get_instance()
+        screen_manager = ScreenManager.get_instance()
+
+        if (
+            self._context is None
+            or self._context.knowledge_service is not knowledge_service
+            or self._context.screen_manager is not screen_manager
+        ):
             self._context = ToolContext(
-                knowledge_service=KnowledgeService.get_instance(),
-                screen_manager=ScreenManager.get_instance(),
+                knowledge_service=knowledge_service,
+                screen_manager=screen_manager,
             )
         return self._context
 
@@ -102,9 +109,8 @@ class ToolsRegistry:
 
     def list_tools(self) -> Dict[str, str]:
         """Return a mapping of tool names to class names."""
+        self._ensure_tools_registered()
         return {name: cls.__name__ for name, cls in self._tools.items()}
 
 
 __all__ = ["ToolContext", "BaseTool", "ToolsRegistry"]
-
-

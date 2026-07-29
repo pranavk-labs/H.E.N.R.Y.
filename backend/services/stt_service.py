@@ -35,8 +35,13 @@ class SpeechToTextService:
                 # Load model (tiny, base, small, medium, large)
                 # For server, recommend "small" for better accuracy or "base" for speed
                 model_size = getattr(settings, "whisper_model_size", "small")
-                logger.info(f"Loading OpenAI Whisper model: {model_size}")
-                self._whisper_model = whisper.load_model(model_size)
+                device = getattr(settings, "whisper_device", "cpu")
+                if device:
+                    logger.info(f"Loading OpenAI Whisper model: {model_size} on {device}")
+                    self._whisper_model = whisper.load_model(model_size, device=device)
+                else:
+                    logger.info(f"Loading OpenAI Whisper model: {model_size}")
+                    self._whisper_model = whisper.load_model(model_size)
                 logger.info("OpenAI Whisper model loaded successfully")
             except ImportError:
                 logger.warning(

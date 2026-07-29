@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import uuid
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -104,13 +105,14 @@ class KnowledgeService:
         if graph is not None:
             self._graph = graph
         elif GRAPH_FALLBACK_AVAILABLE and GraphFallback is not None:
-            self._graph = GraphFallback()
+            self._graph = GraphFallback(os.getenv("GRAPH_FALLBACK_DB"))
         else:
             self._graph = None
             logger.info("KnowledgeService initialized without fallback - Neo4j required")
 
         self._neo4j_client = Neo4jClient.get_instance()
-        self._use_neo4j = True  # Try Neo4j first
+        backend = os.getenv("KNOWLEDGE_BACKEND", "auto").lower()
+        self._use_neo4j = backend != "fallback"
         self._preferences_cache: Dict[str, List[Preference]] = {}  # Cache preferences by user_id
 
     @classmethod
@@ -871,6 +873,7 @@ class KnowledgeService:
         self,
         title: str,
         description: str = "",
+        status: str = "todo",
         priority: str = "medium",
         difficulty: int = 3,
         category_id: Optional[str] = None,
@@ -897,13 +900,18 @@ class KnowledgeService:
         Returns:
             Created Todo object
         """
+        if parent_todo_id and not category_id:
+            parent = self.get_todo(parent_todo_id)
+            if parent:
+                category_id = parent.category_id
+
         todo_id = str(uuid.uuid4())
         created_at = _utc_now_iso()
         todo = Todo(
             id=todo_id,
             title=title,
             description=description,
-            status="todo",
+            status=status,
             priority=priority,
             difficulty=difficulty,
             category_id=category_id,
@@ -919,7 +927,7 @@ class KnowledgeService:
             label="Todo",
             title=title,
             description=description,
-            status="todo",
+            status=status,
             priority=priority,
             difficulty=difficulty,
             category_id=category_id or "",
@@ -1085,6 +1093,7 @@ class KnowledgeService:
         estimated_minutes: Optional[int] = None,
         recurrence_pattern: Optional[str] = None,
         completed_at: Optional[str] = None,
+        updated_at: Optional[str] = None,
     ) -> Optional[Todo]:
         """Update an existing todo."""
         data = self._read_node(todo_id)
@@ -1115,7 +1124,7 @@ class KnowledgeService:
             updates["recurrence_pattern"] = recurrence_pattern
         if completed_at is not None:
             updates["completed_at"] = completed_at
-        updates["updated_at"] = _utc_now_iso()
+        updates["updated_at"] = updated_at or _utc_now_iso()
 
         self._update_node(todo_id, **updates)
         return self.get_todo(todo_id)
@@ -1279,6 +1288,80 @@ class KnowledgeService:
                 self.update_todo(template.id, updated_at=_utc_now_iso())
 
         return created_todos
+
+    def check_and_create_recurring_events(self, days_ahead: int = 30) -> List[Dict[str, Any]]:
+        """Generate calendar event instances for recurring templates."""
+        from datetime import datetime, timedelta, timezone
+
+        now = datetime.now(timezone.utc)
+        window_end = now + timedelta(days=days_ahead)
+        created_events: List[Dict[str, Any]] = []
+
+        templates = [
+            node for node in self._list_nodes_by_label("CalendarEvent")
+            if node.get("recurrence_pattern", "none") != "none"
+            and not node.get("template_event_id")
+        ]
+
+        for template in templates:
+            try:
+                start_dt = datetime.fromisoformat(
+                    str(template.get("start_time", "")).replace("Z", "+00:00")
+                )
+            except (TypeError, ValueError):
+                continue
+
+            recurrence_end = window_end
+            end_raw = template.get("recurrence_end_date") or ""
+            if end_raw:
+                try:
+                    recurrence_end = min(
+                        recurrence_end,
+                        datetime.fromisoformat(str(end_raw).replace("Z", "+00:00")),
+                    )
+                except ValueError:
+                    pass
+
+            pattern = template.get("recurrence_pattern")
+            step = {
+                "daily": timedelta(days=1),
+                "weekly": timedelta(days=7),
+                "monthly": timedelta(days=30),
+            }.get(pattern)
+            if step is None:
+                continue
+
+            occurrence_start = start_dt
+            while occurrence_start <= recurrence_end:
+                if occurrence_start > now:
+                    template_id = template.get("id", "")
+                    existing = [
+                        node for node in self._list_nodes_by_label("CalendarEvent")
+                        if node.get("template_event_id") == template_id
+                        and node.get("start_time") == occurrence_start.isoformat()
+                    ]
+                    if not existing:
+                        event_id = str(uuid.uuid4())
+                        props = dict(template)
+                        props.pop("id", None)
+                        props.pop("label", None)
+                        props["start_time"] = occurrence_start.isoformat()
+                        props["recurrence_pattern"] = "none"
+                        props["recurrence_end_date"] = ""
+                        props["template_event_id"] = template_id
+                        props["created_at"] = _utc_now_iso()
+                        self._write_node(event_id, label="CalendarEvent", **props)
+                        self._create_relationship(
+                            event_id,
+                            template_id,
+                            relationship_type="INSTANCE_OF",
+                            created_at=_utc_now_iso(),
+                        )
+                        event = {"id": event_id, **props}
+                        created_events.append(event)
+                occurrence_start += step
+
+        return created_events
 
     # ------------------------------------------------------------------
     # Utility

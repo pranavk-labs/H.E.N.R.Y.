@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env.local",
+        env_file=None,
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -46,6 +46,8 @@ class Settings(BaseSettings):
 
     # Audio / Voice Configuration
     audio_enabled: bool = Field(default=False, alias="AUDIO_ENABLED")
+    audio_input_device: int | None = Field(default=None, alias="AUDIO_INPUT_DEVICE")
+    audio_output_device: int | None = Field(default=None, alias="AUDIO_OUTPUT_DEVICE")
     wake_word: str = Field(default="Hey HENRY", alias="WAKE_WORD")
 
     # Voice Runtime Configuration
@@ -70,6 +72,7 @@ class Settings(BaseSettings):
     whisper_model_size: str = Field(
         default="small", alias="WHISPER_MODEL_SIZE"
     )
+    whisper_device: str = Field(default="", alias="WHISPER_DEVICE")
     # STT server URL for remote transcription (Pi sends audio to this server)
     stt_server_url: str = Field(default="", alias="STT_SERVER_URL")
 

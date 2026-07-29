@@ -192,8 +192,8 @@ class TextToSpeechService:
         if not text:
             return
 
-        logger.info(f"TTS speak called with text: {text[:100]}...")
-        logger.info(f"TTS engine: {self.engine_name}, SOUNDDEVICE_AVAILABLE: {SOUNDDEVICE_AVAILABLE}")
+        logger.debug(f"TTS speak called with text: {text[:100]}...")
+        logger.debug(f"TTS engine: {self.engine_name}, SOUNDDEVICE_AVAILABLE: {SOUNDDEVICE_AVAILABLE}")
 
         if self.engine_name == "piper" and self._piper_voice is not None:
             try:
@@ -279,5 +279,4 @@ class TextToSpeechService:
 
 
 __all__ = ["TextToSpeechService"]
-
 
