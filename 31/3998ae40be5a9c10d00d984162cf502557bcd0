@@ -1,0 +1,26 @@
+tests/test_voice_runtime_service.py
+  s_16f7ff15bb68a8::t_7afe65499dca09 62-80
+  s_16f7ff15bb68a8::t_e30256aec3e7dc 61
+backend/services/voice_runtime_service.py
+  s_16f7ff15bb68a8::t_0e197d5893af6d 105
+scripts/ollama_runtime.py
+  s_16f7ff15bb68a8::t_0e197d5893af6d 1-100
+tests/test_ollama_runtime_script.py
+  s_16f7ff15bb68a8::t_0e197d5893af6d 1-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "313998ae40be5a9c10d00d984162cf502557bcd0",
+  "prompts": {},
+  "sessions": {
+    "s_16f7ff15bb68a8": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac78-a9b1-7590-9ee3-f1c890086f08",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
