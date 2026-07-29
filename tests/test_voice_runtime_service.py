@@ -59,6 +59,26 @@ async def test_start_without_command_returns_config_error():
 
 
 @pytest.mark.asyncio
+async def test_start_passes_runtime_model_to_process_environment():
+    """Start provides the configured model to the managed runtime process."""
+    settings = make_settings()
+    process = MagicMock()
+    process.poll.return_value = None
+
+    with patch(
+        "backend.services.voice_runtime_service.subprocess.Popen",
+        return_value=process,
+    ) as popen:
+        service = VoiceRuntimeService(settings=settings, ollama_client=AsyncMock())
+        result = await service.start()
+
+    assert result["state"] == "running"
+    env = popen.call_args.kwargs["env"]
+    assert env["VOICE_RUNTIME_DEVICE"] == "cpu"
+    assert env["VOICE_RUNTIME_LLM_MODEL"] == "qwen3"
+
+
+@pytest.mark.asyncio
 async def test_stop_terminates_process_and_unloads_model():
     """Stop terminates the runtime process and unloads the configured model."""
     process = MagicMock()

@@ -102,6 +102,7 @@ class VoiceRuntimeService:
 
         env = os.environ.copy()
         env["VOICE_RUNTIME_DEVICE"] = self.settings.voice_runtime_device
+        env["VOICE_RUNTIME_LLM_MODEL"] = self._model_name()
 
         try:
             self._process = subprocess.Popen(shlex.split(command), env=env)
