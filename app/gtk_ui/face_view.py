@@ -1,0 +1,146 @@
+"""Pure helpers for the GTK adaptive face view."""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass
+from typing import Any
+
+
+@dataclass(frozen=True)
+class EyeGeometry:
+    """Ellipse geometry for one eye."""
+
+    center_x: float
+    center_y: float
+    radius_x: float
+    radius_y: float
+
+
+@dataclass(frozen=True)
+class MouthGeometry:
+    """Arc geometry for the mouth."""
+
+    center_x: float
+    center_y: float
+    width: float
+    height: float
+
+
+@dataclass(frozen=True)
+class FaceGeometry:
+    """Geometry needed to draw HENRY's legacy face."""
+
+    center_x: float
+    center_y: float
+    base_radius: float
+    line_width: float
+    left_eye: EyeGeometry
+    right_eye: EyeGeometry
+    mouth: MouthGeometry
+
+
+def sleepiness_for_elapsed(
+    elapsed_seconds: float,
+    *,
+    happy_seconds: int,
+    neutral_seconds: int,
+    sleepy_seconds: int,
+) -> int:
+    """Return legacy sleepiness level for time since interaction."""
+    if elapsed_seconds < happy_seconds:
+        return 0
+    if elapsed_seconds < neutral_seconds:
+        return 1
+    if elapsed_seconds < sleepy_seconds:
+        return 2
+    return 3
+
+
+def face_geometry(
+    *,
+    width: int,
+    height: int,
+    phase: float,
+    sleepiness_level: int,
+    blink_scale: float = 1.0,
+) -> FaceGeometry:
+    """Build responsive face geometry matching the old Tkinter proportions."""
+    center_x = width / 2
+    center_y = height / 2
+    size = min(width * 0.4, height * 0.82)
+    base_radius = size / 2
+    level = max(0, min(sleepiness_level, 3))
+
+    vertical_amplitude = [10.0, 7.0, 4.0, 2.0][level]
+    horizontal_amplitude = [5.0, 3.0, 2.0, 1.0][level]
+    current_x = center_x + math.sin(phase * 0.7) * horizontal_amplitude
+    current_y = center_y + math.sin(phase) * vertical_amplitude
+
+    eye_multiplier = [0.3, 0.25, 0.2, 0.15][level]
+    eye_y_multiplier = [-0.15, -0.12, -0.1, -0.08][level]
+    eye_x_offset = base_radius * 0.4
+    eye_size = base_radius * eye_multiplier
+    eye_y = current_y + base_radius * eye_y_multiplier
+    eye_radius_y = eye_size * blink_scale
+
+    mouth_y = current_y + base_radius * 0.25
+    mouth_width = base_radius * 1.4
+    mouth_height = base_radius * 0.6
+
+    return FaceGeometry(
+        center_x=center_x,
+        center_y=center_y,
+        base_radius=base_radius,
+        line_width=max(4, width * 0.01),
+        left_eye=EyeGeometry(
+            center_x=current_x - eye_x_offset,
+            center_y=eye_y,
+            radius_x=eye_size,
+            radius_y=eye_radius_y,
+        ),
+        right_eye=EyeGeometry(
+            center_x=current_x + eye_x_offset,
+            center_y=eye_y,
+            radius_x=eye_size,
+            radius_y=eye_radius_y,
+        ),
+        mouth=MouthGeometry(
+            center_x=current_x,
+            center_y=mouth_y,
+            width=mouth_width,
+            height=mouth_height,
+        ),
+    )
+
+
+def _format_seconds(total_seconds: int) -> str:
+    minutes = max(0, total_seconds) // 60
+    seconds = max(0, total_seconds) % 60
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
+    """Return the focused overlay text for the active adaptive view."""
+    active_view = ui_state.get("active_view", "idle")
+    status_text = str(ui_state.get("status_text") or "")
+    if active_view == "idle":
+        return status_text
+
+    if active_view == "pomodoro":
+        timer = ui_state.get("timer_state") or {}
+        work = _format_seconds(int(timer.get("remaining_work_seconds", 0)))
+        rest = _format_seconds(int(timer.get("remaining_break_seconds", 0)))
+        return f"Work {work} | Break {rest}"
+
+    if active_view == "ideas":
+        idea = ui_state.get("idea_view") or {}
+        return str(idea.get("draft_text") or status_text or "Idea captured")
+
+    if active_view == "todo_list":
+        return status_text or "Todos"
+
+    if active_view == "calendar":
+        return status_text or "Calendar"
+
+    return status_text or f"Runtime {runtime.get('state', 'unknown')}"
