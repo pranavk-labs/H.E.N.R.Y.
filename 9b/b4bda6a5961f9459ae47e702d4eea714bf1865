@@ -1,0 +1,19 @@
+docs/superpowers/plans/2026-07-29-gtk-and-speech-runtime-refresh.md
+  s_3b1e9a1f35a35e::t_c321420cd7f6ab 1-1080
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "9bb4bda6a5961f9459ae47e702d4eea714bf1865",
+  "prompts": {},
+  "sessions": {
+    "s_3b1e9a1f35a35e": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019fac39-228d-76c0-96d6-ea765717733b",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
