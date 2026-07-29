@@ -49,6 +49,23 @@ def test_voice_pipeline_initialization(mock_voice_settings):
     assert convo is not None
 
 
+def test_voice_loop_defaults_to_legacy_runtime(mock_voice_settings):
+    """VoiceLoop uses the legacy runtime mode by default."""
+    from app.voice_loop import VoiceLoop
+
+    mock_voice_settings.voice_runtime = "legacy"
+    mock_voice_settings.voice_runtime_url = "ws://127.0.0.1:8765/v1/realtime"
+
+    with patch("app.voice_loop.get_settings", return_value=mock_voice_settings):
+        with patch("app.voice_loop.AudioService.get_instance"):
+            with patch("app.voice_loop.SpeechToTextService.get_instance"):
+                with patch("app.voice_loop.TextToSpeechService.get_instance"):
+                    loop = VoiceLoop(api_base_url="http://127.0.0.1:8000")
+
+    assert loop.runtime_mode == "legacy"
+    assert loop.voice_runtime_url == "ws://127.0.0.1:8765/v1/realtime"
+
+
 @patch("backend.services.conversation_service.OllamaClient")
 def test_voice_pipeline_end_to_end(mock_ollama_client_class, mock_voice_settings):
     """Test full voice pipeline: STT → Conversation → TTS."""
@@ -181,4 +198,3 @@ def test_voice_pipeline_settings_validation():
     with patch("backend.services.tts_service.logger") as mock_logger:
         tts.speak("test")
         mock_logger.info.assert_called()
-

@@ -58,6 +58,12 @@ class VoiceLoop:
             gui: Optional GUI instance for displaying transcription text.
         """
         self.settings = get_settings()
+        self.runtime_mode = getattr(self.settings, "voice_runtime", "legacy")
+        self.voice_runtime_url = getattr(
+            self.settings,
+            "voice_runtime_url",
+            "ws://127.0.0.1:8765/v1/realtime",
+        )
         self.audio_service = AudioService.get_instance()
         self.stt_service = SpeechToTextService.get_instance()
         self.tts_service = TextToSpeechService.get_instance()
@@ -649,6 +655,12 @@ class VoiceLoop:
         if self.running:
             logger.warning("Voice loop is already running")
             return
+
+        if self.runtime_mode == "hf_s2s":
+            logger.warning(
+                "hf_s2s runtime mode is configured but the streaming adapter "
+                "is not active; using legacy voice loop"
+            )
         
         # Check if audio is enabled
         if not self.settings.audio_enabled:
@@ -755,4 +767,3 @@ class VoiceLoop:
                 self.http_client.close()
             except Exception:
                 pass
-
