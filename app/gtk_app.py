@@ -27,12 +27,19 @@ def install_app_actions(app: Any, window: HenryGtkWindow, Gio: Any) -> None:
         app.set_accels_for_action(f"app.{name}", shortcuts[name])
 
 
+def configure_color_scheme(Adw: Any) -> None:
+    """Use libadwaita's style manager for the app color scheme."""
+    style_manager = Adw.StyleManager.get_default()
+    style_manager.set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+
+
 def run_gtk_app(api_base_url: Optional[str] = None) -> int:
     """Run the GTK application."""
     Adw, _Gdk, _GLib, _Gtk = require_gtk()
     from gi.repository import Gio
 
     base_url = api_base_url or os.getenv("API_BASE_URL", "http://127.0.0.1:8000")
+    configure_color_scheme(Adw)
     app = Adw.Application(application_id="dev.henry.Assistant")
 
     def on_activate(application):
