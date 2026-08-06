@@ -708,7 +708,7 @@ def test_run_action_refreshes_after_action_exception():
     )
 
     assert window.action_status_label.text == "Start: Backend offline"
-    assert window.action_status_label.tooltip_text == "Start: Backend offline"
+    assert window.action_status_label.tooltip_text == "Start: Backend offline - backend unavailable"
     assert window.css_class == "status-error"
     assert window.refresh_called is True
 

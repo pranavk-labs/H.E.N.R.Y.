@@ -516,6 +516,10 @@ def test_action_exception_feedback_uses_readable_blank_fallback():
         == "Start: Backend offline"
     )
     assert (
+        face_view.action_exception_feedback_tooltip("start", ConnectionError("connection refused"))
+        == "Start: Backend offline - connection refused"
+    )
+    assert (
         face_view.action_exception_feedback(
             "preload",
             RuntimeError("model qwen3-extra-long-model-name failed during warmup"),
