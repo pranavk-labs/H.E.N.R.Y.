@@ -195,6 +195,12 @@ def runtime_summary(runtime: dict[str, Any]) -> str:
     return label
 
 
+def model_override(raw_value: Any) -> str | None:
+    """Return a clean model override from GTK entry text."""
+    value = str(raw_value or "").strip()
+    return value or None
+
+
 def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     """Return which runtime controls should be enabled for the current state."""
     state = str(runtime.get("state") or "unknown").lower()

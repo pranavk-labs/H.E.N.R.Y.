@@ -64,6 +64,13 @@ def test_runtime_summary_shows_state_and_loaded_model():
     assert face_view.runtime_summary({}) == "Unknown"
 
 
+def test_model_override_trims_blank_input():
+    """GTK model entry sends a model only when the user typed a value."""
+    assert face_view.model_override(" qwen3:8b ") == "qwen3:8b"
+    assert face_view.model_override("   ") is None
+    assert face_view.model_override(None) is None
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {

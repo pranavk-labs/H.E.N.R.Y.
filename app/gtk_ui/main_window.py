@@ -13,6 +13,7 @@ from app.gtk_ui.face_view import (
     control_state,
     face_geometry,
     header_state,
+    model_override,
     runtime_summary,
     sleepiness_for_elapsed,
     tool_panel,
@@ -64,6 +65,11 @@ class HenryGtkWindow:
         self.connection_status_label = Gtk.Label(label="Backend: checking")
         self.connection_status_label.add_css_class("connection-label")
         self.connection_status_label.add_css_class("status-pending")
+        self.model_entry = Gtk.Entry()
+        self.model_entry.set_placeholder_text("model")
+        self.model_entry.set_tooltip_text("Model override for preload and unload")
+        self.model_entry.set_width_chars(18)
+        self.model_entry.add_css_class("model-entry")
 
         self.canvas = Gtk.DrawingArea()
         self.canvas.set_hexpand(True)
@@ -123,6 +129,9 @@ class HenryGtkWindow:
         .connection-label {
             font-size: 13px;
             margin-right: 12px;
+        }
+        .model-entry {
+            margin-right: 8px;
         }
         .status-ok {
             color: #50c878;
@@ -195,6 +204,7 @@ class HenryGtkWindow:
         toolbar.pack_start(self._buttons["stop"])
         toolbar.pack_end(self._buttons["unload"])
         toolbar.pack_end(self._buttons["preload"])
+        toolbar.pack_end(self.model_entry)
         toolbar.pack_end(self.runtime_status_label)
         toolbar.pack_end(self.connection_status_label)
         toolbar.pack_end(self.active_states_label)
@@ -250,11 +260,14 @@ class HenryGtkWindow:
 
     def preload_model(self) -> None:
         """Preload the configured model."""
-        self._run_action(self.client.preload_model)
+        self._run_action(lambda: self.client.preload_model(self._selected_model()))
 
     def unload_model(self) -> None:
         """Unload the configured model."""
-        self._run_action(self.client.unload_model)
+        self._run_action(lambda: self.client.unload_model(self._selected_model()))
+
+    def _selected_model(self) -> str | None:
+        return model_override(self.model_entry.get_text())
 
     def _state_key(
         self,
