@@ -400,7 +400,7 @@ def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     if response.get("error"):
         error = _runtime_error_summary(response["error"])
         if error:
-            return f"{action_label}: {error}"
+            return f"{action_label}: {_clip_text(error, 17)}"
     state = _humanized_label(response.get("state")) or "Complete"
     model = str(response.get("model") or "").strip()
     suffix = f" {_clip_text(model, 18)}" if model else ""

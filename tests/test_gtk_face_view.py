@@ -437,6 +437,26 @@ def test_action_feedback_prefers_response_state_and_model():
     )
     assert (
         face_view.action_feedback(
+            "preload",
+            {
+                "state": "error",
+                "error": "model qwen3-extra-long-model-name failed during warmup",
+            },
+        )
+        == "Preload: model qwen3-ex..."
+    )
+    assert (
+        face_view.action_feedback_tooltip(
+            "preload",
+            {
+                "state": "error",
+                "error": "model qwen3-extra-long-model-name failed during warmup",
+            },
+        )
+        == "Preload: model qwen3-extra-long-model-name failed during warmup"
+    )
+    assert (
+        face_view.action_feedback(
             "start",
             {"state": "error", "error": "Backend unavailable: connection refused"},
         )
