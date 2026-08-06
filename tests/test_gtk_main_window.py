@@ -70,3 +70,21 @@ def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():
     }
     assert window.synced_runtime == window.runtime
     assert window.canvas.queued is True
+
+
+def test_state_key_tracks_runtime_error_detail_changes():
+    """Runtime error reason changes should count as GTK state changes."""
+    ui_state = {"active_view": "idle", "status_text": "Waiting"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+        ui_state,
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        {"state": "error", "model": "qwen3", "error": "ollama unavailable"},
+        ui_state,
+    )
+
+    assert first_key != second_key

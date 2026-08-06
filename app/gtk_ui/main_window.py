@@ -350,6 +350,7 @@ class HenryGtkWindow:
         return (
             runtime.get("state"),
             runtime.get("model"),
+            runtime.get("error"),
             ui_state.get("active_view"),
             ui_state.get("status_text"),
             repr(ui_state.get("timer_state")),
