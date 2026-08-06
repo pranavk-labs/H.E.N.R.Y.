@@ -149,6 +149,24 @@ def test_state_key_normalizes_rendered_active_view_names():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_status_text():
+    """Equivalent GTK status text should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle", "status_text": "Ready"},
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle", "status_text": " Ready "},
+    )
+
+    assert first_key == second_key
+
+
 def test_run_action_refreshes_after_action_exception():
     """Failed GTK actions should refresh visible runtime/backend state."""
     window = ActionFailureWindow()
