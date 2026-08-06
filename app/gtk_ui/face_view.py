@@ -210,6 +210,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
 def view_title(active_view: str) -> str:
     """Return a concise human-facing title for the active GTK view."""
+    view_name = str(active_view or "").strip()
     labels = {
         "idle": "Listening",
         "pomodoro": "Pomodoro",
@@ -217,7 +218,9 @@ def view_title(active_view: str) -> str:
         "todo_list": "Todos",
         "calendar": "Calendar",
     }
-    return labels.get(active_view, active_view.replace("_", " ").title())
+    if not view_name:
+        return labels["idle"]
+    return labels.get(view_name, view_name.replace("_", " ").title())
 
 
 def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
