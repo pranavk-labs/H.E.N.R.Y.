@@ -133,9 +133,12 @@ def _format_seconds(total_seconds: int) -> str:
 
 def _timer_int(value: Any) -> int:
     try:
-        return max(0, int(str(value or "").strip() or "0"))
+        number = float(str(value or "").strip() or "0")
     except (TypeError, ValueError):
         return 0
+    if not math.isfinite(number):
+        return 0
+    return max(0, int(number))
 
 
 def _humanize(value: Any) -> str:

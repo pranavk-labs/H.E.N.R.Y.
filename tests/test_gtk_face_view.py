@@ -833,6 +833,28 @@ def test_tool_panel_uses_readable_pomodoro_status_fallback():
     assert panel.detail_lines == ("Timer work session", "Break queued for 05:00")
 
 
+def test_tool_panel_handles_float_pomodoro_timer_numbers():
+    """Float Pomodoro timer values should render as real remaining time."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25.0,
+                "break_duration_minutes": 5.0,
+                "remaining_work_seconds": 600.0,
+                "remaining_break_seconds": 300.0,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Work 10:00 | Break 05:00"
+    assert panel.detail_lines == ("Running work session", "Break queued for 05:00")
+    assert panel.progress == 0.6
+
+
 def test_tool_panel_surfaces_active_view_runtime_errors():
     """Active GTK panels should include runtime errors in central detail text."""
     panel = face_view.tool_panel(
