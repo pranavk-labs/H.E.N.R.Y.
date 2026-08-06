@@ -650,7 +650,9 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         mode = _humanized_label(ui_state.get("calendar_view_mode")) or "Upcoming"
         summary = summary if summary != "Calendar" else mode
         if ui_state.get("calendar_selected_date"):
-            details.append(f"Date: {_date_label(ui_state['calendar_selected_date'])}")
+            selected_date = _date_label(ui_state["calendar_selected_date"])
+            if selected_date:
+                details.append(f"Date: {selected_date}")
         filter_type = _humanized_label(ui_state.get("calendar_filter_type"))
         if filter_type:
             details.append(f"Type: {filter_type}")

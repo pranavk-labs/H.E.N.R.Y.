@@ -895,6 +895,7 @@ def test_tool_panel_skips_blank_filter_labels():
         {
             "active_view": "calendar",
             "calendar_view_mode": "   ",
+            "calendar_selected_date": "   ",
             "calendar_filter_type": "   ",
         },
         {"state": "running"},
