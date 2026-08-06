@@ -183,7 +183,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         error = _runtime_error_summary(runtime.get("error"))
         if error:
             return error
-        state = str(runtime.get("state") or "").lower()
+        state = str(runtime.get("state") or "").strip().lower()
         if not status_text and state in {"starting", "stopping", "loading", "unloading"}:
             return _humanize(state)
         return status_text

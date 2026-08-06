@@ -104,6 +104,9 @@ def test_view_summary_marks_idle_pending_runtime_state():
     assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "loading"}) == (
         "Loading"
     )
+    assert view_summary({"active_view": "idle", "status_text": ""}, {"state": " loading "}) == (
+        "Loading"
+    )
     assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "starting"}) == (
         "Starting"
     )
