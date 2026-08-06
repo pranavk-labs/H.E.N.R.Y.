@@ -420,6 +420,7 @@ class HenryGtkWindow:
             self._apply_control_state({})
             self._apply_header_state({})
             self.runtime = offline_runtime_state(exc)
+            self._sync_model_entry(self.runtime)
             self.ui_state = {
                 "active_view": "idle",
                 "status_text": f"Backend unavailable: {exc}",
