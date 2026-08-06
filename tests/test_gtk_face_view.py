@@ -543,6 +543,7 @@ def test_status_badges_include_runtime_error_reason():
 def test_runtime_status_class_marks_state_severity():
     """GTK header runtime label gets a scannable status color."""
     assert face_view.runtime_status_class({"state": "running"}) == "status-ok"
+    assert face_view.runtime_status_class({"state": "running", "error": "   "}) == "status-ok"
     assert face_view.runtime_status_class({"state": "loaded"}) == "status-ok"
     assert face_view.runtime_status_class({"state": "loading"}) == "status-pending"
     assert face_view.runtime_status_class({"state": "error"}) == "status-error"
