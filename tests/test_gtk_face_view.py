@@ -499,6 +499,14 @@ def test_header_state_exposes_back_and_active_states():
     }
 
 
+def test_header_state_ignores_malformed_navigation_values():
+    """Malformed GTK navigation values should not enable bogus header controls."""
+    assert face_view.header_state({"view_stack": "idle", "active_states": "timer"}) == {
+        "can_go_back": False,
+        "active_states_label": "",
+    }
+
+
 def test_gtk_labels_humanize_hyphenated_api_values():
     """GTK labels render hyphenated API values as normal words."""
     assert face_view.header_state({"view_stack": ["idle"], "active_states": ["voice-note"]}) == {
@@ -522,6 +530,7 @@ def test_active_states_status_class_marks_concurrent_work():
         "status-neutral"
     )
     assert face_view.active_states_status_class({}) == "status-neutral"
+    assert face_view.active_states_status_class({"active_states": "timer"}) == "status-neutral"
 
 
 def test_status_badges_summarize_current_surface_state():

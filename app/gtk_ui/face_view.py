@@ -145,6 +145,10 @@ def _dict_state(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+def _list_state(value: Any) -> list[Any]:
+    return value if isinstance(value, list) else []
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -391,10 +395,12 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
 
 def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     """Return GTK header navigation and concurrent-state labels."""
-    view_stack = ui_state.get("view_stack") or ["idle"]
+    view_stack = _list_state(ui_state.get("view_stack")) or ["idle"]
     active_states = [
         label
-        for label in (_humanized_label(state) for state in (ui_state.get("active_states") or []))
+        for label in (
+            _humanized_label(state) for state in _list_state(ui_state.get("active_states"))
+        )
         if label
     ]
     visible_states = active_states[:3]
@@ -414,7 +420,9 @@ def active_states_status_class(ui_state: dict[str, Any]) -> str:
     """Return a GTK status CSS class for the active-states header label."""
     active_states = [
         label
-        for label in (_humanized_label(state) for state in (ui_state.get("active_states") or []))
+        for label in (
+            _humanized_label(state) for state in _list_state(ui_state.get("active_states"))
+        )
         if label
     ]
     return "status-pending" if active_states else "status-neutral"
