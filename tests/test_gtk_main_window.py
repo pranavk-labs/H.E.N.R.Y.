@@ -502,6 +502,32 @@ def test_state_key_normalizes_rendered_active_view_names():
     assert first_key == third_key
 
 
+def test_state_key_normalizes_rendered_active_view_aliases():
+    """Equivalent GTK active view aliases should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+    timer_state = {
+        "status": "running",
+        "phase": "work",
+        "work_duration_minutes": 25,
+        "break_duration_minutes": 5,
+        "remaining_work_seconds": 1200,
+        "remaining_break_seconds": 300,
+    }
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "pomodoro", "timer_state": timer_state},
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "timer", "timer_state": timer_state},
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_status_text():
     """Equivalent GTK status text should not reset face timing."""
     runtime = {"state": "running", "model": "qwen3"}

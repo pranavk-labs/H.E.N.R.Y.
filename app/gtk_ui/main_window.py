@@ -17,6 +17,7 @@ from app.gtk_ui.face_view import (
     action_status_class,
     action_tooltip,
     active_states_status_class,
+    active_view_name,
     canvas_tooltip,
     compact_status_badges,
     control_tooltip,
@@ -420,7 +421,7 @@ class HenryGtkWindow:
         runtime: dict[str, Any],
         ui_state: dict[str, Any],
     ) -> tuple[Any, ...]:
-        active_view = str(ui_state.get("active_view") or "").strip().lower() or "idle"
+        active_view = active_view_name(ui_state.get("active_view"))
         rendered_panel_key = repr(tool_panel(ui_state, runtime))
         rendered_header_state = header_state(ui_state)
         status_key = (
@@ -579,7 +580,7 @@ class HenryGtkWindow:
         self._paint_background(cr, width, height)
         self._draw_status_badges(cr, width)
         panel = tool_panel(self.ui_state, self.runtime)
-        active_view = str(self.ui_state.get("active_view") or "").strip().lower() or "idle"
+        active_view = active_view_name(self.ui_state.get("active_view"))
         if active_view == "idle":
             self._draw_face(cr, width, height, surface_accent(self.ui_state, self.runtime))
             if panel.summary:

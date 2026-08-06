@@ -170,6 +170,11 @@ def _active_view_name(value: Any) -> str:
     return aliases.get(view_name, view_name)
 
 
+def active_view_name(value: Any) -> str:
+    """Return the canonical GTK view name for raw API state."""
+    return _active_view_name(value)
+
+
 def _unique_labels(values: list[Any]) -> list[str]:
     labels: list[str] = []
     seen: set[str] = set()
