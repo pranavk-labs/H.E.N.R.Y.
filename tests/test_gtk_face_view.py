@@ -93,8 +93,8 @@ def test_view_title_and_accent_make_active_context_scannable():
     assert face_view.view_accent("pomodoro") == (0.95, 0.39, 0.32)
 
 
-def test_surface_accent_marks_runtime_errors():
-    """GTK surfaces switch to an error accent when runtime is unhealthy."""
+def test_surface_accent_marks_runtime_health():
+    """GTK surfaces switch accents when runtime needs attention."""
     offline = face_view.offline_runtime_state(ConnectionError("connection refused"))
 
     assert face_view.surface_accent({"active_view": "idle"}, offline) == (1.0, 0.42, 0.37)
@@ -111,6 +111,16 @@ def test_surface_accent_marks_runtime_errors():
         1.0,
         0.42,
         0.37,
+    )
+    assert face_view.surface_accent({"active_view": "pomodoro"}, {"state": "loading"}) == (
+        0.85,
+        0.72,
+        0.31,
+    )
+    assert face_view.surface_accent({"active_view": "idle"}, {"state": "starting"}) == (
+        0.85,
+        0.72,
+        0.31,
     )
 
 
