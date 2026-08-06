@@ -234,7 +234,7 @@ def view_accent(active_view: str) -> tuple[float, float, float]:
 def surface_accent(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[float, float, float]:
     """Return the current GTK canvas accent color."""
     active_view = str(ui_state.get("active_view", "idle"))
-    if active_view == "idle" and runtime_status_class(runtime) == "status-error":
+    if runtime_status_class(runtime) == "status-error":
         return (1.0, 0.42, 0.37)
     return view_accent(active_view)
 

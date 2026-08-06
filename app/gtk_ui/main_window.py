@@ -33,7 +33,6 @@ from app.gtk_ui.face_view import (
     status_badges,
     surface_accent,
     tool_panel,
-    view_accent,
     wrapped_detail_lines,
     wrapped_text_lines,
 )
@@ -563,7 +562,7 @@ class HenryGtkWindow:
         active_view: str,
         panel: ToolPanel,
     ) -> None:
-        accent = view_accent(active_view)
+        accent = surface_accent(self.ui_state, self.runtime)
         cr.set_source_rgb(*accent)
         cr.rectangle(width * 0.18, height * 0.28, width * 0.64, 4)
         cr.fill()
