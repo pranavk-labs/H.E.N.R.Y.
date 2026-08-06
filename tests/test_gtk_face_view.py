@@ -71,6 +71,17 @@ def test_view_summary_prioritizes_idle_runtime_errors():
     )
 
 
+def test_view_summary_labels_backend_outages_as_offline():
+    """Idle GTK canvas should summarize backend outages as offline."""
+    assert (
+        view_summary(
+            {"active_view": "idle", "status_text": "Ready"},
+            face_view.offline_runtime_state(ConnectionError("connection refused")),
+        )
+        == "Backend offline"
+    )
+
+
 def test_view_title_and_accent_make_active_context_scannable():
     """GTK active views expose concise labels and stable visual accents."""
     assert face_view.view_title("idle") == "Listening"

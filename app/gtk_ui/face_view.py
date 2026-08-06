@@ -135,12 +135,19 @@ def _humanize(value: Any) -> str:
     return str(value or "").replace("_", " ").strip().title()
 
 
+def _runtime_error_summary(error: Any) -> str:
+    message = str(error or "").strip()
+    if message.startswith("Backend unavailable:"):
+        return "Backend offline"
+    return message
+
+
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
     active_view = ui_state.get("active_view", "idle")
     status_text = str(ui_state.get("status_text") or "")
     if active_view == "idle":
-        error = str(runtime.get("error") or "").strip()
+        error = _runtime_error_summary(runtime.get("error"))
         if error:
             return error
         return status_text
