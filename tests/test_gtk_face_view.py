@@ -415,6 +415,12 @@ def test_control_state_matches_runtime_lifecycle():
         "preload": True,
         "unload": False,
     }
+    assert face_view.control_state({"state": " stopped "}) == {
+        "start": True,
+        "stop": False,
+        "preload": True,
+        "unload": False,
+    }
     assert face_view.control_state({"state": "loaded"}) == {
         "start": True,
         "stop": False,

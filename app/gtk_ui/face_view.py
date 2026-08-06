@@ -357,7 +357,7 @@ def action_exception_feedback(action_name: str, error: Any) -> str:
 
 def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     """Return which runtime controls should be enabled for the current state."""
-    state = str(runtime.get("state") or "unknown").lower()
+    state = str(runtime.get("state") or "unknown").strip().lower()
     if state in {"starting", "stopping", "loading", "unloading"}:
         return {"start": False, "stop": False, "preload": False, "unload": False}
     if state == "running":
