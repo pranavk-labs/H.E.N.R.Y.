@@ -262,6 +262,35 @@ def test_state_key_normalizes_rendered_calendar_dates():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_active_states():
+    """Equivalent GTK active-state labels should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle", "active_states": ["timer", "idea"]},
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle", "active_states": [" timer ", " idea "]},
+    )
+    blank_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle"},
+    )
+    malformed_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "idle", "active_states": "timer"},
+    )
+
+    assert first_key == second_key
+    assert blank_key == malformed_key
+
+
 def test_state_key_normalizes_rendered_runtime_model():
     """Equivalent GTK runtime model labels should not reset face timing."""
     ui_state = {"active_view": "idle", "status_text": "Ready"}
