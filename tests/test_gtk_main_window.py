@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from app.gtk_ui import main_window
+from app.gtk_ui import face_view, main_window
 from app.gtk_ui.main_window import HenryGtkWindow
 
 
@@ -44,9 +44,13 @@ class FakeButton:
 
     def __init__(self) -> None:
         self.sensitive: bool | None = None
+        self.tooltip_text = ""
 
     def set_sensitive(self, sensitive: bool) -> None:
         self.sensitive = sensitive
+
+    def set_tooltip_text(self, text: str) -> None:
+        self.tooltip_text = text
 
 
 class FakeEntry:
@@ -161,6 +165,19 @@ class HeaderStateWindow:
         for css_class in classes:
             widget.remove_css_class(css_class)
         widget.add_css_class(active_class)
+
+
+class ControlStateWindow:
+    """Minimal HenryGtkWindow shape for exercising runtime control updates."""
+
+    def __init__(self) -> None:
+        self._buttons = {
+            "back": FakeButton(),
+            "start": FakeButton(),
+            "stop": FakeButton(),
+            "preload": FakeButton(),
+            "unload": FakeButton(),
+        }
 
 
 class ModelEntryWindow:
@@ -323,6 +340,39 @@ def test_apply_header_state_clears_active_states_tooltip_when_empty():
     assert window.active_states_label.text == ""
     assert window.active_states_label.tooltip_text == ""
     assert window._buttons["back"].sensitive is False
+
+
+def test_apply_control_state_explains_disabled_runtime_controls():
+    """Disabled GTK runtime controls should explain why the action is unavailable."""
+    window = ControlStateWindow()
+
+    HenryGtkWindow._apply_control_state(
+        window,
+        face_view.offline_runtime_state(ConnectionError("connection refused")),
+    )
+
+    assert window._buttons["start"].sensitive is False
+    assert window._buttons["preload"].sensitive is False
+    assert window._buttons["start"].tooltip_text == (
+        "Start voice runtime unavailable: backend offline"
+    )
+    assert window._buttons["preload"].tooltip_text == "Preload model unavailable: backend offline"
+
+    HenryGtkWindow._apply_control_state(window, {"state": "loading"})
+
+    assert window._buttons["start"].tooltip_text == (
+        "Start voice runtime unavailable: runtime is loading"
+    )
+    assert window._buttons["stop"].tooltip_text == (
+        "Stop voice runtime unavailable: runtime is loading"
+    )
+
+    HenryGtkWindow._apply_control_state(window, {"state": "running"})
+
+    assert window._buttons["start"].tooltip_text == (
+        "Start voice runtime unavailable: runtime is already running"
+    )
+    assert window._buttons["stop"].tooltip_text == "Stop voice runtime (Ctrl+.)"
 
 
 def test_model_entry_change_marks_active_override_state():

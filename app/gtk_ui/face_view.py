@@ -756,6 +756,34 @@ def action_tooltip(action_name: str, label: str) -> str:
     return f"{label} ({shortcut_text})"
 
 
+def control_tooltip(
+    action_name: str,
+    label: str,
+    runtime: dict[str, Any],
+    *,
+    enabled: bool,
+) -> str:
+    """Return a runtime control tooltip that explains disabled actions."""
+    if enabled:
+        return action_tooltip(action_name, label)
+
+    state = str(runtime.get("state") or "unknown").strip().lower() or "unknown"
+    error = str(runtime.get("error") or "").strip().lower()
+    if error.startswith("backend unavailable:"):
+        reason = "backend offline"
+    elif state in {"starting", "stopping", "loading", "unloading"}:
+        reason = f"runtime is {_humanize(state).lower()}"
+    elif action_name == "start" and state == "running":
+        reason = "runtime is already running"
+    elif action_name == "stop":
+        reason = "runtime is not running"
+    elif action_name == "unload":
+        reason = "no model loaded"
+    else:
+        reason = f"runtime state is {_humanize(state).lower()}"
+    return f"{label} unavailable: {reason}"
+
+
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
     active_view = _active_view_name(ui_state.get("active_view"))

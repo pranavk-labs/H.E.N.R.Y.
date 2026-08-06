@@ -18,6 +18,7 @@ from app.gtk_ui.face_view import (
     action_tooltip,
     active_states_status_class,
     compact_status_badges,
+    control_tooltip,
     control_state,
     face_geometry,
     header_state,
@@ -46,6 +47,12 @@ logger = logging.getLogger(__name__)
 
 STATUS_CLASSES = ("status-ok", "status-error", "status-pending", "status-neutral")
 MODEL_ENTRY_CLASSES = ("model-entry-override",)
+CONTROL_LABELS = {
+    "start": "Start voice runtime",
+    "stop": "Stop voice runtime",
+    "preload": "Preload model",
+    "unload": "Unload model",
+}
 
 
 def require_gtk():
@@ -284,7 +291,16 @@ class HenryGtkWindow:
         for name, button in self._buttons.items():
             if name == "back":
                 continue
-            button.set_sensitive(enabled.get(name, False))
+            is_enabled = enabled.get(name, False)
+            button.set_sensitive(is_enabled)
+            button.set_tooltip_text(
+                control_tooltip(
+                    name,
+                    CONTROL_LABELS.get(name, name),
+                    runtime,
+                    enabled=is_enabled,
+                )
+            )
 
     def _apply_header_state(self, ui_state: dict[str, Any]) -> None:
         state = header_state(ui_state)
