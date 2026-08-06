@@ -1107,6 +1107,20 @@ def test_tool_panel_simplifies_scoped_fallback_identifiers():
     ).detail_lines == ("Active: book_doc", "Category: health_a")
 
 
+def test_tool_panel_marks_idea_drafts_in_progress():
+    """GTK Ideas panel should distinguish draft text from empty capture state."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "ideas",
+            "idea_view": {"draft_text": "Ship the GTK face"},
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Ship the GTK face"
+    assert panel.detail_lines == ("Draft in progress",)
+
+
 def test_tool_panel_skips_blank_fallback_identifiers():
     """Fallback GTK panel identifiers should not render empty labels."""
     assert face_view.tool_panel(
