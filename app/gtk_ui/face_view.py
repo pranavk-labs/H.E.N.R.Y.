@@ -360,7 +360,7 @@ def compact_status_badges(badges: tuple[str, ...], *, max_chars: int) -> tuple[s
 def status_badge_tone(label: Any) -> str:
     """Return the visual tone for one GTK canvas status badge."""
     value = str(label or "").strip()
-    if value == "Offline" or value.startswith("Error:") or value == "Runtime: Error":
+    if value in {"Offline", "Error", "Runtime: Error"} or value.startswith("Error:"):
         return "error"
     if value in {
         "Runtime: Running",

@@ -335,6 +335,7 @@ def test_compact_status_badges_omits_blank_badges():
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
+    assert face_view.status_badge_tone("Error") == "error"
     assert face_view.status_badge_tone("Error: microphone unavailable") == "error"
     assert face_view.status_badge_tone("Runtime: Error") == "error"
     assert face_view.status_badge_tone("Runtime: Running") == "ok"
