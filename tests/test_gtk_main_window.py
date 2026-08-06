@@ -49,6 +49,32 @@ class FakeButton:
         self.sensitive = sensitive
 
 
+class FakeEntry:
+    """Small GTK entry stand-in."""
+
+    def __init__(self, text: str = "") -> None:
+        self.text = text
+        self.tooltip_text = ""
+        self.css_classes: list[str] = []
+
+    def get_text(self) -> str:
+        return self.text
+
+    def set_text(self, text: str) -> None:
+        self.text = text
+
+    def set_tooltip_text(self, text: str) -> None:
+        self.tooltip_text = text
+
+    def add_css_class(self, css_class: str) -> None:
+        if css_class not in self.css_classes:
+            self.css_classes.append(css_class)
+
+    def remove_css_class(self, css_class: str) -> None:
+        if css_class in self.css_classes:
+            self.css_classes.remove(css_class)
+
+
 class FailingClient:
     """Runtime client stand-in that simulates backend loss."""
 
@@ -135,6 +161,22 @@ class HeaderStateWindow:
         for css_class in classes:
             widget.remove_css_class(css_class)
         widget.add_css_class(active_class)
+
+
+class ModelEntryWindow:
+    """Minimal HenryGtkWindow shape for exercising model entry state."""
+
+    def __init__(self, text: str = "") -> None:
+        self.model_entry = FakeEntry(text)
+        self._model_entry_user_edited = False
+        self._syncing_model_entry = False
+
+    def _clear_css_classes(self, widget, classes) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
+
+    def _apply_model_entry_state(self) -> None:
+        HenryGtkWindow._apply_model_entry_state(self)
 
 
 class DrawBranchWindow:
@@ -278,6 +320,31 @@ def test_apply_header_state_clears_active_states_tooltip_when_empty():
     assert window.active_states_label.text == ""
     assert window.active_states_label.tooltip_text == ""
     assert window._buttons["back"].sensitive is False
+
+
+def test_model_entry_change_marks_active_override_state():
+    """Typed GTK model overrides should be visually and textually inspectable."""
+    window = ModelEntryWindow("custom-model")
+
+    HenryGtkWindow._on_model_entry_changed(window, None)
+
+    assert window._model_entry_user_edited is True
+    assert window.model_entry.tooltip_text == "Model override active: custom-model"
+    assert "model-entry-override" in window.model_entry.css_classes
+
+
+def test_sync_model_entry_clears_stale_override_state():
+    """Runtime model sync should clear stale override entry styling."""
+    window = ModelEntryWindow("custom-model")
+    window._model_entry_user_edited = False
+    window.model_entry.set_tooltip_text("Model override active: custom-model")
+    window.model_entry.add_css_class("model-entry-override")
+
+    HenryGtkWindow._sync_model_entry(window, {"model": "qwen3"})
+
+    assert window.model_entry.get_text() == "qwen3"
+    assert window.model_entry.tooltip_text == "Model override for preload and unload"
+    assert "model-entry-override" not in window.model_entry.css_classes
 
 
 def test_state_key_tracks_runtime_error_detail_changes():

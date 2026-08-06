@@ -421,6 +421,22 @@ def test_model_entry_user_edited_tracks_manual_text_changes():
     )
 
 
+def test_model_entry_tooltip_marks_active_user_override():
+    """GTK model override entry should explain when typed text is active."""
+    assert face_view.model_entry_tooltip("custom-model", user_edited=True) == (
+        "Model override active: custom-model"
+    )
+    assert face_view.model_entry_tooltip(" custom-model ", user_edited=True) == (
+        "Model override active: custom-model"
+    )
+    assert face_view.model_entry_tooltip("qwen3", user_edited=False) == (
+        "Model override for preload and unload"
+    )
+    assert face_view.model_entry_tooltip("   ", user_edited=True) == (
+        "Model override for preload and unload"
+    )
+
+
 def test_action_feedback_prefers_response_state_and_model():
     """GTK action feedback turns API results into short human-facing messages."""
     assert (

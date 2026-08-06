@@ -368,6 +368,14 @@ def model_entry_text(current_text: Any, runtime: dict[str, Any], *, user_edited:
     return str(runtime.get("model") or "").strip()
 
 
+def model_entry_tooltip(raw_value: Any, *, user_edited: bool) -> str:
+    """Return hover text for the GTK model override entry."""
+    value = str(raw_value or "").strip()
+    if user_edited and value:
+        return f"Model override active: {value}"
+    return "Model override for preload and unload"
+
+
 def model_entry_user_edited_after_action(
     action_name: str,
     response: dict[str, Any],

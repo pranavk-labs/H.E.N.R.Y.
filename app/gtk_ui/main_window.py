@@ -24,6 +24,7 @@ from app.gtk_ui.face_view import (
     header_view_status_class,
     header_view_title,
     model_entry_text,
+    model_entry_tooltip,
     model_entry_user_edited_after_action,
     model_entry_user_edited_after_change,
     model_override,
@@ -44,6 +45,7 @@ from app.gtk_ui.runtime_client import RuntimeClient
 logger = logging.getLogger(__name__)
 
 STATUS_CLASSES = ("status-ok", "status-error", "status-pending", "status-neutral")
+MODEL_ENTRY_CLASSES = ("model-entry-override",)
 
 
 def require_gtk():
@@ -97,12 +99,14 @@ class HenryGtkWindow:
         self.connection_status_label = Gtk.Label(label="Backend: checking")
         self.connection_status_label.add_css_class("connection-label")
         self.connection_status_label.add_css_class("status-pending")
+        self._model_entry_user_edited = False
+        self._syncing_model_entry = False
         self.model_entry = Gtk.Entry()
         self.model_entry.set_placeholder_text("model")
-        self.model_entry.set_tooltip_text("Model override for preload and unload")
         self.model_entry.set_width_chars(18)
         self.model_entry.add_css_class("model-entry")
         self.model_entry.connect("changed", self._on_model_entry_changed)
+        self._apply_model_entry_state()
 
         self.canvas = Gtk.DrawingArea()
         self.canvas.set_hexpand(True)
@@ -121,8 +125,6 @@ class HenryGtkWindow:
         self._neutral_seconds = gtk_timing_seconds("GUI_NEUTRAL_DURATION", 300)
         self._sleepy_seconds = gtk_timing_seconds("GUI_SLEEPY_DURATION", 600)
         self._buttons: dict[str, Any] = {}
-        self._model_entry_user_edited = False
-        self._syncing_model_entry = False
 
         self._install_css()
         self._build()
@@ -172,6 +174,10 @@ class HenryGtkWindow:
         }
         .model-entry {
             margin-right: 8px;
+        }
+        .model-entry-override {
+            border-color: #d8b84f;
+            box-shadow: 0 0 0 1px #d8b84f;
         }
         .status-ok {
             color: #50c878;
@@ -298,6 +304,19 @@ class HenryGtkWindow:
             was_syncing=self._syncing_model_entry,
             was_user_edited=self._model_entry_user_edited,
         )
+        self._apply_model_entry_state()
+
+    def _apply_model_entry_state(self) -> None:
+        self.model_entry.set_tooltip_text(
+            model_entry_tooltip(
+                self.model_entry.get_text(),
+                user_edited=self._model_entry_user_edited,
+            )
+        )
+        if self._model_entry_user_edited and self.model_entry.get_text().strip():
+            self.model_entry.add_css_class("model-entry-override")
+            return
+        self._clear_css_classes(self.model_entry, MODEL_ENTRY_CLASSES)
 
     def _sync_model_entry(self, runtime: dict[str, Any]) -> None:
         next_text = model_entry_text(
@@ -306,12 +325,14 @@ class HenryGtkWindow:
             user_edited=self._model_entry_user_edited,
         )
         if next_text == self.model_entry.get_text():
+            self._apply_model_entry_state()
             return
         self._syncing_model_entry = True
         try:
             self.model_entry.set_text(next_text)
         finally:
             self._syncing_model_entry = False
+        self._apply_model_entry_state()
 
     def _run_action(self, action_name: str, action: Callable[[], dict[str, Any]]) -> None:
         try:
