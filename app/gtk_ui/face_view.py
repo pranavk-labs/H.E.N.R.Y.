@@ -708,7 +708,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if filter_type:
             details.append(f"Type: {filter_type}")
         active_event_title = str(ui_state.get("active_event_title") or "").strip()
-        if active_event_title:
+        if active_event_title and not (details and summary == active_event_title):
             details.append(f"Event: {active_event_title}")
         elif ui_state.get("active_event_id"):
             identifier = _short_identifier(ui_state["active_event_id"])

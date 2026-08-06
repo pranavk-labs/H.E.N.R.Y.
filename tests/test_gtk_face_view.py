@@ -1126,6 +1126,22 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
     ).detail_lines == ("Event: Weekly robotics seminar",)
 
 
+def test_tool_panel_omits_duplicate_calendar_event_title_detail():
+    """Calendar panel details should not repeat the event title headline."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "status_text": "Calendar",
+            "calendar_selected_date": "2026-08-05",
+            "active_event_title": "Weekly robotics seminar",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Weekly robotics seminar"
+    assert panel.detail_lines == ("Date: Aug 5, 2026",)
+
+
 def test_tool_panel_simplifies_scoped_fallback_identifiers():
     """Fallback GTK panel identifiers show the useful scoped ID segment."""
     assert face_view.tool_panel(
