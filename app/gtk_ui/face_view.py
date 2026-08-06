@@ -202,8 +202,11 @@ def header_view_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 def header_view_status_class(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return a GTK status CSS class for the header view label."""
     title = header_view_title(ui_state, runtime)
-    if title in {"Offline", "Error"} or runtime_status_class(runtime) == "status-error":
+    runtime_class = runtime_status_class(runtime)
+    if title in {"Offline", "Error"} or runtime_class == "status-error":
         return "status-error"
+    if runtime_class == "status-pending":
+        return "status-pending"
     if title == "Listening":
         return "status-ok"
     return "status-neutral"

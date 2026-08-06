@@ -152,6 +152,10 @@ def test_header_view_status_class_marks_surface_severity():
         face_view.header_view_status_class({"active_view": "pomodoro"}, {"state": "error"})
         == "status-error"
     )
+    assert (
+        face_view.header_view_status_class({"active_view": "pomodoro"}, {"state": "loading"})
+        == "status-pending"
+    )
 
 
 def test_runtime_summary_shows_state_and_loaded_model():
