@@ -736,4 +736,4 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
         {"state": "running"},
     ).detail_lines == ("Active: todo-123",)
     assert calendar_panel.summary == "Week"
-    assert calendar_panel.detail_lines == ("Date: 2026-08-05", "Type: Meeting")
+    assert calendar_panel.detail_lines == ("Date: Aug 5, 2026", "Type: Meeting")

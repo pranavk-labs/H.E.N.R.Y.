@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from datetime import date
 from typing import Any
 
 
@@ -133,6 +134,16 @@ def _format_seconds(total_seconds: int) -> str:
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").strip().title()
+
+
+def _date_label(value: Any) -> str:
+    raw_value = str(value or "").strip()
+    try:
+        parsed = date.fromisoformat(raw_value)
+    except ValueError:
+        return raw_value
+    month = parsed.strftime("%b")
+    return f"{month} {parsed.day}, {parsed.year}"
 
 
 def _runtime_error_summary(error: Any) -> str:
@@ -609,7 +620,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         mode = _humanize(ui_state.get("calendar_view_mode") or "upcoming")
         summary = summary if summary != "Calendar" else mode
         if ui_state.get("calendar_selected_date"):
-            details.append(f"Date: {ui_state['calendar_selected_date']}")
+            details.append(f"Date: {_date_label(ui_state['calendar_selected_date'])}")
         if ui_state.get("calendar_filter_type"):
             details.append(f"Type: {_humanize(ui_state['calendar_filter_type'])}")
         if ui_state.get("active_event_id"):
