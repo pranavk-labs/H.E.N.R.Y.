@@ -112,6 +112,14 @@ def test_view_summary_marks_idle_pending_runtime_state():
     )
 
 
+def test_view_summary_treats_blank_active_view_as_idle():
+    """Blank GTK active view should use the idle summary path."""
+    assert view_summary({"active_view": "   ", "status_text": ""}, {"state": "running"}) == ""
+    assert view_summary({"active_view": "   ", "status_text": ""}, {"state": "loading"}) == (
+        "Loading"
+    )
+
+
 def test_view_summary_humanizes_unknown_view_runtime_fallback():
     """Unknown GTK views should not show raw runtime state identifiers."""
     assert (

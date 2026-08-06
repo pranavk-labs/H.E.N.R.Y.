@@ -177,7 +177,7 @@ def _runtime_state_label(runtime: dict[str, Any]) -> str:
 
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
-    active_view = ui_state.get("active_view", "idle")
+    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
     status_text = str(ui_state.get("status_text") or "").strip()
     if active_view == "idle":
         error = _runtime_error_summary(runtime.get("error"))
