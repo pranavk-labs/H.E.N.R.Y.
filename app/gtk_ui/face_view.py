@@ -808,7 +808,18 @@ def tool_panel_tooltip(panel: ToolPanel) -> str:
 
 def canvas_tooltip(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return full hover text for the GTK canvas, including clipped badge context."""
-    lines = [tool_panel_tooltip(tool_panel(ui_state, runtime))]
+    panel = tool_panel(ui_state, runtime)
+    if _active_view_name(ui_state.get("active_view")) == "idle":
+        panel = ToolPanel(
+            title=panel.title,
+            summary=panel.summary,
+            detail_lines=tuple(
+                f"Runtime: {runtime_tooltip(runtime)}" if line.startswith("Runtime:") else line
+                for line in panel.detail_lines
+            ),
+            progress=panel.progress,
+        )
+    lines = [tool_panel_tooltip(panel)]
     badges = status_badge_tooltip_labels(ui_state, runtime)
     if badges:
         lines.append(f"Badges: {' | '.join(badges)}")

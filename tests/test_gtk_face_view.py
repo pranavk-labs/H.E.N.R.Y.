@@ -583,6 +583,21 @@ def test_canvas_tooltip_expands_active_state_badge_overflow():
     )
 
 
+def test_canvas_tooltip_expands_idle_runtime_detail():
+    """GTK canvas hover text should keep full idle runtime details inspectable."""
+    tooltip = face_view.canvas_tooltip(
+        {"active_view": "idle", "status_text": "Ready"},
+        {"state": "running", "model": "qwen3-extra-long-model-name"},
+    )
+
+    assert tooltip == (
+        "Listening\n"
+        "Ready\n"
+        "Runtime: Running - qwen3-extra-long-model-name\n"
+        "Badges: Listening | Runtime: Running | Model: qwen3-extra-long-model-name"
+    )
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {

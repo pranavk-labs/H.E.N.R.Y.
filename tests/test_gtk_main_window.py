@@ -340,7 +340,7 @@ def test_refresh_canvas_tooltip_includes_full_status_badges():
     assert window.canvas.tooltip_text == (
         "Listening\n"
         "Ready\n"
-        "Runtime: Running - qwen3-extra-lon...\n"
+        "Runtime: Running - qwen3-extra-long-model-name\n"
         "Badges: Listening | Runtime: Running | Model: qwen3-extra-long-model-name"
     )
 
