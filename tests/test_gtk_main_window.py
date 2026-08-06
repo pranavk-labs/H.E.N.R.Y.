@@ -101,6 +101,7 @@ class ActionFailureWindow:
         self.action_status_label = FakeLabel()
         self.css_class = ""
         self.refresh_called = False
+        self._model_entry_user_edited = False
 
     def _replace_css_classes(self, _widget, _classes, active_class: str) -> None:
         self.css_class = active_class
@@ -171,10 +172,12 @@ def test_refresh_clears_stale_action_status_on_backend_loss():
     """Backend loss should not leave stale action feedback in the GTK header."""
     window = FakeWindow()
     window.action_status_label.set_text("Start: Running qwen3")
+    window.action_status_label.set_tooltip_text("Start: Running qwen3")
 
     assert HenryGtkWindow.refresh(window) is True
 
     assert window.action_status_label.text == ""
+    assert window.action_status_label.tooltip_text == ""
 
 
 def test_refresh_clears_stale_action_status_class_on_backend_loss():
@@ -560,7 +563,24 @@ def test_run_action_refreshes_after_action_exception():
     )
 
     assert window.action_status_label.text == "Start: Backend offline"
+    assert window.action_status_label.tooltip_text == "Start: Backend offline"
     assert window.css_class == "status-error"
+    assert window.refresh_called is True
+
+
+def test_run_action_sets_action_status_tooltip_after_success():
+    """Successful GTK actions should expose compact action feedback on hover."""
+    window = ActionFailureWindow()
+
+    HenryGtkWindow._run_action(
+        window,
+        "start",
+        lambda: {"state": "running", "model": "qwen3"},
+    )
+
+    assert window.action_status_label.text == "Start: Running qwen3"
+    assert window.action_status_label.tooltip_text == "Start: Running qwen3"
+    assert window.css_class == "status-ok"
     assert window.refresh_called is True
 
 

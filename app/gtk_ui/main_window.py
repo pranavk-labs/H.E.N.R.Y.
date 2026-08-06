@@ -317,7 +317,9 @@ class HenryGtkWindow:
                 response,
                 was_user_edited=self._model_entry_user_edited,
             )
-            self.action_status_label.set_text(action_feedback(action_name, response))
+            feedback = action_feedback(action_name, response)
+            self.action_status_label.set_text(feedback)
+            self.action_status_label.set_tooltip_text(feedback)
             self._replace_css_classes(
                 self.action_status_label,
                 STATUS_CLASSES,
@@ -326,7 +328,9 @@ class HenryGtkWindow:
             self.refresh()
         except Exception as exc:
             logger.error("GTK runtime action failed: %s", exc, exc_info=True)
-            self.action_status_label.set_text(action_exception_feedback(action_name, exc))
+            feedback = action_exception_feedback(action_name, exc)
+            self.action_status_label.set_text(feedback)
+            self.action_status_label.set_tooltip_text(feedback)
             self._replace_css_classes(
                 self.action_status_label,
                 STATUS_CLASSES,
@@ -472,6 +476,7 @@ class HenryGtkWindow:
                 "status-error",
             )
             self.action_status_label.set_text("")
+            self.action_status_label.set_tooltip_text("")
             self._clear_css_classes(self.action_status_label, STATUS_CLASSES)
             self._apply_control_state({})
             self._apply_header_state({})
