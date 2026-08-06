@@ -32,4 +32,4 @@ class UIState:
     calendar_selected_date: Optional[str] = None
     calendar_filter_type: Optional[str] = None
     active_event_id: Optional[str] = None
-
+    active_event_title: str = ""

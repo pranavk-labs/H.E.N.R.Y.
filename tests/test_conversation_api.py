@@ -38,5 +38,4 @@ def test_ui_state_endpoint():
     assert "timer_state" in data
     assert "idea_view" in data
     assert "active_todo_title" in data
-
-
+    assert "active_event_title" in data

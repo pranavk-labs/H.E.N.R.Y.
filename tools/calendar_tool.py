@@ -115,16 +115,20 @@ class CalendarTool(BaseTool):
 
         # Validate start_time format
         try:
-            datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+            datetime.fromisoformat(start_time.replace("Z", "+00:00"))
         except (ValueError, AttributeError) as e:
-            raise ValueError(f"Invalid start_time format: {start_time}. Expected ISO format.") from e
+            raise ValueError(
+                f"Invalid start_time format: {start_time}. Expected ISO format."
+            ) from e
 
         # Validate end_time if provided
         if end_time:
             try:
-                datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                datetime.fromisoformat(end_time.replace("Z", "+00:00"))
             except (ValueError, AttributeError) as e:
-                raise ValueError(f"Invalid end_time format: {end_time}. Expected ISO format.") from e
+                raise ValueError(
+                    f"Invalid end_time format: {end_time}. Expected ISO format."
+                ) from e
 
         # Create event node in knowledge graph
         self._knowledge._write_node(
@@ -164,6 +168,7 @@ class CalendarTool(BaseTool):
         self._screen.update_status(f"Event created: {title}")
 
         event_data = self._build_event_dict(event_id)
+        self._screen.set_active_event(event_id, event_data["title"])
         return {"event": event_data, "action": "created"}
 
     def _update_event(
@@ -203,13 +208,13 @@ class CalendarTool(BaseTool):
         if start_time is not None:
             # Validate format
             try:
-                datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                 updates["start_time"] = start_time
             except (ValueError, AttributeError) as e:
                 raise ValueError(f"Invalid start_time format: {start_time}") from e
         if end_time is not None:
             try:
-                datetime.fromisoformat(end_time.replace('Z', '+00:00'))
+                datetime.fromisoformat(end_time.replace("Z", "+00:00"))
                 updates["end_time"] = end_time
             except (ValueError, AttributeError) as e:
                 raise ValueError(f"Invalid end_time format: {end_time}") from e
@@ -294,13 +299,13 @@ class CalendarTool(BaseTool):
                 event_start = node_data.get("start_time", "")
                 if event_start:
                     try:
-                        event_start_dt = datetime.fromisoformat(event_start.replace('Z', '+00:00'))
+                        event_start_dt = datetime.fromisoformat(event_start.replace("Z", "+00:00"))
                         if start_date:
-                            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                            start_dt = datetime.fromisoformat(start_date.replace("Z", "+00:00"))
                             if event_start_dt < start_dt:
                                 continue
                         if end_date:
-                            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+                            end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
                             if event_start_dt > end_dt:
                                 continue
                     except (ValueError, AttributeError):
@@ -364,9 +369,7 @@ class CalendarTool(BaseTool):
             location = node_data.get("location", "").lower()
 
             # Search in title, description, and location
-            if (query_lower in title or
-                query_lower in description or
-                query_lower in location):
+            if query_lower in title or query_lower in description or query_lower in location:
                 event_data = self._build_event_dict(event_id, node_data)
                 if event_data:
                     matches.append(event_data)
@@ -400,7 +403,7 @@ class CalendarTool(BaseTool):
 
             if start_time:
                 try:
-                    start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                     # Only include future events
                     if start_dt > now:
                         event_data = self._build_event_dict(event_id, node_data)
@@ -440,7 +443,7 @@ class CalendarTool(BaseTool):
 
             if start_time:
                 try:
-                    start_dt = datetime.fromisoformat(start_time.replace('Z', '+00:00'))
+                    start_dt = datetime.fromisoformat(start_time.replace("Z", "+00:00"))
                     # Check if event is today
                     if today_start <= start_dt <= today_end:
                         event_data = self._build_event_dict(event_id, node_data)

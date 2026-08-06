@@ -704,7 +704,10 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         filter_type = _humanized_label(ui_state.get("calendar_filter_type"))
         if filter_type:
             details.append(f"Type: {filter_type}")
-        if ui_state.get("active_event_id"):
+        active_event_title = str(ui_state.get("active_event_title") or "").strip()
+        if active_event_title:
+            details.append(f"Event: {active_event_title}")
+        elif ui_state.get("active_event_id"):
             identifier = _short_identifier(ui_state["active_event_id"])
             if identifier:
                 details.append(f"Event: {identifier}")

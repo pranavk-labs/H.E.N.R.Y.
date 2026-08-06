@@ -47,6 +47,7 @@ class UIStateResponse(BaseModel):
     calendar_selected_date: Optional[str] = None
     calendar_filter_type: Optional[str] = None
     active_event_id: Optional[str] = None
+    active_event_title: str = ""
 
 
 @router.post("/chat", response_model=ChatResponse)
@@ -74,7 +75,7 @@ async def ui_state() -> Any:
     # Check for timer transitions before returning state
     screen = ScreenManager.get_instance()
     state = screen.state
-    
+
     # If there's an active timer session, check for transitions
     if state.timer_state and state.timer_state.get("session_id"):
         try:
@@ -87,7 +88,7 @@ async def ui_state() -> Any:
         except (KeyError, AttributeError):
             # Timer tool or session not found, continue without checking
             pass
-    
+
     return UIStateResponse(
         active_view=state.active_view,
         status_text=state.status_text,
@@ -103,6 +104,7 @@ async def ui_state() -> Any:
         calendar_selected_date=state.calendar_selected_date,
         calendar_filter_type=state.calendar_filter_type,
         active_event_id=state.active_event_id,
+        active_event_title=state.active_event_title,
     )
 
 
@@ -116,6 +118,7 @@ async def go_back() -> Any:
 
 class TodoFiltersRequest(BaseModel):
     """Request model for updating todo filters."""
+
     status: Optional[str] = None
     category_id: Optional[str] = None
 
@@ -128,7 +131,10 @@ async def update_todo_filters(request: TodoFiltersRequest) -> Any:
         status=request.status,
         category_id=request.category_id,
     )
-    return {"success": True, "filters": {"status": request.status, "category_id": request.category_id}}
+    return {
+        "success": True,
+        "filters": {"status": request.status, "category_id": request.category_id},
+    }
 
 
 @router.post("/ui/show_todo_list")
@@ -141,6 +147,7 @@ async def show_todo_list(status: Optional[str] = None, category_id: Optional[str
 
 class CalendarViewRequest(BaseModel):
     """Request to update calendar view settings."""
+
     view_mode: Optional[str] = None
     selected_date: Optional[str] = None
     filter_type: Optional[str] = None
@@ -161,7 +168,7 @@ async def update_calendar_view(request: CalendarViewRequest) -> Any:
             "view_mode": request.view_mode,
             "selected_date": request.selected_date,
             "filter_type": request.filter_type,
-        }
+        },
     }
 
 
@@ -169,11 +176,9 @@ async def update_calendar_view(request: CalendarViewRequest) -> Any:
 async def show_calendar(
     view_mode: str = "upcoming",
     selected_date: Optional[str] = None,
-    filter_type: Optional[str] = None
+    filter_type: Optional[str] = None,
 ) -> Any:
     """Show the calendar view with optional configuration."""
     screen = ScreenManager.get_instance()
     screen.show_calendar(view_mode=view_mode, selected_date=selected_date, filter_type=filter_type)
     return {"success": True, "view": "calendar"}
-
-

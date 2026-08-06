@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ScreenState:
     """Enhanced state container with navigation stack and concurrent state tracking.
-    
+
     This state model supports:
     - Navigation history via a view stack
     - Concurrent states (timer + idea both active)
@@ -31,18 +31,18 @@ class ScreenState:
     # Example: ["idle", "pomodoro", "ideas"] means we're in ideas view,
     # and going back would return to pomodoro, then idle
     view_stack: List[str] = field(default_factory=lambda: ["idle"])
-    
+
     status_text: str = ""
-    
+
     # Concurrent state tracking - these can be active simultaneously
     timer_state: Dict[str, Any] = field(default_factory=dict)
     idea_view: Dict[str, Any] = field(default_factory=dict)
-    
+
     # Active idea tracking
     active_idea_id: Optional[str] = None
     active_idea_text: str = ""
     idea_last_updated: Optional[float] = None
-    
+
     # Active todo tracking
     active_todo_id: Optional[str] = None
     active_todo_title: str = ""
@@ -51,6 +51,7 @@ class ScreenState:
 
     # Active calendar tracking
     active_event_id: Optional[str] = None
+    active_event_title: str = ""
     calendar_view_mode: str = "upcoming"  # upcoming, today, week, month
     calendar_selected_date: Optional[str] = None  # ISO format date string
     calendar_filter_type: Optional[str] = None  # Filter by event_type
@@ -58,17 +59,17 @@ class ScreenState:
     # Concurrent active states - tracks which features are currently running
     # Example: ["timer", "idea"] means both timer and idea are active
     active_states: List[str] = field(default_factory=list)
-    
+
     @property
     def active_view(self) -> str:
         """Get the current active view (top of stack)."""
         return self.view_stack[-1] if self.view_stack else "idle"
-    
+
     @property
     def previous_view(self) -> Optional[str]:
         """Get the previous view (for back navigation)."""
         return self.view_stack[-2] if len(self.view_stack) > 1 else None
-    
+
     def can_go_back(self) -> bool:
         """Check if we can navigate back."""
         return len(self.view_stack) > 1
@@ -99,13 +100,13 @@ class ScreenManager:
     # ------------------------------------------------------------------
     def push_view(self, view_name: str, replace_current: bool = False) -> None:
         """Push a new view onto the navigation stack.
-        
+
         Args:
             view_name: Name of the view to push
             replace_current: If True, replace the current view instead of pushing
         """
         current_view = self._state.active_view
-        
+
         if replace_current and self._state.view_stack:
             # Replace the top of the stack
             self._state.view_stack[-1] = view_name
@@ -113,61 +114,65 @@ class ScreenManager:
         else:
             # Push new view onto stack
             self._state.view_stack.append(view_name)
-            logger.debug(f"Screen view pushed: {current_view} -> {view_name} (stack depth: {len(self._state.view_stack)})")
-    
+            logger.debug(
+                f"Screen view pushed: {current_view} -> {view_name} (stack depth: {len(self._state.view_stack)})"
+            )
+
     def pop_view(self) -> Optional[str]:
         """Pop the current view from the stack and return to previous view.
-        
+
         Also clears the associated active state for the view being popped.
-        
+
         Returns:
             The view that was popped, or None if we're at the base view
         """
         if len(self._state.view_stack) <= 1:
             logger.debug("Cannot pop view: already at base view")
             return None
-        
+
         popped = self._state.view_stack.pop()
-        
+
         # Clear associated active state based on view type
         # Map view names to state names
         view_to_state = {
             "pomodoro": "timer",
             "ideas": "idea",
         }
-        
+
         if popped in view_to_state:
             state_name = view_to_state[popped]
             self.remove_active_state(state_name)
-            
+
             # Also clear idea-specific data if popping ideas view
             if popped == "ideas":
                 self._state.active_idea_id = None
                 self._state.active_idea_text = ""
                 self._state.idea_last_updated = None
                 self._state.idea_view["is_active"] = False
-        
+
         new_view = self._state.active_view
-        logger.debug(f"Screen view popped: {popped} -> {new_view} (stack depth: {len(self._state.view_stack)})")
+        logger.debug(
+            f"Screen view popped: {popped} -> {new_view} (stack depth: {len(self._state.view_stack)})"
+        )
         return popped
-    
+
     def go_back(self) -> bool:
         """Navigate back to the previous view.
-        
+
         Returns:
             True if navigation occurred, False if already at base view
         """
         if not self._state.can_go_back():
             return False
-        
+
         self.pop_view()
         return True
-    
+
     def reset_to_idle(self) -> None:
         """Reset navigation stack to idle view."""
         self._state.view_stack = ["idle"]
         logger.debug("Screen view reset to idle")
-    
+
     def get_navigation_stack(self) -> List[str]:
         """Get a copy of the current navigation stack."""
         return self._state.view_stack.copy()
@@ -177,35 +182,37 @@ class ScreenManager:
     # ------------------------------------------------------------------
     def add_active_state(self, state_name: str) -> None:
         """Mark a state as active (e.g., 'timer', 'idea').
-        
+
         Args:
             state_name: Name of the state to mark as active
         """
         if state_name not in self._state.active_states:
             self._state.active_states.append(state_name)
             logger.debug(f"Active state added: {state_name} (active: {self._state.active_states})")
-    
+
     def remove_active_state(self, state_name: str) -> None:
         """Remove a state from active states.
-        
+
         Args:
             state_name: Name of the state to remove
         """
         if state_name in self._state.active_states:
             self._state.active_states.remove(state_name)
-            logger.debug(f"Active state removed: {state_name} (active: {self._state.active_states})")
-    
+            logger.debug(
+                f"Active state removed: {state_name} (active: {self._state.active_states})"
+            )
+
     def is_state_active(self, state_name: str) -> bool:
         """Check if a specific state is currently active.
-        
+
         Args:
             state_name: Name of the state to check
-            
+
         Returns:
             True if the state is active
         """
         return state_name in self._state.active_states
-    
+
     def get_active_states(self) -> List[str]:
         """Get a copy of all currently active states."""
         return self._state.active_states.copy()
@@ -215,7 +222,7 @@ class ScreenManager:
     # ------------------------------------------------------------------
     def set_view(self, view_name: str, **kwargs: Any) -> None:
         """Set the active view (replaces current view in stack).
-        
+
         This is kept for backward compatibility but prefer push_view().
         """
         logger.debug("Screen view -> %s", view_name)
@@ -239,7 +246,7 @@ class ScreenManager:
             logger.info("Timer status: %s -> %s", old_status or "none", new_status)
 
         self._state.timer_state.update(timer_state)
-        
+
         # Manage active state tracking
         if new_status in ("running", "paused"):
             self.add_active_state("timer")
@@ -256,7 +263,7 @@ class ScreenManager:
         """Update the idea/notebook-related UI and manage idea state."""
         logger.debug("Screen idea view: %s", idea_state)
         self._state.idea_view.update(idea_state)
-        
+
         # If an idea becomes active and we're not already in ideas view, push it
         if idea_state.get("is_active") and self._state.active_view != "ideas":
             self.add_active_state("idea")
@@ -267,18 +274,20 @@ class ScreenManager:
         self._state.active_idea_id = idea_id
         self._state.active_idea_text = text
         self._state.idea_last_updated = time.time()
-        self._state.idea_view.update({
-            "active_idea_id": idea_id,
-            "draft_text": text,
-            "is_active": True,
-            "last_updated": self._state.idea_last_updated,
-        })
-        
+        self._state.idea_view.update(
+            {
+                "active_idea_id": idea_id,
+                "draft_text": text,
+                "is_active": True,
+                "last_updated": self._state.idea_last_updated,
+            }
+        )
+
         # Mark idea as active and navigate to ideas view
         self.add_active_state("idea")
         if self._state.active_view != "ideas":
             self.push_view("ideas")
-        
+
         logger.info("Active idea set: %s", idea_id[:8] if idea_id else "none")
 
     def clear_active_idea(self) -> None:
@@ -287,14 +296,14 @@ class ScreenManager:
         self._state.active_idea_text = ""
         self._state.idea_last_updated = None
         self._state.idea_view["is_active"] = False
-        
+
         # Remove idea from active states
         self.remove_active_state("idea")
-        
+
         # If we're in the ideas view, navigate back to previous view
         if self._state.active_view == "ideas":
             self.pop_view()
-        
+
         logger.debug("Active idea cleared")
 
     def is_idea_active(self, timeout_seconds: float = 300) -> bool:
@@ -325,23 +334,23 @@ class ScreenManager:
         category_id: Optional[str] = None,
     ) -> None:
         """Show the todo list view with optional filters.
-        
+
         Args:
             status: Filter by status (todo, in_progress, completed, etc.)
             category_id: Filter by category ID
         """
         self._state.todo_filter_status = status
         self._state.selected_category_id = category_id
-        
+
         # Navigate to todo list view
         if self._state.active_view != "todo_list":
             self.push_view("todo_list")
-        
+
         logger.info("Showing todo list (status=%s, category=%s)", status, category_id)
 
     def set_active_todo(self, todo_id: str, title: str) -> None:
         """Set the currently active todo.
-        
+
         Args:
             todo_id: The todo ID
             title: The todo title
@@ -366,7 +375,7 @@ class ScreenManager:
         category_id: Optional[str] = None,
     ) -> None:
         """Update todo list filters.
-        
+
         Args:
             status: New status filter
             category_id: New category filter
@@ -421,18 +430,25 @@ class ScreenManager:
             filter_type,
         )
 
-    def set_active_event(self, event_id: str) -> None:
+    def set_active_event(self, event_id: str, title: str = "") -> None:
         """Set the currently active/selected event.
 
         Args:
             event_id: The event ID
+            title: The event title
         """
         self._state.active_event_id = event_id
-        logger.info("Active event set: %s", event_id[:8] if event_id else "none")
+        self._state.active_event_title = title
+        logger.info(
+            "Active event set: %s - %s",
+            event_id[:8] if event_id else "none",
+            title,
+        )
 
     def clear_active_event(self) -> None:
         """Clear the active event."""
         self._state.active_event_id = None
+        self._state.active_event_title = ""
         logger.debug("Active event cleared")
 
     def get_active_event_id(self) -> Optional[str]:
@@ -473,6 +489,7 @@ class ScreenManager:
         """
         return {
             "active_event_id": self._state.active_event_id,
+            "active_event_title": self._state.active_event_title,
             "view_mode": self._state.calendar_view_mode,
             "selected_date": self._state.calendar_selected_date,
             "filter_type": self._state.calendar_filter_type,
@@ -480,5 +497,3 @@ class ScreenManager:
 
 
 __all__ = ["ScreenManager", "ScreenState"]
-
-

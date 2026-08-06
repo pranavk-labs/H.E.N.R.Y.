@@ -387,6 +387,7 @@ class HenryGtkWindow:
                 str(ui_state.get("calendar_selected_date") or "").strip()[:10],
                 str(ui_state.get("calendar_filter_type") or "").strip(),
                 str(ui_state.get("active_event_id") or "").strip(),
+                str(ui_state.get("active_event_title") or "").strip(),
             )
         )
         return (

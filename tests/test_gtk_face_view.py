@@ -1101,6 +1101,14 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
         },
         {"state": "running"},
     ).detail_lines == ("Event: weekly_r",)
+    assert face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "active_event_id": "event:weekly_robotics_seminar_2026_01_27",
+            "active_event_title": "Weekly robotics seminar",
+        },
+        {"state": "running"},
+    ).detail_lines == ("Event: Weekly robotics seminar",)
 
 
 def test_tool_panel_simplifies_scoped_fallback_identifiers():

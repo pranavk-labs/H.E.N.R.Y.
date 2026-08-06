@@ -323,14 +323,16 @@ class TestCalendarTool:
         now = datetime.now(timezone.utc)
         start_time = (now + timedelta(hours=1)).isoformat()
 
-        calendar_tool.execute(
+        result = calendar_tool.execute(
             "create",
             title="Test Event",
             start_time=start_time,
         )
+        event_id = result["event"]["id"]
 
-        # Screen manager should have updated status
         assert "created" in screen_manager.state.status_text.lower()
+        assert screen_manager.get_active_event_id() == event_id
+        assert screen_manager.get_calendar_state()["active_event_title"] == "Test Event"
 
 
 class TestRecurringEvents:
