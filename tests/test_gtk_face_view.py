@@ -1249,6 +1249,23 @@ def test_tool_panel_promotes_active_todo_title_to_summary():
     assert panel.detail_lines == ("Filter: In Progress",)
 
 
+def test_tool_panel_omits_todo_id_when_active_title_is_headline():
+    """Todo panel should not show a fallback ID when the title is already visible."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "status_text": "Todos",
+            "active_todo_id": "todo:polish_gtk_header",
+            "active_todo_title": "Polish GTK",
+            "todo_filter_status": "in_progress",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Polish GTK"
+    assert panel.detail_lines == ("Filter: In Progress",)
+
+
 def test_tool_panel_omits_duplicate_calendar_event_title_detail():
     """Calendar panel details should not repeat the event title headline."""
     panel = face_view.tool_panel(

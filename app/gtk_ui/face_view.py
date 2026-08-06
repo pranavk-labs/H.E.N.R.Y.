@@ -737,7 +737,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         active_title = str(ui_state.get("active_todo_title") or "").strip()
         if active_title and summary != active_title:
             details.append(f"Active: {active_title}")
-        elif ui_state.get("active_todo_id"):
+        elif not active_title and ui_state.get("active_todo_id"):
             identifier = _short_identifier(ui_state["active_todo_id"])
             if identifier:
                 details.append(f"Active: {identifier}")
