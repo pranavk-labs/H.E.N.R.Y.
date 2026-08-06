@@ -17,6 +17,7 @@ from app.gtk_ui.face_view import (
     header_state,
     model_entry_text,
     model_entry_user_edited_after_action,
+    model_entry_user_edited_after_change,
     model_override,
     runtime_summary,
     sleepiness_for_elapsed,
@@ -257,8 +258,11 @@ class HenryGtkWindow:
         self.active_states_label.set_text(str(state["active_states_label"]))
 
     def _on_model_entry_changed(self, _entry: Any) -> None:
-        if not self._syncing_model_entry:
-            self._model_entry_user_edited = True
+        self._model_entry_user_edited = model_entry_user_edited_after_change(
+            self.model_entry.get_text(),
+            was_syncing=self._syncing_model_entry,
+            was_user_edited=self._model_entry_user_edited,
+        )
 
     def _sync_model_entry(self, runtime: dict[str, Any]) -> None:
         next_text = model_entry_text(

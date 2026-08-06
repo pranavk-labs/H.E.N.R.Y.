@@ -126,6 +126,28 @@ def test_model_entry_user_edited_resets_after_successful_model_actions():
     )
 
 
+def test_model_entry_user_edited_tracks_manual_text_changes():
+    """GTK model entry returns to runtime sync when the override is cleared."""
+    assert (
+        face_view.model_entry_user_edited_after_change(
+            "custom-model", was_syncing=False, was_user_edited=False
+        )
+        is True
+    )
+    assert (
+        face_view.model_entry_user_edited_after_change(
+            "   ", was_syncing=False, was_user_edited=True
+        )
+        is False
+    )
+    assert (
+        face_view.model_entry_user_edited_after_change(
+            "qwen3", was_syncing=True, was_user_edited=False
+        )
+        is False
+    )
+
+
 def test_action_feedback_prefers_response_state_and_model():
     """GTK action feedback turns API results into short human-facing messages."""
     assert (

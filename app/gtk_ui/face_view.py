@@ -222,6 +222,18 @@ def model_entry_user_edited_after_action(
     return was_user_edited
 
 
+def model_entry_user_edited_after_change(
+    raw_value: Any,
+    *,
+    was_syncing: bool,
+    was_user_edited: bool,
+) -> bool:
+    """Return model entry dirty state after a GTK text change."""
+    if was_syncing:
+        return was_user_edited
+    return bool(str(raw_value or "").strip())
+
+
 def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into concise GTK feedback."""
     action_label = _humanize(action_name)
