@@ -71,6 +71,22 @@ def test_model_override_trims_blank_input():
     assert face_view.model_override(None) is None
 
 
+def test_action_feedback_prefers_response_state_and_model():
+    """GTK action feedback turns API results into short human-facing messages."""
+    assert (
+        face_view.action_feedback("preload", {"state": "loaded", "model": "qwen3"})
+        == "Preload: Loaded qwen3"
+    )
+    assert (
+        face_view.action_feedback("start", {"state": "running", "model": "qwen3"})
+        == "Start: Running qwen3"
+    )
+    assert (
+        face_view.action_feedback("stop", {"state": "error", "error": "no command"})
+        == "Stop: no command"
+    )
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {

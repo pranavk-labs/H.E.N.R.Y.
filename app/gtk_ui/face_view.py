@@ -201,6 +201,17 @@ def model_override(raw_value: Any) -> str | None:
     return value or None
 
 
+def action_feedback(action_name: str, response: dict[str, Any]) -> str:
+    """Turn an action API response into concise GTK feedback."""
+    action_label = _humanize(action_name)
+    if response.get("error"):
+        return f"{action_label}: {response['error']}"
+    state = _humanize(response.get("state") or "complete")
+    model = str(response.get("model") or "").strip()
+    suffix = f" {model}" if model else ""
+    return f"{action_label}: {state}{suffix}"
+
+
 def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     """Return which runtime controls should be enabled for the current state."""
     state = str(runtime.get("state") or "unknown").lower()

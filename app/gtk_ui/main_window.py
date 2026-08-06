@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from app.gtk_ui.face_view import (
     ToolPanel,
+    action_feedback,
     control_state,
     face_geometry,
     header_state,
@@ -62,6 +63,8 @@ class HenryGtkWindow:
         self.active_states_label.add_css_class("active-states")
         self.runtime_status_label = Gtk.Label(label="Runtime: unknown")
         self.runtime_status_label.add_css_class("runtime-pill")
+        self.action_status_label = Gtk.Label(label="")
+        self.action_status_label.add_css_class("action-status")
         self.connection_status_label = Gtk.Label(label="Backend: checking")
         self.connection_status_label.add_css_class("connection-label")
         self.connection_status_label.add_css_class("status-pending")
@@ -113,6 +116,11 @@ class HenryGtkWindow:
             color: #b0b0b0;
             font-size: 13px;
             margin-right: 8px;
+        }
+        .action-status {
+            color: #d7d7d7;
+            font-size: 13px;
+            margin-right: 10px;
         }
         .view-pill {
             color: #e6e6e6;
@@ -206,6 +214,7 @@ class HenryGtkWindow:
         toolbar.pack_end(self._buttons["preload"])
         toolbar.pack_end(self.model_entry)
         toolbar.pack_end(self.runtime_status_label)
+        toolbar.pack_end(self.action_status_label)
         toolbar.pack_end(self.connection_status_label)
         toolbar.pack_end(self.active_states_label)
         toolbar.pack_end(self.view_status_label)
@@ -238,33 +247,34 @@ class HenryGtkWindow:
             self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
         self.active_states_label.set_text(str(state["active_states_label"]))
 
-    def _run_action(self, action: Callable[[], dict[str, Any]]) -> None:
+    def _run_action(self, action_name: str, action: Callable[[], dict[str, Any]]) -> None:
         try:
-            action()
+            response = action()
+            self.action_status_label.set_text(action_feedback(action_name, response))
             self.refresh()
         except Exception as exc:
             logger.error("GTK runtime action failed: %s", exc, exc_info=True)
-            self.runtime_status_label.set_text(f"Runtime error: {exc}")
+            self.action_status_label.set_text(f"{action_name.title()}: {exc}")
 
     def go_back(self) -> None:
         """Navigate back in the UI stack."""
-        self._run_action(self.client.go_back)
+        self._run_action("back", self.client.go_back)
 
     def start_runtime(self) -> None:
         """Start the voice runtime."""
-        self._run_action(self.client.start_runtime)
+        self._run_action("start", self.client.start_runtime)
 
     def stop_runtime(self) -> None:
         """Stop the voice runtime."""
-        self._run_action(self.client.stop_runtime)
+        self._run_action("stop", self.client.stop_runtime)
 
     def preload_model(self) -> None:
         """Preload the configured model."""
-        self._run_action(lambda: self.client.preload_model(self._selected_model()))
+        self._run_action("preload", lambda: self.client.preload_model(self._selected_model()))
 
     def unload_model(self) -> None:
         """Unload the configured model."""
-        self._run_action(lambda: self.client.unload_model(self._selected_model()))
+        self._run_action("unload", lambda: self.client.unload_model(self._selected_model()))
 
     def _selected_model(self) -> str | None:
         return model_override(self.model_entry.get_text())
