@@ -239,7 +239,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
     if active_view == "pomodoro":
         raw_timer = ui_state.get("timer_state")
-        if raw_timer is None:
+        if not isinstance(raw_timer, dict):
             return "Timer ready"
         timer = _dict_state(raw_timer)
         work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
@@ -844,7 +844,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
 
     if active_view == "pomodoro":
         raw_timer = ui_state.get("timer_state")
-        if raw_timer is None:
+        if not isinstance(raw_timer, dict):
             details.append("Ready to start")
         else:
             timer = _dict_state(raw_timer)
