@@ -131,6 +131,24 @@ def test_state_key_tracks_runtime_error_detail_changes():
     assert first_key != second_key
 
 
+def test_state_key_normalizes_rendered_runtime_error_text():
+    """Equivalent GTK runtime error labels should not reset face timing."""
+    ui_state = {"active_view": "idle", "status_text": "Waiting"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+        ui_state,
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        {"state": "error", "model": "qwen3", "error": " microphone unavailable "},
+        ui_state,
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_active_view_names():
     """Equivalent GTK active view names should not reset face timing."""
     runtime = {"state": "running", "model": "qwen3"}
