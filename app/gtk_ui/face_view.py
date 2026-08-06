@@ -479,12 +479,25 @@ def _overflow_text(text: str, max_chars: int) -> str:
     return f"{text[: max_chars - 3].rstrip()}..."
 
 
-def compact_status_badges(badges: tuple[str, ...], *, max_chars: int) -> tuple[str, ...]:
+def compact_status_badges(
+    badges: tuple[str, ...],
+    *,
+    max_chars: int,
+    max_badges: int | None = None,
+) -> tuple[str, ...]:
     """Clip GTK canvas badges to a bounded single-line label."""
     char_limit = max(1, int(max_chars))
-    return tuple(
-        _clip_text(label, char_limit) for label in (str(badge).strip() for badge in badges) if label
-    )
+    labels = [str(badge).strip() for badge in badges]
+    visible_labels = [label for label in labels if label]
+    if max_badges is not None:
+        badge_limit = max(0, int(max_badges))
+        if badge_limit == 0:
+            return ()
+        if len(visible_labels) > badge_limit:
+            keep_count = max(0, badge_limit - 1)
+            overflow_count = len(visible_labels) - keep_count
+            visible_labels = [*visible_labels[:keep_count], f"+{overflow_count} more"]
+    return tuple(_clip_text(label, char_limit) for label in visible_labels)
 
 
 def status_badge_tone(label: Any) -> str:

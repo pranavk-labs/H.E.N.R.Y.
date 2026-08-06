@@ -627,6 +627,7 @@ class HenryGtkWindow:
         badges = compact_status_badges(
             status_badges(self.ui_state, self.runtime),
             max_chars=badge_char_limit,
+            max_badges=4,
         )
         if not badges:
             return
