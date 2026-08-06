@@ -36,7 +36,9 @@ def test_face_geometry_is_centered_and_responsive():
 
 def test_view_summary_prefers_active_tool_context():
     """Adaptive view summary shows focused state instead of shell navigation."""
-    assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "running"}) == ""
+    assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "running"}) == (
+        "Running"
+    )
     assert (
         view_summary(
             {
@@ -181,7 +183,9 @@ def test_view_summary_marks_idle_pending_runtime_state():
 
 def test_view_summary_treats_blank_active_view_as_idle():
     """Blank GTK active view should use the idle summary path."""
-    assert view_summary({"active_view": "   ", "status_text": ""}, {"state": "running"}) == ""
+    assert view_summary({"active_view": "   ", "status_text": ""}, {"state": "running"}) == (
+        "Running"
+    )
     assert view_summary({"active_view": "   ", "status_text": ""}, {"state": "loading"}) == (
         "Loading"
     )
@@ -1444,7 +1448,7 @@ def test_tool_panel_shows_unknown_idle_runtime_detail():
     panel = face_view.tool_panel({"active_view": "idle", "status_text": ""}, {})
 
     assert panel.title == "Listening"
-    assert panel.summary == ""
+    assert panel.summary == "Unknown"
     assert panel.detail_lines == ("Runtime: Unknown",)
 
 

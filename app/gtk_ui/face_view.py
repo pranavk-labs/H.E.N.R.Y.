@@ -260,7 +260,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             not status_text or _is_generic_status(status_text, {"idle", "listening", "ready"})
         ):
             return _humanize(state)
-        return status_text
+        return status_text or _runtime_state_label(runtime)
 
     if active_view == "pomodoro":
         raw_timer = ui_state.get("timer_state")

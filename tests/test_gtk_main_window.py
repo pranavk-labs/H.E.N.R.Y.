@@ -224,6 +224,9 @@ class DrawBranchWindow:
     def _draw_adaptive_view(self, *_args) -> None:
         self.adaptive_calls += 1
 
+    def _draw_wrapped_centered_text(self, *_args) -> int:
+        return 1
+
     def _draw_detail_lines(self, *_args) -> None:
         return None
 
