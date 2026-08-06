@@ -272,7 +272,7 @@ def surface_accent(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[f
     active_view = str(ui_state.get("active_view") or "").strip() or "idle"
     if runtime_status_class(runtime) == "status-error":
         return (1.0, 0.42, 0.37)
-    state = str(runtime.get("state") or "").lower()
+    state = str(runtime.get("state") or "").strip().lower()
     if state in {"starting", "stopping", "loading", "unloading"}:
         return (0.85, 0.72, 0.31)
     return view_accent(active_view)
