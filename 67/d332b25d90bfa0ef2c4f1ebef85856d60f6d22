@@ -1,0 +1,38 @@
+tests/test_calendar_tool.py
+  s_0ebea46cd3e366::t_1145b8509f1065 326,331,334-335
+app/gtk_ui/main_window.py
+  s_0ebea46cd3e366::t_e6a1f1a5e4f3a2 390
+backend/api/routes/conversation.py
+  s_0ebea46cd3e366::t_53cc41b83ae31c 50,107
+  s_0ebea46cd3e366::t_4b38fe8a58a153 78,91,121,134-137,150,171,179
+tools/calendar_tool.py
+  s_0ebea46cd3e366::t_4b38fe8a58a153 118,120-122,127,129-131,211,217,302,304,308,372,406,446
+  s_0ebea46cd3e366::t_2ed2da3d8c5380 171
+tests/test_conversation_api.py
+  s_0ebea46cd3e366::t_0a73ab2ad2b3ae 41
+tests/test_gtk_face_view.py
+  s_0ebea46cd3e366::t_d24586c0a2a63d 1104-1111
+backend/services/screen_manager.py
+  s_0ebea46cd3e366::t_4b38fe8a58a153 23,34,36,40,45,62,67,72,103,109,117-120,123,125,132,134,141,145,152,154-156,158,161,167,170,175,185,192,195,201-204,207,210,215,225,249,266,277-285,290,299,302,306,337,344,348,353,378
+  s_0ebea46cd3e366::t_ff39958401e705 54,433,438,441-446,451,492
+app/state.py
+  s_0ebea46cd3e366::t_91dc4da1d620d3 35
+app/gtk_ui/face_view.py
+  s_0ebea46cd3e366::t_e5f3fc4f48e22c 707-710
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "67d332b25d90bfa0ef2c4f1ebef85856d60f6d22",
+  "prompts": {},
+  "sessions": {
+    "s_0ebea46cd3e366": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019faca0-4aca-7142-ae7c-d359f0571308",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
