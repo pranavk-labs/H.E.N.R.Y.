@@ -371,7 +371,7 @@ class HenryGtkWindow:
             str(ui_state.get("todo_filter_status") or "").strip(),
             str(ui_state.get("selected_category_id") or "").strip(),
             str(ui_state.get("calendar_view_mode") or "").strip(),
-            str(ui_state.get("calendar_selected_date") or "").strip(),
+            str(ui_state.get("calendar_selected_date") or "").strip()[:10],
             str(ui_state.get("calendar_filter_type") or "").strip(),
             str(ui_state.get("active_event_id") or "").strip(),
             repr(ui_state.get("active_states")),

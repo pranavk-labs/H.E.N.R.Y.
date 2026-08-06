@@ -244,6 +244,24 @@ def test_state_key_normalizes_rendered_tool_detail_fields():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_calendar_dates():
+    """Equivalent GTK calendar date labels should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "calendar", "calendar_selected_date": "2026-08-06"},
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "calendar", "calendar_selected_date": "2026-08-06T15:30:00"},
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_runtime_model():
     """Equivalent GTK runtime model labels should not reset face timing."""
     ui_state = {"active_view": "idle", "status_text": "Ready"}
