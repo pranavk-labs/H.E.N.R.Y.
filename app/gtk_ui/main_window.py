@@ -485,7 +485,7 @@ class HenryGtkWindow:
         self._paint_background(cr, width, height)
         self._draw_status_badges(cr, width)
         panel = tool_panel(self.ui_state, self.runtime)
-        active_view = str(self.ui_state.get("active_view") or "").strip() or "idle"
+        active_view = str(self.ui_state.get("active_view") or "").strip().lower() or "idle"
         if active_view == "idle":
             self._draw_face(cr, width, height, surface_accent(self.ui_state, self.runtime))
             if panel.summary:
@@ -503,7 +503,7 @@ class HenryGtkWindow:
                 detail_y = height * 0.9
             self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 18)
         else:
-            self._draw_adaptive_view(cr, width, height, str(active_view), panel)
+            self._draw_adaptive_view(cr, width, height, active_view, panel)
 
     def _paint_background(self, cr: Any, width: int, height: int) -> None:
         accent = surface_accent(self.ui_state, self.runtime)

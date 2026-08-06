@@ -487,3 +487,13 @@ def test_draw_treats_blank_active_view_as_idle_face():
 
     assert window.face_calls == 1
     assert window.adaptive_calls == 0
+
+
+def test_draw_normalizes_idle_active_view_casing():
+    """Cased GTK idle views should draw the face, not an adaptive panel."""
+    window = DrawBranchWindow(" IDLE ")
+
+    HenryGtkWindow._draw(window, None, object(), 800, 500)
+
+    assert window.face_calls == 1
+    assert window.adaptive_calls == 0
