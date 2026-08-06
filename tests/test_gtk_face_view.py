@@ -77,6 +77,21 @@ def test_view_summary_ignores_blank_tool_status_text():
     ) == ("Calendar")
 
 
+def test_view_summary_prefers_calendar_event_title_over_generic_status():
+    """Selected calendar events should replace generic GTK calendar summary text."""
+    assert (
+        view_summary(
+            {
+                "active_view": "calendar",
+                "status_text": "Calendar",
+                "active_event_title": "Weekly robotics seminar",
+            },
+            {"state": "running"},
+        )
+        == "Weekly robotics seminar"
+    )
+
+
 def test_view_summary_tolerates_non_mapping_idea_state():
     """Malformed idea state should not crash the GTK summary."""
     assert (

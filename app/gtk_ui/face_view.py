@@ -237,6 +237,9 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return status_text or "Todos"
 
     if active_view == "calendar":
+        active_event_title = str(ui_state.get("active_event_title") or "").strip()
+        if active_event_title and (not status_text or status_text.lower() == "calendar"):
+            return active_event_title
         return status_text or "Calendar"
 
     return status_text or f"Runtime {_runtime_state_label(runtime)}"
