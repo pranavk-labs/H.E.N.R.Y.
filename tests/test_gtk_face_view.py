@@ -183,6 +183,37 @@ def test_wrapped_text_lines_preserves_short_text():
     ) == ("Ready to capture",)
 
 
+def test_wrapped_detail_lines_wraps_long_details_with_total_limit():
+    """Long GTK detail labels wrap while keeping the panel bounded."""
+    assert face_view.wrapped_detail_lines(
+        (
+            "Active: Polish the GTK experience with wrapped detail rendering",
+            "Filter: In Progress",
+        ),
+        max_chars=24,
+        max_lines_per_detail=2,
+        max_total_lines=4,
+    ) == (
+        "Active: Polish the GTK",
+        "experience with wrapp...",
+        "Filter: In Progress",
+    )
+
+
+def test_wrapped_detail_lines_marks_omitted_details():
+    """GTK detail wrapping shows when lower-priority details were omitted."""
+    assert face_view.wrapped_detail_lines(
+        (
+            "Active: Build voice controls",
+            "Filter: In Progress",
+            "Category: local-runtime",
+        ),
+        max_chars=24,
+        max_lines_per_detail=1,
+        max_total_lines=2,
+    ) == ("Active: Build voice...", "Filter: In Progress...")
+
+
 def test_action_shortcuts_are_stable_and_discoverable():
     """GTK app actions expose predictable keyboard accelerators."""
     assert face_view.action_shortcuts() == {

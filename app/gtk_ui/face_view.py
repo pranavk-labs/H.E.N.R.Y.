@@ -310,6 +310,38 @@ def wrapped_text_lines(text: Any, *, max_chars: int, max_lines: int) -> tuple[st
     return tuple(lines)
 
 
+def wrapped_detail_lines(
+    detail_lines: tuple[str, ...],
+    *,
+    max_chars: int,
+    max_lines_per_detail: int,
+    max_total_lines: int,
+) -> tuple[str, ...]:
+    """Wrap GTK detail lines without letting a panel overflow vertically."""
+    total_limit = max(0, int(max_total_lines))
+    if total_limit == 0:
+        return ()
+
+    display_lines: list[str] = []
+    for index, detail in enumerate(detail_lines):
+        remaining_slots = total_limit - len(display_lines)
+        if remaining_slots <= 0:
+            break
+        per_detail_limit = min(max(1, int(max_lines_per_detail)), remaining_slots)
+        display_lines.extend(
+            wrapped_text_lines(
+                detail,
+                max_chars=max_chars,
+                max_lines=per_detail_limit,
+            )
+        )
+        if len(display_lines) >= total_limit and index < len(detail_lines) - 1:
+            display_lines[-1] = _overflow_text(display_lines[-1], max(1, int(max_chars)))
+            break
+
+    return tuple(display_lines)
+
+
 def action_shortcuts() -> dict[str, list[str]]:
     """Return GTK app action keyboard shortcuts."""
     return {

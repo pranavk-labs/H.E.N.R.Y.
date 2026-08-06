@@ -22,6 +22,7 @@ from app.gtk_ui.face_view import (
     tool_panel,
     view_accent,
     view_title,
+    wrapped_detail_lines,
     wrapped_text_lines,
 )
 from app.gtk_ui.runtime_client import RuntimeClient
@@ -595,7 +596,14 @@ class HenryGtkWindow:
         start_y: float,
         font_size: int,
     ) -> None:
-        for index, line in enumerate(lines):
+        max_chars = max(8, int((width * 0.74) / max(font_size * 0.58, 1)))
+        display_lines = wrapped_detail_lines(
+            lines,
+            max_chars=max_chars,
+            max_lines_per_detail=2,
+            max_total_lines=6,
+        )
+        for index, line in enumerate(display_lines):
             self._draw_centered_text(
                 cr,
                 line,
