@@ -197,14 +197,14 @@ def _short_identifier(value: Any) -> str:
 
 def _runtime_error_summary(error: Any) -> str:
     message = str(error or "").strip()
-    if message.startswith("Backend unavailable:"):
+    if message.lower().startswith("backend unavailable:"):
         return "Backend offline"
     return message
 
 
 def _runtime_state_label(runtime: dict[str, Any]) -> str:
     error = str(runtime.get("error") or "").strip()
-    if error.startswith("Backend unavailable:"):
+    if error.lower().startswith("backend unavailable:"):
         return "Offline"
     return _humanized_label(runtime.get("state")) or "Unknown"
 
@@ -259,7 +259,7 @@ def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the current GTK canvas surface title."""
     active_view = _active_view_name(ui_state.get("active_view"))
     error = str(runtime.get("error") or "").strip()
-    if active_view == "idle" and error.startswith("Backend unavailable:"):
+    if active_view == "idle" and error.lower().startswith("backend unavailable:"):
         return "Offline"
     if active_view == "idle" and runtime_status_class(runtime) == "status-error":
         return "Error"

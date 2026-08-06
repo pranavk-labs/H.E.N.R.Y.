@@ -107,6 +107,21 @@ def test_view_summary_labels_backend_outages_as_offline():
     )
 
 
+def test_runtime_labels_treat_backend_outage_prefix_case_insensitively():
+    """GTK outage labels should stay clean when backend error casing varies."""
+    runtime = {"state": "error", "error": "backend unavailable: connection refused"}
+
+    assert view_summary({"active_view": "idle", "status_text": "Ready"}, runtime) == (
+        "Backend offline"
+    )
+    assert face_view.runtime_summary(runtime) == "Offline"
+    assert face_view.status_badges({"active_view": "idle"}, runtime) == (
+        "Offline",
+        "Runtime: Offline",
+        "Error: Backend offline",
+    )
+
+
 def test_view_summary_marks_idle_pending_runtime_state():
     """Idle GTK canvas should show runtime startup work when status text is empty."""
     assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "loading"}) == (
