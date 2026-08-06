@@ -1191,6 +1191,7 @@ def test_tool_panel_humanizes_pomodoro_break_phases():
         {"state": "running"},
     )
 
+    assert panel.summary == "Long Break 10:00 | Work ready"
     assert panel.detail_lines == (
         "Running Long Break session",
         "Next work block after 10:00",

@@ -272,8 +272,12 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         if not isinstance(raw_timer, dict):
             return "Timer ready"
         timer = _dict_state(raw_timer)
+        phase = str(timer.get("phase") or "").strip().lower() or "work"
         work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
         rest = _format_seconds(_timer_int(timer.get("remaining_break_seconds")))
+        if phase != "work":
+            phase_label = _humanized_label(phase) or "Break"
+            return f"{phase_label} {rest} | Work ready"
         return f"Work {work} | Break {rest}"
 
     if active_view == "ideas":
