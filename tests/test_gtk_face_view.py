@@ -751,3 +751,22 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
         },
         {"state": "running"},
     ).detail_lines == ("Event: weekly_r",)
+
+
+def test_tool_panel_simplifies_scoped_fallback_identifiers():
+    """Fallback GTK panel identifiers show the useful scoped ID segment."""
+    assert face_view.tool_panel(
+        {
+            "active_view": "ideas",
+            "idea_view": {"active_idea_id": "idea:capture_voice_routine_2026_08_06"},
+        },
+        {"state": "running"},
+    ).detail_lines == ("ID: capture_",)
+    assert face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "active_todo_id": "todo:book_doctor_appointment_2026_08_06",
+            "selected_category_id": "category:health_admin_2026",
+        },
+        {"state": "running"},
+    ).detail_lines == ("Active: book_doc", "Category: health_a")

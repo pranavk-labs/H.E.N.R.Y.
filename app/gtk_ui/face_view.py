@@ -608,7 +608,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if idea.get("is_active"):
             details.append("Active idea")
         if idea.get("active_idea_id"):
-            details.append(f"ID: {str(idea['active_idea_id'])[:8]}")
+            details.append(f"ID: {_short_identifier(idea['active_idea_id'])}")
         if not details:
             details.append("Ready to capture")
 
@@ -617,11 +617,11 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if active_title:
             details.append(f"Active: {active_title}")
         elif ui_state.get("active_todo_id"):
-            details.append(f"Active: {str(ui_state['active_todo_id'])[:8]}")
+            details.append(f"Active: {_short_identifier(ui_state['active_todo_id'])}")
         if ui_state.get("todo_filter_status"):
             details.append(f"Filter: {_humanize(ui_state['todo_filter_status'])}")
         if ui_state.get("selected_category_id"):
-            details.append(f"Category: {str(ui_state['selected_category_id'])[:8]}")
+            details.append(f"Category: {_short_identifier(ui_state['selected_category_id'])}")
 
     elif active_view == "calendar":
         mode = _humanize(ui_state.get("calendar_view_mode") or "upcoming")
