@@ -367,8 +367,8 @@ def test_status_badges_include_runtime_error_reason():
     ) == (
         "Error",
         "Runtime: Error",
-        "Model: qwen3",
         "Error: microphone unavailable",
+        "Model: qwen3",
     )
     assert face_view.status_badges(
         {"active_view": "todo_list"},
@@ -376,8 +376,8 @@ def test_status_badges_include_runtime_error_reason():
     ) == (
         "Todos",
         "Runtime: Error",
-        "Model: qwen3",
         "Error: microphone unavailable",
+        "Model: qwen3",
     )
 
 

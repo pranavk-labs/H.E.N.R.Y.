@@ -337,12 +337,12 @@ def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[st
     badges = [surface_title(ui_state, runtime)]
     runtime_state = _humanize(runtime.get("state") or "unknown")
     badges.append(f"Runtime: {runtime_state}")
-    model = str(runtime.get("model") or "").strip()
-    if model:
-        badges.append(f"Model: {model}")
     error = str(runtime.get("error") or "").strip()
     if error:
         badges.append(f"Error: {error}")
+    model = str(runtime.get("model") or "").strip()
+    if model:
+        badges.append(f"Model: {model}")
     active_label = header_state(ui_state)["active_states_label"]
     if active_label:
         badges.append(str(active_label))
