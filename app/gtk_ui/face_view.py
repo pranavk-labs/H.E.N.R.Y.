@@ -149,6 +149,12 @@ def _has_timer_value(value: Any) -> bool:
     return math.isfinite(number)
 
 
+def _timer_display(value: Any) -> str:
+    if not _has_timer_value(value):
+        return "ready"
+    return _format_seconds(_timer_int(value))
+
+
 def _dict_state(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -273,8 +279,8 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             return "Timer ready"
         timer = _dict_state(raw_timer)
         phase = str(timer.get("phase") or "").strip().lower() or "work"
-        work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
-        rest = _format_seconds(_timer_int(timer.get("remaining_break_seconds")))
+        work = _timer_display(timer.get("remaining_work_seconds"))
+        rest = _timer_display(timer.get("remaining_break_seconds"))
         if phase != "work":
             phase_label = _humanized_label(phase) or "Break"
             return f"{phase_label} {rest} | Work ready"

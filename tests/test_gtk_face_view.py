@@ -1216,7 +1216,7 @@ def test_tool_panel_tolerates_blank_pomodoro_timer_numbers():
         {"state": "running"},
     )
 
-    assert panel.summary == "Work 00:00 | Break 00:00"
+    assert panel.summary == "Work ready | Break ready"
     assert panel.detail_lines == ("Running work session", "Break queued for 00:00")
     assert panel.progress is None
 
@@ -1236,7 +1236,7 @@ def test_tool_panel_omits_pomodoro_progress_when_remaining_time_is_missing():
         {"state": "running"},
     )
 
-    assert panel.summary == "Work 00:00 | Break 00:00"
+    assert panel.summary == "Work ready | Break ready"
     assert panel.detail_lines == ("Running work session", "Break queued for 00:00")
     assert panel.progress is None
 
