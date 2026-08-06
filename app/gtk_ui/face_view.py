@@ -935,12 +935,12 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         draft_text = str(idea.get("draft_text") or "").strip()
         if idea.get("is_active") and summary != "Active idea":
             details.append("Active idea")
+        if draft_text:
+            details.append("Draft in progress")
         if idea.get("active_idea_id"):
             identifier = _short_identifier(idea["active_idea_id"])
             if identifier:
                 details.append(f"ID: {identifier}")
-        if draft_text and not details:
-            details.append("Draft in progress")
         if not details:
             details.append("Ready to capture")
 

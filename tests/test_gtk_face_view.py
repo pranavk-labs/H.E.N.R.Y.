@@ -1809,6 +1809,23 @@ def test_tool_panel_marks_idea_drafts_in_progress():
     assert panel.detail_lines == ("Draft in progress",)
 
 
+def test_tool_panel_keeps_idea_draft_state_visible_with_active_id():
+    """Ideas panel should still mark drafts in progress when an active ID exists."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "ideas",
+            "idea_view": {
+                "draft_text": "Ship the GTK face",
+                "active_idea_id": "idea:ship_gtk_face_2026_08_06",
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Ship the GTK face"
+    assert panel.detail_lines == ("Draft in progress", "ID: ship_gtk")
+
+
 def test_tool_panel_skips_blank_fallback_identifiers():
     """Fallback GTK panel identifiers should not render empty labels."""
     assert face_view.tool_panel(
