@@ -528,14 +528,17 @@ def test_header_state_exposes_back_and_active_states():
     ) == {
         "can_go_back": True,
         "active_states_label": "Active: Timer, Idea",
+        "active_states_tooltip": "Active: Timer, Idea",
     }
     assert face_view.header_state({"view_stack": ["idle"], "active_states": []}) == {
         "can_go_back": False,
         "active_states_label": "",
+        "active_states_tooltip": "",
     }
     assert face_view.header_state({"view_stack": ["idle"], "active_states": [None, "   "]}) == {
         "can_go_back": False,
         "active_states_label": "",
+        "active_states_tooltip": "",
     }
     assert face_view.header_state(
         {
@@ -545,6 +548,7 @@ def test_header_state_exposes_back_and_active_states():
     ) == {
         "can_go_back": False,
         "active_states_label": "Active: Timer, Idea, Todo List +2",
+        "active_states_tooltip": "Active: Timer, Idea, Todo List, Calendar, Voice Note",
     }
 
 
@@ -553,6 +557,7 @@ def test_header_state_ignores_malformed_navigation_values():
     assert face_view.header_state({"view_stack": "idle", "active_states": "timer"}) == {
         "can_go_back": False,
         "active_states_label": "",
+        "active_states_tooltip": "",
     }
 
 
@@ -561,6 +566,7 @@ def test_gtk_labels_humanize_hyphenated_api_values():
     assert face_view.header_state({"view_stack": ["idle"], "active_states": ["voice-note"]}) == {
         "can_go_back": False,
         "active_states_label": "Active: Voice Note",
+        "active_states_tooltip": "Active: Voice Note",
     }
     assert face_view.tool_panel(
         {"active_view": "todo_list", "todo_filter_status": "in-progress"},
@@ -575,6 +581,7 @@ def test_header_state_deduplicates_active_state_labels():
     ) == {
         "can_go_back": False,
         "active_states_label": "Active: Timer, Idea",
+        "active_states_tooltip": "Active: Timer, Idea",
     }
 
 
@@ -589,6 +596,7 @@ def test_header_state_omits_current_view_from_active_states():
     assert face_view.header_state(ui_state) == {
         "can_go_back": True,
         "active_states_label": "Active: Timer",
+        "active_states_tooltip": "Active: Timer",
     }
     assert (
         face_view.active_states_status_class(

@@ -239,7 +239,7 @@ def test_apply_header_state_sets_active_states_tooltip():
     )
 
     assert window.active_states_label.text == "Active: Timer, Idea, Calendar +1"
-    assert window.active_states_label.tooltip_text == "Active: Timer, Idea, Calendar +1"
+    assert window.active_states_label.tooltip_text == "Active: Timer, Idea, Calendar, Todo"
     assert window._buttons["back"].sensitive is True
 
 
