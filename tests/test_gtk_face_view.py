@@ -684,6 +684,12 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
 
     assert panel.summary == "microphone unavailable"
     assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
+    offline_panel = face_view.tool_panel(
+        {"active_view": "idle", "status_text": "Waiting"},
+        face_view.offline_runtime_state(ConnectionError("connection refused")),
+    )
+    assert offline_panel.summary == "Backend offline"
+    assert offline_panel.detail_lines == ("Runtime: Offline", "Error: Backend offline")
 
 
 def test_tool_panel_enriches_todo_and_calendar_filters():
