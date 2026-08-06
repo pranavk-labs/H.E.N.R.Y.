@@ -414,6 +414,18 @@ def test_header_state_exposes_back_and_active_states():
     }
 
 
+def test_gtk_labels_humanize_hyphenated_api_values():
+    """GTK labels render hyphenated API values as normal words."""
+    assert face_view.header_state({"view_stack": ["idle"], "active_states": ["voice-note"]}) == {
+        "can_go_back": False,
+        "active_states_label": "Active: Voice Note",
+    }
+    assert face_view.tool_panel(
+        {"active_view": "todo_list", "todo_filter_status": "in-progress"},
+        {"state": "running"},
+    ).detail_lines == ("Filter: In Progress",)
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (

@@ -133,7 +133,7 @@ def _format_seconds(total_seconds: int) -> str:
 
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
-    return str(value or "").replace("_", " ").strip().title()
+    return str(value or "").replace("_", " ").replace("-", " ").strip().title()
 
 
 def _humanized_label(value: Any) -> str:
