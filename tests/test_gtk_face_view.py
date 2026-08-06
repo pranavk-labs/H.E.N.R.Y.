@@ -1242,6 +1242,15 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
     assert offline_panel.detail_lines == ("Runtime: Offline",)
 
 
+def test_tool_panel_shows_unknown_idle_runtime_detail():
+    """Idle GTK panel should not look empty while runtime state is unknown."""
+    panel = face_view.tool_panel({"active_view": "idle", "status_text": ""}, {})
+
+    assert panel.title == "Listening"
+    assert panel.summary == ""
+    assert panel.detail_lines == ("Runtime: Unknown",)
+
+
 def test_tool_panel_omits_duplicate_idle_error_detail():
     """Idle error panels should not repeat the headline as a detail line."""
     panel = face_view.tool_panel(
