@@ -153,6 +153,18 @@ def _active_view_name(value: Any) -> str:
     return str(value or "").strip().lower() or "idle"
 
 
+def _unique_labels(values: list[Any]) -> list[str]:
+    labels: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        label = _humanized_label(value)
+        key = label.lower()
+        if label and key not in seen:
+            labels.append(label)
+            seen.add(key)
+    return labels
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -398,13 +410,7 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
 def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     """Return GTK header navigation and concurrent-state labels."""
     view_stack = _list_state(ui_state.get("view_stack")) or ["idle"]
-    active_states = [
-        label
-        for label in (
-            _humanized_label(state) for state in _list_state(ui_state.get("active_states"))
-        )
-        if label
-    ]
+    active_states = _unique_labels(_list_state(ui_state.get("active_states")))
     visible_states = active_states[:3]
     overflow_count = len(active_states) - len(visible_states)
     active_states_label = ""
@@ -420,13 +426,7 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
 
 def active_states_status_class(ui_state: dict[str, Any]) -> str:
     """Return a GTK status CSS class for the active-states header label."""
-    active_states = [
-        label
-        for label in (
-            _humanized_label(state) for state in _list_state(ui_state.get("active_states"))
-        )
-        if label
-    ]
+    active_states = _unique_labels(_list_state(ui_state.get("active_states")))
     return "status-pending" if active_states else "status-neutral"
 
 

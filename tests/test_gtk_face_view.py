@@ -519,6 +519,16 @@ def test_gtk_labels_humanize_hyphenated_api_values():
     ).detail_lines == ("Filter: In Progress",)
 
 
+def test_header_state_deduplicates_active_state_labels():
+    """Duplicate GTK active states should not waste header or badge space."""
+    assert face_view.header_state(
+        {"view_stack": ["idle"], "active_states": ["timer", " Timer ", "idea", "IDEA"]}
+    ) == {
+        "can_go_back": False,
+        "active_states_label": "Active: Timer, Idea",
+    }
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (
