@@ -351,7 +351,7 @@ class HenryGtkWindow:
     ) -> tuple[Any, ...]:
         return (
             runtime.get("state"),
-            runtime.get("model"),
+            str(runtime.get("model") or "").strip(),
             runtime.get("error"),
             str(ui_state.get("active_view") or "").strip() or "idle",
             str(ui_state.get("status_text") or "").strip(),
