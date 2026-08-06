@@ -184,6 +184,11 @@ def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     return view_title(active_view)
 
 
+def header_view_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
+    """Return the GTK header view label for the current surface."""
+    return surface_title(ui_state, runtime)
+
+
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
     accents = {

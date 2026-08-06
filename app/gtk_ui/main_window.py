@@ -16,6 +16,7 @@ from app.gtk_ui.face_view import (
     control_state,
     face_geometry,
     header_state,
+    header_view_title,
     model_entry_text,
     model_entry_user_edited_after_action,
     model_entry_user_edited_after_change,
@@ -29,7 +30,6 @@ from app.gtk_ui.face_view import (
     surface_accent,
     tool_panel,
     view_accent,
-    view_title,
     wrapped_detail_lines,
     wrapped_text_lines,
 )
@@ -367,14 +367,13 @@ class HenryGtkWindow:
 
             self.runtime = runtime
             self.ui_state = ui_state
-            active_view = str(ui_state.get("active_view", "idle"))
             self.connection_status_label.set_text("Backend: connected")
             self._replace_css_classes(
                 self.connection_status_label,
                 STATUS_CLASSES,
                 "status-ok",
             )
-            self.view_status_label.set_text(view_title(active_view))
+            self.view_status_label.set_text(header_view_title(ui_state, runtime))
             self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
             self._replace_css_classes(
                 self.runtime_status_label,

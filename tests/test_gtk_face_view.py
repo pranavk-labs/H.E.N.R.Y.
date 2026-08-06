@@ -92,6 +92,24 @@ def test_surface_accent_marks_idle_runtime_errors():
     )
 
 
+def test_header_view_title_matches_surface_error_state():
+    """GTK header view label mirrors offline and idle runtime error surfaces."""
+    offline = face_view.offline_runtime_state(ConnectionError("connection refused"))
+
+    assert face_view.header_view_title({"active_view": "idle"}, offline) == "Offline"
+    assert (
+        face_view.header_view_title(
+            {"active_view": "idle"},
+            {"state": "error", "error": "microphone unavailable"},
+        )
+        == "Error"
+    )
+    assert face_view.header_view_title({"active_view": "idle"}, {"state": "running"}) == "Listening"
+    assert (
+        face_view.header_view_title({"active_view": "pomodoro"}, {"state": "error"}) == "Pomodoro"
+    )
+
+
 def test_runtime_summary_shows_state_and_loaded_model():
     """Runtime summary is human-readable in the header."""
     assert face_view.runtime_summary({"state": "running", "model": "qwen3"}) == "Running - qwen3"
