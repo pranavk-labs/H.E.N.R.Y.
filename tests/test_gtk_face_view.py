@@ -342,6 +342,17 @@ def test_tool_panel_enriches_pomodoro_state():
     assert panel.progress == 0.6
 
 
+def test_tool_panel_surfaces_idle_runtime_error_details():
+    """Idle GTK panel shows the runtime error reason, not only the error state."""
+    panel = face_view.tool_panel(
+        {"active_view": "idle", "status_text": "Waiting"},
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+    )
+
+    assert panel.summary == "Waiting"
+    assert panel.detail_lines == ("Error - qwen3", "Error: microphone unavailable")
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(
