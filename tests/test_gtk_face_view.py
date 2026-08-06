@@ -296,6 +296,14 @@ def test_runtime_summary_shows_state_and_loaded_model():
     )
 
 
+def test_runtime_summary_clips_long_model_names():
+    """GTK runtime summary should keep long model names from crowding the header."""
+    assert (
+        face_view.runtime_summary({"state": "running", "model": "qwen3-extra-long-model-name"})
+        == "Running - qwen3-extra-lon..."
+    )
+
+
 def test_runtime_summary_labels_backend_outages_as_offline():
     """GTK runtime labels should show backend outages as offline."""
     runtime = face_view.offline_runtime_state(ConnectionError("connection refused"))

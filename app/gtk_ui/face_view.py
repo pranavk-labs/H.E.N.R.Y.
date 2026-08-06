@@ -327,7 +327,7 @@ def runtime_summary(runtime: dict[str, Any]) -> str:
     label = _runtime_state_label(runtime)
     model = str(runtime.get("model") or "").strip()
     if model:
-        return f"{label} - {model}"
+        return f"{label} - {_clip_text(model, 18)}"
     return label
 
 
