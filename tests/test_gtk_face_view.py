@@ -1562,6 +1562,23 @@ def test_active_view_labels_route_timer_and_idea_aliases():
     )
 
 
+def test_active_view_labels_route_calendar_event_aliases():
+    """GTK Calendar should tolerate event-oriented API view aliases."""
+    ui_state = {
+        "active_view": "events",
+        "status_text": "Events",
+        "active_event_title": "Planning review",
+    }
+
+    assert face_view.view_summary(ui_state, {"state": "running"}) == "Planning review"
+    assert face_view.header_view_title(ui_state, {"state": "running"}) == "Calendar"
+    assert face_view.tool_panel(ui_state, {"state": "running"}) == face_view.ToolPanel(
+        title="Calendar",
+        summary="Planning review",
+        detail_lines=(),
+    )
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(
