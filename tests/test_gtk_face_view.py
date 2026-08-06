@@ -821,6 +821,26 @@ def test_tool_panel_tolerates_blank_pomodoro_timer_numbers():
     assert panel.progress is None
 
 
+def test_view_summary_tolerates_non_mapping_pomodoro_timer_state():
+    """Malformed Pomodoro timer state should not crash the GTK summary."""
+    assert (
+        view_summary({"active_view": "pomodoro", "timer_state": "bad"}, {"state": "running"})
+        == "Work 00:00 | Break 00:00"
+    )
+
+
+def test_tool_panel_tolerates_non_mapping_pomodoro_timer_state():
+    """Malformed Pomodoro timer state should render a safe fallback panel."""
+    panel = face_view.tool_panel(
+        {"active_view": "pomodoro", "timer_state": "bad"},
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Work 00:00 | Break 00:00"
+    assert panel.detail_lines == ("Timer work session", "Break queued for 00:00")
+    assert panel.progress is None
+
+
 def test_tool_panel_uses_readable_pomodoro_status_fallback():
     """Blank Pomodoro status should not render a broken detail label."""
     panel = face_view.tool_panel(

@@ -203,7 +203,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return status_text
 
     if active_view == "pomodoro":
-        timer = ui_state.get("timer_state") or {}
+        timer = _dict_state(ui_state.get("timer_state"))
         work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
         rest = _format_seconds(_timer_int(timer.get("remaining_break_seconds")))
         return f"Work {work} | Break {rest}"
@@ -623,7 +623,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     progress: float | None = None
 
     if active_view == "pomodoro":
-        timer = ui_state.get("timer_state") or {}
+        timer = _dict_state(ui_state.get("timer_state"))
         status = _humanized_label(timer.get("status")) or "Timer"
         phase = str(timer.get("phase") or "").strip().lower() or "work"
         phase_label = phase if phase == "work" else _humanized_label(phase)
