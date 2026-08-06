@@ -1,0 +1,24 @@
+app/gtk_ui/face_view.py
+  s_0ebea46cd3e366::t_3ec1a6e135d64d 147-192
+app/gtk_ui/main_window.py
+  s_0ebea46cd3e366::t_c959ef8b57ce62 11-19,56-57,62,80,107-113,118-130,158-161,163-167,169-172,174-177,179-182,185,192-206,241,243-246,248-250,253-257,259-260,290,300-302,305-310,328,381-384,387
+tests/test_gtk_face_view.py
+  s_0ebea46cd3e366::t_2558bfe63b2a84 5,51-54,56-57,62-64,69,75,81
+  s_0ebea46cd3e366::t_6c5af925f4a2c5 47-50,55,58-61,65-68,70-74,76-80,82-86
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "3dc35b6c6bc5dc2ec2c82203296f70c0d33ee738",
+  "prompts": {},
+  "sessions": {
+    "s_0ebea46cd3e366": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019faca0-4aca-7142-ae7c-d359f0571308",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
