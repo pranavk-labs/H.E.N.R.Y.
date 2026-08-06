@@ -204,6 +204,46 @@ def test_state_key_normalizes_rendered_status_text():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_tool_detail_fields():
+    """Equivalent GTK tool detail labels should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "active_todo_id": "todo:polish_gtk",
+            "active_todo_title": "Polish GTK",
+            "todo_filter_status": "in_progress",
+            "selected_category_id": "category:ui",
+            "calendar_view_mode": "week",
+            "calendar_selected_date": "2026-08-06T12:00:00",
+            "calendar_filter_type": "meeting",
+            "active_event_id": "event:demo",
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "active_todo_id": " todo:polish_gtk ",
+            "active_todo_title": " Polish GTK ",
+            "todo_filter_status": " in_progress ",
+            "selected_category_id": " category:ui ",
+            "calendar_view_mode": " week ",
+            "calendar_selected_date": " 2026-08-06T12:00:00 ",
+            "calendar_filter_type": " meeting ",
+            "active_event_id": " event:demo ",
+        },
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_runtime_model():
     """Equivalent GTK runtime model labels should not reset face timing."""
     ui_state = {"active_view": "idle", "status_text": "Ready"}
