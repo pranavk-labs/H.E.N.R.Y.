@@ -136,6 +136,18 @@ def test_header_state_exposes_back_and_active_states():
     }
 
 
+def test_status_badges_summarize_current_surface_state():
+    """Canvas status badges make key context visible away from the dense header."""
+    assert face_view.status_badges(
+        {"active_view": "pomodoro", "active_states": ["timer", "idea"]},
+        {"state": "running", "model": "qwen3"},
+    ) == ("Pomodoro", "Runtime: Running", "Model: qwen3", "Active: Timer, Idea")
+    assert face_view.status_badges({"active_view": "idle"}, {"state": "stopped"}) == (
+        "Listening",
+        "Runtime: Stopped",
+    )
+
+
 def test_action_shortcuts_are_stable_and_discoverable():
     """GTK app actions expose predictable keyboard accelerators."""
     assert face_view.action_shortcuts() == {

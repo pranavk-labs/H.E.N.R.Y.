@@ -18,6 +18,7 @@ from app.gtk_ui.face_view import (
     model_override,
     runtime_summary,
     sleepiness_for_elapsed,
+    status_badges,
     tool_panel,
     view_accent,
     view_title,
@@ -389,6 +390,7 @@ class HenryGtkWindow:
 
     def _draw(self, _area: Any, cr: Any, width: int, height: int) -> None:
         self._paint_background(cr, width, height)
+        self._draw_status_badges(cr, width)
         panel = tool_panel(self.ui_state, self.runtime)
         active_view = self.ui_state.get("active_view", "idle")
         if active_view == "idle":
@@ -513,6 +515,33 @@ class HenryGtkWindow:
         else:
             detail_y = height * 0.66
         self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
+
+    def _draw_status_badges(self, cr: Any, width: int) -> None:
+        badges = status_badges(self.ui_state, self.runtime)
+        if not badges:
+            return
+
+        x = 24.0
+        y = 22.0
+        padding_x = 12.0
+        badge_height = 28.0
+        gap = 8.0
+        cr.select_font_face("Sans", 0, 0)
+        cr.set_font_size(13)
+
+        for badge in badges:
+            extents = cr.text_extents(badge)
+            badge_width = extents.width + padding_x * 2
+            if x + badge_width > width - 24 and x > 24:
+                x = 24.0
+                y += badge_height + gap
+            cr.set_source_rgba(1, 1, 1, 0.1)
+            self._rounded_rect(cr, x, y, badge_width, badge_height, 8)
+            cr.fill()
+            cr.set_source_rgba(1, 1, 1, 0.82)
+            cr.move_to(x + padding_x, y + 18)
+            cr.show_text(badge)
+            x += badge_width + gap
 
     def _draw_progress_bar(
         self,

@@ -245,6 +245,21 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[str, ...]:
+    """Return compact canvas badges for current GTK context."""
+    active_view = str(ui_state.get("active_view", "idle"))
+    badges = [view_title(active_view)]
+    runtime_state = _humanize(runtime.get("state") or "unknown")
+    badges.append(f"Runtime: {runtime_state}")
+    model = str(runtime.get("model") or "").strip()
+    if model:
+        badges.append(f"Model: {model}")
+    active_label = header_state(ui_state)["active_states_label"]
+    if active_label:
+        badges.append(str(active_label))
+    return tuple(badges)
+
+
 def action_shortcuts() -> dict[str, list[str]]:
     """Return GTK app action keyboard shortcuts."""
     return {
