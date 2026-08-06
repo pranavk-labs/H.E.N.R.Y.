@@ -64,7 +64,7 @@ jobs:
 
       - name: Install build helpers
         run: |
-          poetry run pip install --upgrade pip setuptools wheel
+          poetry run pip install --upgrade pip "setuptools>=69,<70" wheel
           poetry run pip install --no-build-isolation openai-whisper==20231117
 
       - name: Install dependencies
