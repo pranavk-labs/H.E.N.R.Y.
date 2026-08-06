@@ -59,8 +59,11 @@ class FailingClient:
 class HealthyClient:
     """Runtime client stand-in that returns connected GTK header state."""
 
+    def __init__(self, model: str = "qwen3") -> None:
+        self.model = model
+
     def get_runtime_status(self) -> dict[str, str]:
-        return {"state": "running", "model": "qwen3"}
+        return {"state": "running", "model": self.model}
 
     def get_ui_state(self) -> dict[str, str]:
         return {"active_view": "idle", "status_text": "Ready"}
@@ -223,6 +226,19 @@ def test_refresh_sets_status_label_tooltips_to_visible_text():
     assert window.connection_status_label.tooltip_text == "Backend: connected"
     assert window.view_status_label.tooltip_text == "Listening"
     assert window.runtime_status_label.tooltip_text == "Runtime: Running - qwen3"
+
+
+def test_refresh_runtime_tooltip_keeps_full_model_name():
+    """Runtime status hover text should show full model names when labels clip them."""
+    window = FakeWindow()
+    window.client = HealthyClient("qwen3-extra-long-model-name")
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert window.runtime_status_label.text == "Runtime: Running - qwen3-extra-lon..."
+    assert (
+        window.runtime_status_label.tooltip_text == "Runtime: Running - qwen3-extra-long-model-name"
+    )
 
 
 def test_apply_header_state_sets_active_states_tooltip():
@@ -637,6 +653,22 @@ def test_run_action_sets_action_status_tooltip_after_success():
 
     assert window.action_status_label.text == "Start: Running qwen3"
     assert window.action_status_label.tooltip_text == "Start: Running qwen3"
+    assert window.css_class == "status-ok"
+    assert window.refresh_called is True
+
+
+def test_run_action_tooltip_keeps_full_model_name_after_success():
+    """Action feedback hover text should show full model names when labels clip them."""
+    window = ActionFailureWindow()
+
+    HenryGtkWindow._run_action(
+        window,
+        "start",
+        lambda: {"state": "running", "model": "qwen3-extra-long-model-name"},
+    )
+
+    assert window.action_status_label.text == "Start: Running qwen3-extra-lon..."
+    assert window.action_status_label.tooltip_text == "Start: Running qwen3-extra-long-model-name"
     assert window.css_class == "status-ok"
     assert window.refresh_called is True
 

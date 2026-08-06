@@ -302,6 +302,10 @@ def test_runtime_summary_clips_long_model_names():
         face_view.runtime_summary({"state": "running", "model": "qwen3-extra-long-model-name"})
         == "Running - qwen3-extra-lon..."
     )
+    assert (
+        face_view.runtime_tooltip({"state": "running", "model": "qwen3-extra-long-model-name"})
+        == "Running - qwen3-extra-long-model-name"
+    )
 
 
 def test_runtime_summary_labels_backend_outages_as_offline():
@@ -450,6 +454,13 @@ def test_action_feedback_clips_long_model_names():
             {"state": "loaded", "model": "qwen3-extra-long-model-name"},
         )
         == "Preload: Loaded qwen3-extra-lon..."
+    )
+    assert (
+        face_view.action_feedback_tooltip(
+            "preload",
+            {"state": "loaded", "model": "qwen3-extra-long-model-name"},
+        )
+        == "Preload: Loaded qwen3-extra-long-model-name"
     )
 
 

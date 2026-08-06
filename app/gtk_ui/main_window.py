@@ -12,6 +12,7 @@ from app.gtk_ui.face_view import (
     ToolPanel,
     action_exception_feedback,
     action_feedback,
+    action_feedback_tooltip,
     action_status_class,
     action_tooltip,
     active_states_status_class,
@@ -28,6 +29,7 @@ from app.gtk_ui.face_view import (
     offline_runtime_state,
     runtime_summary,
     runtime_status_class,
+    runtime_tooltip,
     sleepiness_for_elapsed,
     status_badge_rgba,
     status_badges,
@@ -319,8 +321,9 @@ class HenryGtkWindow:
                 was_user_edited=self._model_entry_user_edited,
             )
             feedback = action_feedback(action_name, response)
+            tooltip = action_feedback_tooltip(action_name, response)
             self.action_status_label.set_text(feedback)
-            self.action_status_label.set_tooltip_text(feedback)
+            self.action_status_label.set_tooltip_text(tooltip)
             self._replace_css_classes(
                 self.action_status_label,
                 STATUS_CLASSES,
@@ -427,6 +430,7 @@ class HenryGtkWindow:
             connection_text = "Backend: connected"
             view_text = header_view_title(ui_state, runtime)
             runtime_text = f"Runtime: {runtime_summary(runtime)}"
+            runtime_tooltip_text = f"Runtime: {runtime_tooltip(runtime)}"
             self.connection_status_label.set_text(connection_text)
             self.connection_status_label.set_tooltip_text(connection_text)
             self._replace_css_classes(
@@ -442,7 +446,7 @@ class HenryGtkWindow:
                 header_view_status_class(ui_state, runtime),
             )
             self.runtime_status_label.set_text(runtime_text)
-            self.runtime_status_label.set_tooltip_text(runtime_text)
+            self.runtime_status_label.set_tooltip_text(runtime_tooltip_text)
             self._replace_css_classes(
                 self.runtime_status_label,
                 STATUS_CLASSES,

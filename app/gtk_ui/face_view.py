@@ -337,6 +337,15 @@ def runtime_summary(runtime: dict[str, Any]) -> str:
     return label
 
 
+def runtime_tooltip(runtime: dict[str, Any]) -> str:
+    """Return full runtime detail for GTK header hover text."""
+    label = _runtime_state_label(runtime)
+    model = str(runtime.get("model") or "").strip()
+    if model:
+        return f"{label} - {model}"
+    return label
+
+
 def offline_runtime_state(error: Any) -> dict[str, str]:
     """Return a fresh GTK runtime state for backend outages."""
     message = str(error or "").strip() or "unknown error"
@@ -392,6 +401,19 @@ def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     state = _humanized_label(response.get("state")) or "Complete"
     model = str(response.get("model") or "").strip()
     suffix = f" {_clip_text(model, 18)}" if model else ""
+    return f"{action_label}: {state}{suffix}"
+
+
+def action_feedback_tooltip(action_name: str, response: dict[str, Any]) -> str:
+    """Turn an action API response into full GTK hover feedback."""
+    action_label = _action_label(action_name)
+    if response.get("error"):
+        error = _runtime_error_summary(response["error"])
+        if error:
+            return f"{action_label}: {error}"
+    state = _humanized_label(response.get("state")) or "Complete"
+    model = str(response.get("model") or "").strip()
+    suffix = f" {model}" if model else ""
     return f"{action_label}: {state}{suffix}"
 
 
