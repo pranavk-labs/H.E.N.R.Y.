@@ -456,7 +456,7 @@ class HenryGtkWindow:
         self._paint_background(cr, width, height)
         self._draw_status_badges(cr, width)
         panel = tool_panel(self.ui_state, self.runtime)
-        active_view = self.ui_state.get("active_view", "idle")
+        active_view = str(self.ui_state.get("active_view") or "").strip() or "idle"
         if active_view == "idle":
             self._draw_face(cr, width, height, surface_accent(self.ui_state, self.runtime))
             if panel.summary:

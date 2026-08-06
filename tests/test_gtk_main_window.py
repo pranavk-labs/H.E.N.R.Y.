@@ -74,6 +74,31 @@ class ActionFailureWindow:
         return True
 
 
+class DrawBranchWindow:
+    """Minimal HenryGtkWindow shape for exercising draw branch selection."""
+
+    def __init__(self, active_view: str) -> None:
+        self.ui_state = {"active_view": active_view, "status_text": ""}
+        self.runtime = {"state": "running"}
+        self.face_calls = 0
+        self.adaptive_calls = 0
+
+    def _paint_background(self, *_args) -> None:
+        return None
+
+    def _draw_status_badges(self, *_args) -> None:
+        return None
+
+    def _draw_face(self, *_args) -> None:
+        self.face_calls += 1
+
+    def _draw_adaptive_view(self, *_args) -> None:
+        self.adaptive_calls += 1
+
+    def _draw_detail_lines(self, *_args) -> None:
+        return None
+
+
 def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():
     """Backend loss clears stale synced model text from the GTK model entry."""
     window = FakeWindow()
@@ -119,3 +144,13 @@ def test_run_action_refreshes_after_action_exception():
     assert window.action_status_label.text == "Start: Backend offline"
     assert window.css_class == "status-error"
     assert window.refresh_called is True
+
+
+def test_draw_treats_blank_active_view_as_idle_face():
+    """Blank GTK active views should draw the idle face, not an empty adaptive panel."""
+    window = DrawBranchWindow("   ")
+
+    HenryGtkWindow._draw(window, None, object(), 800, 500)
+
+    assert window.face_calls == 1
+    assert window.adaptive_calls == 0
