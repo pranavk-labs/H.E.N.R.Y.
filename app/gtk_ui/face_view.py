@@ -300,6 +300,23 @@ def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[st
     return tuple(badges)
 
 
+def runtime_status_class(runtime: dict[str, Any]) -> str:
+    """Return a GTK status CSS class for runtime health."""
+    state = str(runtime.get("state") or "unknown").lower()
+    if state == "error" or runtime.get("error"):
+        return "status-error"
+    if state in {"running", "stopped", "loaded", "unloaded"}:
+        return "status-ok"
+    return "status-pending"
+
+
+def action_status_class(response: dict[str, Any]) -> str:
+    """Return a GTK status CSS class for action feedback."""
+    if response.get("error"):
+        return "status-error"
+    return runtime_status_class(response)
+
+
 def _clip_text(text: str, max_chars: int) -> str:
     if len(text) <= max_chars:
         return text

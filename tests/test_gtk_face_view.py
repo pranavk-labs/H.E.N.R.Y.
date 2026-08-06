@@ -266,6 +266,22 @@ def test_status_badges_include_runtime_error_reason():
     )
 
 
+def test_runtime_status_class_marks_state_severity():
+    """GTK header runtime label gets a scannable status color."""
+    assert face_view.runtime_status_class({"state": "running"}) == "status-ok"
+    assert face_view.runtime_status_class({"state": "loaded"}) == "status-ok"
+    assert face_view.runtime_status_class({"state": "loading"}) == "status-pending"
+    assert face_view.runtime_status_class({"state": "error"}) == "status-error"
+    assert face_view.runtime_status_class({}) == "status-pending"
+
+
+def test_action_status_class_marks_response_severity():
+    """GTK action feedback label mirrors success, progress, and failure."""
+    assert face_view.action_status_class({"state": "running"}) == "status-ok"
+    assert face_view.action_status_class({"state": "loading"}) == "status-pending"
+    assert face_view.action_status_class({"error": "no microphone"}) == "status-error"
+
+
 def test_compact_status_badges_clips_long_badges():
     """GTK canvas badges stay bounded when model names are long."""
     assert face_view.compact_status_badges(

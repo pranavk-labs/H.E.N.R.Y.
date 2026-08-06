@@ -11,6 +11,7 @@ from typing import Any, Callable
 from app.gtk_ui.face_view import (
     ToolPanel,
     action_feedback,
+    action_status_class,
     compact_status_badges,
     control_state,
     face_geometry,
@@ -21,6 +22,7 @@ from app.gtk_ui.face_view import (
     model_override,
     offline_runtime_state,
     runtime_summary,
+    runtime_status_class,
     sleepiness_for_elapsed,
     status_badges,
     tool_panel,
@@ -32,6 +34,8 @@ from app.gtk_ui.face_view import (
 from app.gtk_ui.runtime_client import RuntimeClient
 
 logger = logging.getLogger(__name__)
+
+STATUS_CLASSES = ("status-ok", "status-error", "status-pending")
 
 
 def require_gtk():
@@ -288,10 +292,20 @@ class HenryGtkWindow:
                 was_user_edited=self._model_entry_user_edited,
             )
             self.action_status_label.set_text(action_feedback(action_name, response))
+            self._replace_css_classes(
+                self.action_status_label,
+                STATUS_CLASSES,
+                action_status_class(response),
+            )
             self.refresh()
         except Exception as exc:
             logger.error("GTK runtime action failed: %s", exc, exc_info=True)
             self.action_status_label.set_text(f"{action_name.title()}: {exc}")
+            self._replace_css_classes(
+                self.action_status_label,
+                STATUS_CLASSES,
+                "status-error",
+            )
 
     def go_back(self) -> None:
         """Navigate back in the UI stack."""
@@ -355,11 +369,16 @@ class HenryGtkWindow:
             self.connection_status_label.set_text("Backend: connected")
             self._replace_css_classes(
                 self.connection_status_label,
-                ("status-ok", "status-error", "status-pending"),
+                STATUS_CLASSES,
                 "status-ok",
             )
             self.view_status_label.set_text(view_title(active_view))
             self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
+            self._replace_css_classes(
+                self.runtime_status_label,
+                STATUS_CLASSES,
+                runtime_status_class(runtime),
+            )
             self._sync_model_entry(runtime)
             self._apply_control_state(runtime)
             self._apply_header_state(ui_state)
@@ -367,10 +386,15 @@ class HenryGtkWindow:
             self.connection_status_label.set_text("Backend: unavailable")
             self._replace_css_classes(
                 self.connection_status_label,
-                ("status-ok", "status-error", "status-pending"),
+                STATUS_CLASSES,
                 "status-error",
             )
             self.runtime_status_label.set_text("Runtime: error")
+            self._replace_css_classes(
+                self.runtime_status_label,
+                STATUS_CLASSES,
+                "status-error",
+            )
             self.view_status_label.set_text("Offline")
             self._apply_control_state({})
             self._apply_header_state({})
