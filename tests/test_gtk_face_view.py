@@ -190,6 +190,12 @@ def test_control_state_matches_runtime_lifecycle():
         "preload": True,
         "unload": False,
     }
+    assert face_view.control_state({"state": "error", "model": "qwen3"}) == {
+        "start": True,
+        "stop": False,
+        "preload": True,
+        "unload": True,
+    }
     assert face_view.control_state({"state": "loading"}) == {
         "start": False,
         "stop": False,

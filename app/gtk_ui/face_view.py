@@ -258,6 +258,9 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
         return {"start": True, "stop": False, "preload": True, "unload": True}
     if state == "unloaded":
         return {"start": True, "stop": False, "preload": True, "unload": False}
+    if state == "error":
+        has_model = bool(str(runtime.get("model") or "").strip())
+        return {"start": True, "stop": False, "preload": True, "unload": has_model}
     return {"start": False, "stop": False, "preload": False, "unload": False}
 
 
