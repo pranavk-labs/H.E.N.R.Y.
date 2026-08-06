@@ -279,6 +279,13 @@ def test_action_feedback_prefers_response_state_and_model():
         face_view.action_feedback("stop", {"state": "error", "error": "no command"})
         == "Stop: no command"
     )
+    assert (
+        face_view.action_feedback(
+            "start",
+            {"state": "error", "error": "Backend unavailable: connection refused"},
+        )
+        == "Start: Backend offline"
+    )
 
 
 def test_action_tooltip_includes_human_keyboard_shortcuts():

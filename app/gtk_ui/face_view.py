@@ -297,7 +297,7 @@ def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into concise GTK feedback."""
     action_label = _humanize(action_name)
     if response.get("error"):
-        return f"{action_label}: {response['error']}"
+        return f"{action_label}: {_runtime_error_summary(response['error'])}"
     state = _humanize(response.get("state") or "complete")
     model = str(response.get("model") or "").strip()
     suffix = f" {model}" if model else ""
