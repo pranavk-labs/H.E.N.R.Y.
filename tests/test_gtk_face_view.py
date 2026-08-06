@@ -87,7 +87,7 @@ def test_offline_runtime_state_clears_stale_runtime_context():
         "error": "Backend unavailable: connection refused",
     }
     assert face_view.status_badges({"active_view": "idle"}, runtime) == (
-        "Listening",
+        "Offline",
         "Runtime: Error",
         "Error: Backend unavailable: connection refused",
     )

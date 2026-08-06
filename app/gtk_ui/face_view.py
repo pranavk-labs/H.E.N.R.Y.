@@ -173,6 +173,15 @@ def view_title(active_view: str) -> str:
     return labels.get(active_view, active_view.replace("_", " ").title())
 
 
+def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
+    """Return the current GTK canvas surface title."""
+    active_view = str(ui_state.get("active_view", "idle"))
+    error = str(runtime.get("error") or "").strip()
+    if active_view == "idle" and error.startswith("Backend unavailable:"):
+        return "Offline"
+    return view_title(active_view)
+
+
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
     accents = {
@@ -284,8 +293,7 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
 
 def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[str, ...]:
     """Return compact canvas badges for current GTK context."""
-    active_view = str(ui_state.get("active_view", "idle"))
-    badges = [view_title(active_view)]
+    badges = [surface_title(ui_state, runtime)]
     runtime_state = _humanize(runtime.get("state") or "unknown")
     badges.append(f"Runtime: {runtime_state}")
     model = str(runtime.get("model") or "").strip()
