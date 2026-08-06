@@ -324,6 +324,7 @@ def test_apply_header_state_sets_active_states_tooltip():
     assert window.active_states_label.text == "Active: Timer, Idea, Calendar +1"
     assert window.active_states_label.tooltip_text == "Active: Timer, Idea, Calendar, Todo"
     assert window._buttons["back"].sensitive is True
+    assert window._buttons["back"].tooltip_text == "Go back (Esc, Alt+Left)"
 
 
 def test_apply_header_state_clears_active_states_tooltip_when_empty():
@@ -340,6 +341,7 @@ def test_apply_header_state_clears_active_states_tooltip_when_empty():
     assert window.active_states_label.text == ""
     assert window.active_states_label.tooltip_text == ""
     assert window._buttons["back"].sensitive is False
+    assert window._buttons["back"].tooltip_text == "Go back unavailable: no previous view"
 
 
 def test_apply_control_state_explains_disabled_runtime_controls():

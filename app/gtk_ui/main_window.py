@@ -305,7 +305,14 @@ class HenryGtkWindow:
     def _apply_header_state(self, ui_state: dict[str, Any]) -> None:
         state = header_state(ui_state)
         if "back" in self._buttons:
-            self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
+            can_go_back = bool(state["can_go_back"])
+            self._buttons["back"].set_sensitive(can_go_back)
+            tooltip = (
+                action_tooltip("back", "Go back")
+                if can_go_back
+                else "Go back unavailable: no previous view"
+            )
+            self._buttons["back"].set_tooltip_text(tooltip)
         self.active_states_label.set_text(str(state["active_states_label"]))
         self.active_states_label.set_tooltip_text(str(state["active_states_tooltip"]))
         self._replace_css_classes(
