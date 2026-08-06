@@ -300,6 +300,36 @@ def test_state_key_normalizes_rendered_calendar_dates():
     assert first_key == second_key
 
 
+def test_state_key_ignores_unrendered_calendar_event_suffixes():
+    """Hidden calendar event ID suffixes should not reset GTK face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "calendar",
+            "calendar_view_mode": "week",
+            "calendar_selected_date": "2026-08-06T12:00:00",
+            "calendar_filter_type": "meeting",
+            "active_event_id": "event:weekly_robotics_alpha",
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "calendar",
+            "calendar_view_mode": "week",
+            "calendar_selected_date": "2026-08-06T12:00:00",
+            "calendar_filter_type": "meeting",
+            "active_event_id": "event:weekly_robotics_beta",
+        },
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_active_states():
     """Equivalent GTK active-state labels should not reset face timing."""
     runtime = {"state": "running", "model": "qwen3"}

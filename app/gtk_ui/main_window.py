@@ -374,6 +374,16 @@ class HenryGtkWindow:
                 str(ui_state.get("selected_category_id") or "").strip(),
             )
         )
+        calendar_key = (
+            rendered_panel_key
+            if active_view == "calendar"
+            else (
+                str(ui_state.get("calendar_view_mode") or "").strip(),
+                str(ui_state.get("calendar_selected_date") or "").strip()[:10],
+                str(ui_state.get("calendar_filter_type") or "").strip(),
+                str(ui_state.get("active_event_id") or "").strip(),
+            )
+        )
         return (
             str(runtime.get("state") or "").strip().lower(),
             str(runtime.get("model") or "").strip(),
@@ -383,10 +393,7 @@ class HenryGtkWindow:
             timer_key,
             idea_key,
             todo_key,
-            str(ui_state.get("calendar_view_mode") or "").strip(),
-            str(ui_state.get("calendar_selected_date") or "").strip()[:10],
-            str(ui_state.get("calendar_filter_type") or "").strip(),
-            str(ui_state.get("active_event_id") or "").strip(),
+            calendar_key,
             str(header_state(ui_state)["active_states_label"]),
         )
 
