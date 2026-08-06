@@ -1728,6 +1728,20 @@ def test_tool_panel_omits_duplicate_calendar_event_title_without_other_details()
     assert panel.detail_lines == ()
 
 
+def test_tool_panel_marks_active_calendar_event_ids_as_active():
+    """Calendar panel should not show active event IDs under a generic headline."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "active_event_id": "event:weekly_robotics_seminar_2026_01_27",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Active event"
+    assert panel.detail_lines == ("Event: weekly_r",)
+
+
 def test_tool_panel_marks_active_idea_without_draft_as_active():
     """Ideas panel should not describe active ideas as already captured."""
     panel = face_view.tool_panel(

@@ -302,6 +302,11 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             not status_text or _is_generic_status(status_text, {"calendar", "events", "upcoming"})
         ):
             return active_event_title
+        active_event_id = str(ui_state.get("active_event_id") or "").strip()
+        if active_event_id and (
+            not status_text or _is_generic_status(status_text, {"calendar", "events", "upcoming"})
+        ):
+            return "Active event"
         return status_text or "Calendar"
 
     return status_text or f"Runtime: {_runtime_state_label(runtime)}"
