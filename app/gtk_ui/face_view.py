@@ -246,7 +246,9 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         if error:
             return error
         state = str(runtime.get("state") or "").strip().lower()
-        if not status_text and state in {"starting", "stopping", "loading", "unloading"}:
+        if state in {"starting", "stopping", "loading", "unloading"} and (
+            not status_text or _is_generic_status(status_text, {"idle", "listening", "ready"})
+        ):
             return _humanize(state)
         return status_text
 
