@@ -165,7 +165,7 @@ def test_view_summary_humanizes_unknown_view_runtime_fallback():
     """Unknown GTK views should not show raw runtime state identifiers."""
     assert (
         view_summary({"active_view": "voice_note", "status_text": "   "}, {"state": "voice-error"})
-        == "Runtime Voice Error"
+        == "Runtime: Voice Error"
     )
 
 

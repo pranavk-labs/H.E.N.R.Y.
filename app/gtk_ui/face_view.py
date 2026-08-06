@@ -256,7 +256,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             return active_event_title
         return status_text or "Calendar"
 
-    return status_text or f"Runtime {_runtime_state_label(runtime)}"
+    return status_text or f"Runtime: {_runtime_state_label(runtime)}"
 
 
 def view_title(active_view: str) -> str:
