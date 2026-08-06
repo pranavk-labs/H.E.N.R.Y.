@@ -349,6 +349,7 @@ def test_action_feedback_prefers_response_state_and_model():
     )
     assert face_view.action_feedback("stop", {"state": "error", "error": "   "}) == "Stop: Error"
     assert face_view.action_feedback("   ", {"state": "running"}) == "Action: Running"
+    assert face_view.action_feedback("start", {"state": "   "}) == "Start: Complete"
 
 
 def test_action_exception_feedback_uses_readable_blank_fallback():
