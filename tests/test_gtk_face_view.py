@@ -146,6 +146,7 @@ def test_view_title_and_accent_make_active_context_scannable():
 
     assert face_view.view_accent("idle") == (0.31, 0.78, 0.47)
     assert face_view.view_accent("pomodoro") == (0.95, 0.39, 0.32)
+    assert face_view.view_accent(" pomodoro ") == (0.95, 0.39, 0.32)
 
 
 def test_surface_accent_marks_runtime_health():

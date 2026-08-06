@@ -257,6 +257,7 @@ def header_view_status_class(ui_state: dict[str, Any], runtime: dict[str, Any]) 
 
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
+    view_name = str(active_view or "").strip()
     accents = {
         "idle": (0.31, 0.78, 0.47),
         "pomodoro": (0.95, 0.39, 0.32),
@@ -264,7 +265,7 @@ def view_accent(active_view: str) -> tuple[float, float, float]:
         "todo_list": (0.91, 0.73, 0.33),
         "calendar": (0.65, 0.55, 0.95),
     }
-    return accents.get(active_view, (0.72, 0.74, 0.78))
+    return accents.get(view_name, (0.72, 0.74, 0.78))
 
 
 def surface_accent(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[float, float, float]:
