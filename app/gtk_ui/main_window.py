@@ -16,6 +16,7 @@ from app.gtk_ui.face_view import (
     face_geometry,
     header_state,
     model_entry_text,
+    model_entry_user_edited_after_action,
     model_override,
     runtime_summary,
     sleepiness_for_elapsed,
@@ -276,6 +277,11 @@ class HenryGtkWindow:
     def _run_action(self, action_name: str, action: Callable[[], dict[str, Any]]) -> None:
         try:
             response = action()
+            self._model_entry_user_edited = model_entry_user_edited_after_action(
+                action_name,
+                response,
+                was_user_edited=self._model_entry_user_edited,
+            )
             self.action_status_label.set_text(action_feedback(action_name, response))
             self.refresh()
         except Exception as exc:

@@ -98,6 +98,34 @@ def test_model_entry_text_clears_when_runtime_model_unloads():
     assert face_view.model_entry_text("qwen3:8b", {}, user_edited=False) == ""
 
 
+def test_model_entry_user_edited_resets_after_successful_model_actions():
+    """GTK model entry resumes runtime sync after preload or unload succeeds."""
+    assert (
+        face_view.model_entry_user_edited_after_action(
+            "preload", {"state": "loaded", "model": "qwen3"}, was_user_edited=True
+        )
+        is False
+    )
+    assert (
+        face_view.model_entry_user_edited_after_action(
+            "unload", {"state": "unloaded", "model": "qwen3"}, was_user_edited=True
+        )
+        is False
+    )
+    assert (
+        face_view.model_entry_user_edited_after_action(
+            "preload", {"error": "no model"}, was_user_edited=True
+        )
+        is True
+    )
+    assert (
+        face_view.model_entry_user_edited_after_action(
+            "start", {"state": "running"}, was_user_edited=True
+        )
+        is True
+    )
+
+
 def test_action_feedback_prefers_response_state_and_model():
     """GTK action feedback turns API results into short human-facing messages."""
     assert (

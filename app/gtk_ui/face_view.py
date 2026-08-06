@@ -208,6 +208,20 @@ def model_entry_text(current_text: Any, runtime: dict[str, Any], *, user_edited:
     return str(runtime.get("model") or "")
 
 
+def model_entry_user_edited_after_action(
+    action_name: str,
+    response: dict[str, Any],
+    *,
+    was_user_edited: bool,
+) -> bool:
+    """Return whether GTK should keep protecting user-entered model text."""
+    if response.get("error"):
+        return was_user_edited
+    if action_name in {"preload", "unload"}:
+        return False
+    return was_user_edited
+
+
 def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into concise GTK feedback."""
     action_label = _humanize(action_name)
