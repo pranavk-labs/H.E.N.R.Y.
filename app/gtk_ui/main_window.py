@@ -419,19 +419,25 @@ class HenryGtkWindow:
 
             self.runtime = runtime
             self.ui_state = ui_state
-            self.connection_status_label.set_text("Backend: connected")
+            connection_text = "Backend: connected"
+            view_text = header_view_title(ui_state, runtime)
+            runtime_text = f"Runtime: {runtime_summary(runtime)}"
+            self.connection_status_label.set_text(connection_text)
+            self.connection_status_label.set_tooltip_text(connection_text)
             self._replace_css_classes(
                 self.connection_status_label,
                 STATUS_CLASSES,
                 "status-ok",
             )
-            self.view_status_label.set_text(header_view_title(ui_state, runtime))
+            self.view_status_label.set_text(view_text)
+            self.view_status_label.set_tooltip_text(view_text)
             self._replace_css_classes(
                 self.view_status_label,
                 STATUS_CLASSES,
                 header_view_status_class(ui_state, runtime),
             )
-            self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
+            self.runtime_status_label.set_text(runtime_text)
+            self.runtime_status_label.set_tooltip_text(runtime_text)
             self._replace_css_classes(
                 self.runtime_status_label,
                 STATUS_CLASSES,
@@ -441,19 +447,25 @@ class HenryGtkWindow:
             self._apply_control_state(runtime)
             self._apply_header_state(ui_state)
         except Exception as exc:
-            self.connection_status_label.set_text("Backend: unavailable")
+            connection_text = "Backend: unavailable"
+            runtime_text = "Runtime: error"
+            view_text = "Offline"
+            self.connection_status_label.set_text(connection_text)
+            self.connection_status_label.set_tooltip_text(connection_text)
             self._replace_css_classes(
                 self.connection_status_label,
                 STATUS_CLASSES,
                 "status-error",
             )
-            self.runtime_status_label.set_text("Runtime: error")
+            self.runtime_status_label.set_text(runtime_text)
+            self.runtime_status_label.set_tooltip_text(runtime_text)
             self._replace_css_classes(
                 self.runtime_status_label,
                 STATUS_CLASSES,
                 "status-error",
             )
-            self.view_status_label.set_text("Offline")
+            self.view_status_label.set_text(view_text)
+            self.view_status_label.set_tooltip_text(view_text)
             self._replace_css_classes(
                 self.view_status_label,
                 STATUS_CLASSES,

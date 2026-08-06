@@ -11,10 +11,14 @@ class FakeLabel:
 
     def __init__(self) -> None:
         self.text = ""
+        self.tooltip_text = ""
         self.css_classes: list[str] = []
 
     def set_text(self, text: str) -> None:
         self.text = text
+
+    def set_tooltip_text(self, text: str) -> None:
+        self.tooltip_text = text
 
     def add_css_class(self, css_class: str) -> None:
         if css_class not in self.css_classes:
@@ -42,6 +46,16 @@ class FailingClient:
         raise ConnectionError("connection refused")
 
 
+class HealthyClient:
+    """Runtime client stand-in that returns connected GTK header state."""
+
+    def get_runtime_status(self) -> dict[str, str]:
+        return {"state": "running", "model": "qwen3"}
+
+    def get_ui_state(self) -> dict[str, str]:
+        return {"active_view": "idle", "status_text": "Ready"}
+
+
 class FakeWindow:
     """Minimal HenryGtkWindow shape for exercising refresh()."""
 
@@ -54,6 +68,8 @@ class FakeWindow:
         self.canvas = FakeCanvas()
         self.runtime = {"state": "running", "model": "qwen3"}
         self.ui_state = {"active_view": "idle", "status_text": "Ready"}
+        self._last_state_key = None
+        self._last_interaction_time = 0.0
         self.synced_runtime: dict[str, str] | None = None
 
     def _replace_css_classes(self, widget, classes, active_class: str) -> None:
@@ -64,6 +80,9 @@ class FakeWindow:
     def _clear_css_classes(self, widget, classes) -> None:
         for css_class in classes:
             widget.remove_css_class(css_class)
+
+    def _state_key(self, runtime, ui_state):
+        return HenryGtkWindow._state_key(self, runtime, ui_state)
 
     def _apply_control_state(self, runtime: dict[str, str]) -> None:
         self.control_runtime = runtime
@@ -166,6 +185,18 @@ def test_refresh_clears_stale_action_status_class_on_backend_loss():
     assert HenryGtkWindow.refresh(window) is True
 
     assert not set(window.action_status_label.css_classes).intersection(main_window.STATUS_CLASSES)
+
+
+def test_refresh_sets_status_label_tooltips_to_visible_text():
+    """Compact GTK header statuses should expose their full text on hover."""
+    window = FakeWindow()
+    window.client = HealthyClient()
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert window.connection_status_label.tooltip_text == "Backend: connected"
+    assert window.view_status_label.tooltip_text == "Listening"
+    assert window.runtime_status_label.tooltip_text == "Runtime: Running - qwen3"
 
 
 def test_state_key_tracks_runtime_error_detail_changes():
