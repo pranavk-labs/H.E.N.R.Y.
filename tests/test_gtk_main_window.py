@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from app.gtk_ui import main_window
 from app.gtk_ui.main_window import HenryGtkWindow
 
 
@@ -97,6 +98,24 @@ class DrawBranchWindow:
 
     def _draw_detail_lines(self, *_args) -> None:
         return None
+
+
+def test_gtk_timing_seconds_uses_configured_positive_value(monkeypatch):
+    """GTK face timing env values should accept positive second counts."""
+    monkeypatch.setenv("GUI_HAPPY_DURATION", "45")
+
+    assert main_window.gtk_timing_seconds("GUI_HAPPY_DURATION", 120) == 45
+
+
+def test_gtk_timing_seconds_falls_back_for_malformed_values(monkeypatch):
+    """Malformed GTK face timing env values should not prevent startup."""
+    monkeypatch.setenv("GUI_HAPPY_DURATION", "   ")
+    monkeypatch.setenv("GUI_NEUTRAL_DURATION", "slow")
+    monkeypatch.setenv("GUI_SLEEPY_DURATION", "-5")
+
+    assert main_window.gtk_timing_seconds("GUI_HAPPY_DURATION", 120) == 120
+    assert main_window.gtk_timing_seconds("GUI_NEUTRAL_DURATION", 300) == 300
+    assert main_window.gtk_timing_seconds("GUI_SLEEPY_DURATION", 600) == 600
 
 
 def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():

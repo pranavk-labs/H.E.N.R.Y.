@@ -59,6 +59,15 @@ def require_gtk():
         ) from exc
 
 
+def gtk_timing_seconds(env_name: str, default: int) -> int:
+    """Return a positive GTK face timing value from the environment."""
+    try:
+        seconds = int(str(os.getenv(env_name, "")).strip() or str(default))
+    except ValueError:
+        return default
+    return seconds if seconds > 0 else default
+
+
 class HenryGtkWindow:
     """Main GTK window for HENRY."""
 
@@ -105,9 +114,9 @@ class HenryGtkWindow:
         self._blink_start = 0.0
         self._last_blink = time.time()
         self._blink_interval = 3.0
-        self._happy_seconds = int(os.getenv("GUI_HAPPY_DURATION", "120"))
-        self._neutral_seconds = int(os.getenv("GUI_NEUTRAL_DURATION", "300"))
-        self._sleepy_seconds = int(os.getenv("GUI_SLEEPY_DURATION", "600"))
+        self._happy_seconds = gtk_timing_seconds("GUI_HAPPY_DURATION", 120)
+        self._neutral_seconds = gtk_timing_seconds("GUI_NEUTRAL_DURATION", 300)
+        self._sleepy_seconds = gtk_timing_seconds("GUI_SLEEPY_DURATION", 600)
         self._buttons: dict[str, Any] = {}
         self._model_entry_user_edited = False
         self._syncing_model_entry = False
