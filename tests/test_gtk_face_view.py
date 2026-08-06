@@ -813,6 +813,26 @@ def test_tool_panel_tolerates_blank_pomodoro_timer_numbers():
     assert panel.progress is None
 
 
+def test_tool_panel_uses_readable_pomodoro_status_fallback():
+    """Blank Pomodoro status should not render a broken detail label."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "   ",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.detail_lines == ("Timer work session", "Break queued for 05:00")
+
+
 def test_tool_panel_surfaces_active_view_runtime_errors():
     """Active GTK panels should include runtime errors in central detail text."""
     panel = face_view.tool_panel(
