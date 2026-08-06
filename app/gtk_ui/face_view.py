@@ -172,7 +172,7 @@ def _runtime_state_label(runtime: dict[str, Any]) -> str:
     error = str(runtime.get("error") or "").strip()
     if error.startswith("Backend unavailable:"):
         return "Offline"
-    return _humanize(runtime.get("state") or "unknown")
+    return _humanized_label(runtime.get("state")) or "Unknown"
 
 
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:

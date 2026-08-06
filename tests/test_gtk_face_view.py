@@ -219,6 +219,11 @@ def test_runtime_summary_shows_state_and_loaded_model():
     assert face_view.runtime_summary({"state": "running", "model": "qwen3"}) == "Running - qwen3"
     assert face_view.runtime_summary({"state": "stopped", "model": ""}) == "Stopped"
     assert face_view.runtime_summary({}) == "Unknown"
+    assert face_view.runtime_summary({"state": "   "}) == "Unknown"
+    assert face_view.status_badges({"active_view": "idle"}, {"state": "   "}) == (
+        "Listening",
+        "Runtime: Unknown",
+    )
 
 
 def test_runtime_summary_labels_backend_outages_as_offline():
