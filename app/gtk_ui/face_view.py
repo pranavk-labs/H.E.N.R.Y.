@@ -595,7 +595,7 @@ def action_tooltip(action_name: str, label: str) -> str:
 
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
-    active_view = str(ui_state.get("active_view", "idle"))
+    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
     summary = view_summary(ui_state, runtime)
     details: list[str] = []
     progress: float | None = None

@@ -797,6 +797,18 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
     assert offline_panel.detail_lines == ("Runtime: Offline", "Error: Backend offline")
 
 
+def test_tool_panel_treats_blank_active_view_as_idle():
+    """Blank GTK active view should render idle panel details."""
+    panel = face_view.tool_panel(
+        {"active_view": "   ", "status_text": "Waiting"},
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+    )
+
+    assert panel.title == "Listening"
+    assert panel.summary == "microphone unavailable"
+    assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(
