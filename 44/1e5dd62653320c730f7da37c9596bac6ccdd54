@@ -1,0 +1,22 @@
+app/gtk_ui/main_window.py
+  s_0ebea46cd3e366::t_f9de30541b6d68 366
+  s_0ebea46cd3e366::t_5fc73c6effea82 362,364,367-375,385
+tests/test_gtk_main_window.py
+  s_0ebea46cd3e366::t_cea0e370ffd425 253-284
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "441e5dd62653320c730f7da37c9596bac6ccdd54",
+  "prompts": {},
+  "sessions": {
+    "s_0ebea46cd3e366": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019faca0-4aca-7142-ae7c-d359f0571308",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
