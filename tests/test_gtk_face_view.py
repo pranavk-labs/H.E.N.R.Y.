@@ -1196,6 +1196,26 @@ def test_tool_panel_tolerates_blank_pomodoro_timer_numbers():
     assert panel.progress is None
 
 
+def test_tool_panel_omits_pomodoro_progress_when_remaining_time_is_missing():
+    """Pomodoro progress should not look complete when remaining seconds are absent."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Work 00:00 | Break 00:00"
+    assert panel.detail_lines == ("Running work session", "Break queued for 00:00")
+    assert panel.progress is None
+
+
 def test_tool_panel_marks_missing_pomodoro_timer_state_ready():
     """Pomodoro panel should not render zeroed timers before state arrives."""
     panel = face_view.tool_panel({"active_view": "pomodoro"}, {"state": "running"})

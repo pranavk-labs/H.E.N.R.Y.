@@ -141,6 +141,14 @@ def _timer_int(value: Any) -> int:
     return max(0, int(number))
 
 
+def _has_timer_value(value: Any) -> bool:
+    try:
+        number = float(str(value or "").strip())
+    except (TypeError, ValueError):
+        return False
+    return math.isfinite(number)
+
+
 def _dict_state(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
@@ -867,11 +875,13 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
                 details.append(f"Break queued for {_format_seconds(break_remaining)}")
                 total = _timer_int(timer.get("work_duration_minutes")) * 60
                 remaining = work_remaining
+                has_remaining = _has_timer_value(timer.get("remaining_work_seconds"))
             else:
                 details.append(f"Next work block after {_format_seconds(break_remaining)}")
                 total = _timer_int(timer.get("break_duration_minutes")) * 60
                 remaining = break_remaining
-            if total > 0:
+                has_remaining = _has_timer_value(timer.get("remaining_break_seconds"))
+            if total > 0 and has_remaining:
                 progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
 
     elif active_view == "ideas":
