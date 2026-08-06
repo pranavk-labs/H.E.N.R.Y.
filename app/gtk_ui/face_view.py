@@ -235,9 +235,7 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     """Return GTK header navigation and concurrent-state labels."""
     view_stack = ui_state.get("view_stack") or ["idle"]
     active_states = [
-        _humanize(state)
-        for state in (ui_state.get("active_states") or [])
-        if str(state).strip()
+        _humanize(state) for state in (ui_state.get("active_states") or []) if str(state).strip()
     ]
     return {
         "can_go_back": len(view_stack) > 1,
@@ -258,6 +256,58 @@ def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[st
     if active_label:
         badges.append(str(active_label))
     return tuple(badges)
+
+
+def _clip_text(text: str, max_chars: int) -> str:
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= 3:
+        return "." * max_chars
+    return f"{text[: max_chars - 3].rstrip()}..."
+
+
+def _overflow_text(text: str, max_chars: int) -> str:
+    if max_chars <= 3:
+        return "." * max_chars
+    return f"{text[: max_chars - 3].rstrip()}..."
+
+
+def wrapped_text_lines(text: Any, *, max_chars: int, max_lines: int) -> tuple[str, ...]:
+    """Wrap text into a small bounded set of GTK canvas lines."""
+    line_limit = max(0, int(max_lines))
+    char_limit = max(1, int(max_chars))
+    if line_limit == 0:
+        return ()
+
+    words = str(text or "").split()
+    if not words:
+        return ()
+
+    lines: list[str] = []
+    index = 0
+
+    while index < len(words) and len(lines) < line_limit:
+        current = ""
+        while index < len(words):
+            word = words[index]
+            if not current and len(word) > char_limit:
+                lines.append(_clip_text(word, char_limit))
+                index += 1
+                break
+
+            candidate = word if not current else f"{current} {word}"
+            if len(candidate) > char_limit:
+                break
+            current = candidate
+            index += 1
+
+        if current:
+            lines.append(current)
+
+    if index < len(words) and lines:
+        lines[-1] = _overflow_text(lines[-1], char_limit)
+
+    return tuple(lines)
 
 
 def action_shortcuts() -> dict[str, list[str]]:

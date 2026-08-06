@@ -22,6 +22,7 @@ from app.gtk_ui.face_view import (
     tool_panel,
     view_accent,
     view_title,
+    wrapped_text_lines,
 )
 from app.gtk_ui.runtime_client import RuntimeClient
 
@@ -396,15 +397,19 @@ class HenryGtkWindow:
         if active_view == "idle":
             self._draw_face(cr, width, height)
             if panel.summary:
-                self._draw_centered_text(
+                summary_lines = self._draw_wrapped_centered_text(
                     cr,
                     panel.summary,
                     width / 2,
-                    height * 0.84,
+                    height * 0.82,
                     width * 0.8,
                     24,
+                    2,
                 )
-            self._draw_detail_lines(cr, panel.detail_lines, width, height * 0.9, 18)
+                detail_y = height * 0.88 + max(0, summary_lines - 1) * 28
+            else:
+                detail_y = height * 0.9
+            self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 18)
         else:
             self._draw_adaptive_view(cr, width, height, str(active_view), panel)
 
@@ -501,19 +506,22 @@ class HenryGtkWindow:
             width * 0.82,
             42,
         )
-        self._draw_centered_text(
+        summary_lines = self._draw_wrapped_centered_text(
             cr,
             panel.summary,
             width / 2,
-            height * 0.52,
+            height * 0.49,
             width * 0.82,
             28,
+            3,
         )
+        summary_bottom = height * 0.49 + max(0, summary_lines - 1) * 34
         if panel.progress is not None:
-            self._draw_progress_bar(cr, width, height * 0.61, width * 0.56, panel.progress, accent)
-            detail_y = height * 0.71
+            progress_y = summary_bottom + 40
+            self._draw_progress_bar(cr, width, progress_y, width * 0.56, panel.progress, accent)
+            detail_y = progress_y + 64
         else:
-            detail_y = height * 0.66
+            detail_y = summary_bottom + 58
         self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
 
     def _draw_status_badges(self, cr: Any, width: int) -> None:
@@ -618,6 +626,29 @@ class HenryGtkWindow:
         cr.set_source_rgb(0.878, 0.878, 0.878)
         cr.move_to(x - extents.width / 2, y)
         cr.show_text(display_text)
+
+    def _draw_wrapped_centered_text(
+        self,
+        cr: Any,
+        text: str,
+        x: float,
+        y: float,
+        max_width: float,
+        font_size: int,
+        max_lines: int,
+    ) -> int:
+        max_chars = max(8, int(max_width / max(font_size * 0.58, 1)))
+        lines = wrapped_text_lines(text, max_chars=max_chars, max_lines=max_lines)
+        for index, line in enumerate(lines):
+            self._draw_centered_text(
+                cr,
+                line,
+                x,
+                y + index * font_size * 1.35,
+                max_width,
+                font_size,
+            )
+        return len(lines)
 
     def present(self) -> None:
         """Present the GTK window."""

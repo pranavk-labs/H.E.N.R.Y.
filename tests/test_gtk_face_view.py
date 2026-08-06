@@ -8,10 +8,18 @@ from app.gtk_ui.face_view import face_geometry, sleepiness_for_elapsed, view_sum
 
 def test_sleepiness_matches_legacy_thresholds():
     """Sleepiness follows happy, neutral, sleepy, asleep thresholds."""
-    assert sleepiness_for_elapsed(10, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 0
-    assert sleepiness_for_elapsed(150, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 1
-    assert sleepiness_for_elapsed(450, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 2
-    assert sleepiness_for_elapsed(700, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 3
+    assert (
+        sleepiness_for_elapsed(10, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 0
+    )
+    assert (
+        sleepiness_for_elapsed(150, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 1
+    )
+    assert (
+        sleepiness_for_elapsed(450, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 2
+    )
+    assert (
+        sleepiness_for_elapsed(700, happy_seconds=120, neutral_seconds=300, sleepy_seconds=600) == 3
+    )
 
 
 def test_face_geometry_is_centered_and_responsive():
@@ -29,21 +37,27 @@ def test_face_geometry_is_centered_and_responsive():
 def test_view_summary_prefers_active_tool_context():
     """Adaptive view summary shows focused state instead of shell navigation."""
     assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "running"}) == ""
-    assert view_summary(
-        {
-            "active_view": "pomodoro",
-            "timer_state": {
-                "remaining_work_seconds": 1500,
-                "remaining_break_seconds": 300,
-                "phase": "work",
+    assert (
+        view_summary(
+            {
+                "active_view": "pomodoro",
+                "timer_state": {
+                    "remaining_work_seconds": 1500,
+                    "remaining_break_seconds": 300,
+                    "phase": "work",
+                },
             },
-        },
-        {"state": "running"},
-    ) == "Work 25:00 | Break 05:00"
-    assert view_summary(
-        {"active_view": "ideas", "idea_view": {"draft_text": "Ship the GTK face"}},
-        {"state": "running"},
-    ) == "Ship the GTK face"
+            {"state": "running"},
+        )
+        == "Work 25:00 | Break 05:00"
+    )
+    assert (
+        view_summary(
+            {"active_view": "ideas", "idea_view": {"draft_text": "Ship the GTK face"}},
+            {"state": "running"},
+        )
+        == "Ship the GTK face"
+    )
 
 
 def test_view_title_and_accent_make_active_context_scannable():
@@ -73,14 +87,8 @@ def test_model_override_trims_blank_input():
 
 def test_model_entry_text_syncs_runtime_model_until_user_edits():
     """GTK model entry mirrors runtime model until the user types an override."""
-    assert (
-        face_view.model_entry_text("", {"model": "qwen3:8b"}, user_edited=False)
-        == "qwen3:8b"
-    )
-    assert (
-        face_view.model_entry_text("custom", {"model": "qwen3:8b"}, user_edited=True)
-        == "custom"
-    )
+    assert face_view.model_entry_text("", {"model": "qwen3:8b"}, user_edited=False) == "qwen3:8b"
+    assert face_view.model_entry_text("custom", {"model": "qwen3:8b"}, user_edited=True) == "custom"
     assert face_view.model_entry_text("", {}, user_edited=False) == ""
 
 
@@ -146,6 +154,33 @@ def test_status_badges_summarize_current_surface_state():
         "Listening",
         "Runtime: Stopped",
     )
+
+
+def test_wrapped_text_lines_wraps_words_with_overflow_marker():
+    """Long GTK summaries wrap into bounded canvas lines."""
+    assert face_view.wrapped_text_lines(
+        "Ship the GTK face with clearer panel summaries",
+        max_chars=16,
+        max_lines=3,
+    ) == ("Ship the GTK", "face with", "clearer panel...")
+
+
+def test_wrapped_text_lines_clips_single_long_words():
+    """Long unbroken GTK text is clipped instead of overflowing the canvas."""
+    assert face_view.wrapped_text_lines(
+        "supercalifragilistic",
+        max_chars=10,
+        max_lines=2,
+    ) == ("superca...",)
+
+
+def test_wrapped_text_lines_preserves_short_text():
+    """Short GTK text remains a single readable line."""
+    assert face_view.wrapped_text_lines(
+        "Ready to capture",
+        max_chars=24,
+        max_lines=2,
+    ) == ("Ready to capture",)
 
 
 def test_action_shortcuts_are_stable_and_discoverable():
