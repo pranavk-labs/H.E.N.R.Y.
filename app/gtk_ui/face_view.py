@@ -136,6 +136,10 @@ def _humanize(value: Any) -> str:
     return str(value or "").replace("_", " ").strip().title()
 
 
+def _humanized_label(value: Any) -> str:
+    return _humanize(value).strip()
+
+
 def _date_label(value: Any) -> str:
     raw_value = str(value or "").strip()
     date_value = raw_value[:10] if len(raw_value) >= 10 else raw_value
@@ -623,20 +627,22 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
             identifier = _short_identifier(ui_state["active_todo_id"])
             if identifier:
                 details.append(f"Active: {identifier}")
-        if ui_state.get("todo_filter_status"):
-            details.append(f"Filter: {_humanize(ui_state['todo_filter_status'])}")
+        filter_status = _humanized_label(ui_state.get("todo_filter_status"))
+        if filter_status:
+            details.append(f"Filter: {filter_status}")
         if ui_state.get("selected_category_id"):
             identifier = _short_identifier(ui_state["selected_category_id"])
             if identifier:
                 details.append(f"Category: {identifier}")
 
     elif active_view == "calendar":
-        mode = _humanize(ui_state.get("calendar_view_mode") or "upcoming")
+        mode = _humanized_label(ui_state.get("calendar_view_mode")) or "Upcoming"
         summary = summary if summary != "Calendar" else mode
         if ui_state.get("calendar_selected_date"):
             details.append(f"Date: {_date_label(ui_state['calendar_selected_date'])}")
-        if ui_state.get("calendar_filter_type"):
-            details.append(f"Type: {_humanize(ui_state['calendar_filter_type'])}")
+        filter_type = _humanized_label(ui_state.get("calendar_filter_type"))
+        if filter_type:
+            details.append(f"Type: {filter_type}")
         if ui_state.get("active_event_id"):
             identifier = _short_identifier(ui_state["active_event_id"])
             if identifier:

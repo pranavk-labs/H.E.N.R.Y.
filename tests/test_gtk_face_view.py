@@ -813,3 +813,25 @@ def test_tool_panel_skips_blank_fallback_identifiers():
         ).detail_lines
         == ()
     )
+
+
+def test_tool_panel_skips_blank_filter_labels():
+    """GTK filter labels should fall back instead of rendering blank text."""
+    assert (
+        face_view.tool_panel(
+            {"active_view": "todo_list", "todo_filter_status": "   "},
+            {"state": "running"},
+        ).detail_lines
+        == ()
+    )
+    calendar_panel = face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "calendar_view_mode": "   ",
+            "calendar_filter_type": "   ",
+        },
+        {"state": "running"},
+    )
+
+    assert calendar_panel.summary == "Upcoming"
+    assert calendar_panel.detail_lines == ()
