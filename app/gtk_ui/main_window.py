@@ -422,6 +422,7 @@ class HenryGtkWindow:
     ) -> tuple[Any, ...]:
         active_view = str(ui_state.get("active_view") or "").strip().lower() or "idle"
         rendered_panel_key = repr(tool_panel(ui_state, runtime))
+        rendered_header_state = header_state(ui_state)
         status_key = (
             str(ui_state.get("status_text") or "").strip()
             if active_view == "idle"
@@ -462,7 +463,8 @@ class HenryGtkWindow:
             idea_key,
             todo_key,
             calendar_key,
-            str(header_state(ui_state)["active_states_label"]),
+            str(rendered_header_state["active_states_label"]),
+            str(rendered_header_state["active_states_tooltip"]),
         )
 
     def refresh(self) -> bool:

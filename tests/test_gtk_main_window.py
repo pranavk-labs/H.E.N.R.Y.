@@ -684,6 +684,30 @@ def test_state_key_normalizes_rendered_active_states():
     assert blank_key == malformed_key
 
 
+def test_state_key_tracks_hidden_active_state_tooltip_changes():
+    """Hidden active-state overflow changes should count as GTK state changes."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "idle",
+            "active_states": ["timer", "idea", "todo_list", "calendar"],
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "idle",
+            "active_states": ["timer", "idea", "todo_list", "voice_note"],
+        },
+    )
+
+    assert first_key != second_key
+
+
 def test_state_key_normalizes_rendered_pomodoro_timer_values():
     """Equivalent GTK Pomodoro timer labels should not reset face timing."""
     runtime = {"state": "running", "model": "qwen3"}
