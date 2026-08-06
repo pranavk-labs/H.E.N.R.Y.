@@ -723,6 +723,24 @@ def test_tool_panel_enriches_pomodoro_state():
     assert panel.detail_lines == ("Running work session", "Break queued for 05:00")
     assert panel.progress == 0.6
 
+    padded_phase_panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": " work ",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert padded_phase_panel.detail_lines == ("Running work session", "Break queued for 05:00")
+    assert padded_phase_panel.progress == 0.6
+
 
 def test_tool_panel_humanizes_pomodoro_break_phases():
     """Pomodoro detail text should not expose raw phase identifiers."""
