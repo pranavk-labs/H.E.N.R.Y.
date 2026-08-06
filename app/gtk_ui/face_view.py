@@ -234,6 +234,8 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     if active_view == "ideas":
         idea = _dict_state(ui_state.get("idea_view"))
         draft_text = str(idea.get("draft_text") or "").strip()
+        if idea.get("is_active") and not draft_text and not status_text:
+            return "Active idea"
         return draft_text or status_text or "Idea captured"
 
     if active_view == "todo_list":
@@ -680,7 +682,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     elif active_view == "ideas":
         idea = _dict_state(ui_state.get("idea_view"))
         draft_text = str(idea.get("draft_text") or "").strip()
-        if idea.get("is_active"):
+        if idea.get("is_active") and summary != "Active idea":
             details.append("Active idea")
         if idea.get("active_idea_id"):
             identifier = _short_identifier(idea["active_idea_id"])

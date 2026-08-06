@@ -1167,6 +1167,23 @@ def test_tool_panel_omits_duplicate_calendar_event_title_detail():
     assert panel.detail_lines == ("Date: Aug 5, 2026",)
 
 
+def test_tool_panel_marks_active_idea_without_draft_as_active():
+    """Ideas panel should not describe active ideas as already captured."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "ideas",
+            "idea_view": {
+                "is_active": True,
+                "active_idea_id": "idea:capture_voice_routine_2026_08_06",
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Active idea"
+    assert panel.detail_lines == ("ID: capture_",)
+
+
 def test_tool_panel_simplifies_scoped_fallback_identifiers():
     """Fallback GTK panel identifiers show the useful scoped ID segment."""
     assert face_view.tool_panel(
