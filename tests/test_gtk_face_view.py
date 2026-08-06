@@ -71,6 +71,27 @@ def test_view_title_and_accent_make_active_context_scannable():
     assert face_view.view_accent("pomodoro") == (0.95, 0.39, 0.32)
 
 
+def test_surface_accent_marks_idle_runtime_errors():
+    """Idle GTK face switches to an error accent when runtime is unhealthy."""
+    offline = face_view.offline_runtime_state(ConnectionError("connection refused"))
+
+    assert face_view.surface_accent({"active_view": "idle"}, offline) == (1.0, 0.42, 0.37)
+    assert face_view.surface_accent(
+        {"active_view": "idle"},
+        {"state": "error", "error": "microphone unavailable"},
+    ) == (1.0, 0.42, 0.37)
+    assert face_view.surface_accent({"active_view": "idle"}, {"state": "running"}) == (
+        0.31,
+        0.78,
+        0.47,
+    )
+    assert face_view.surface_accent({"active_view": "pomodoro"}, {"state": "error"}) == (
+        0.95,
+        0.39,
+        0.32,
+    )
+
+
 def test_runtime_summary_shows_state_and_loaded_model():
     """Runtime summary is human-readable in the header."""
     assert face_view.runtime_summary({"state": "running", "model": "qwen3"}) == "Running - qwen3"

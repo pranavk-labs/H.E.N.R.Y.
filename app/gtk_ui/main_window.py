@@ -26,6 +26,7 @@ from app.gtk_ui.face_view import (
     sleepiness_for_elapsed,
     status_badge_rgba,
     status_badges,
+    surface_accent,
     tool_panel,
     view_accent,
     view_title,
@@ -434,7 +435,7 @@ class HenryGtkWindow:
         panel = tool_panel(self.ui_state, self.runtime)
         active_view = self.ui_state.get("active_view", "idle")
         if active_view == "idle":
-            self._draw_face(cr, width, height)
+            self._draw_face(cr, width, height, surface_accent(self.ui_state, self.runtime))
             if panel.summary:
                 summary_lines = self._draw_wrapped_centered_text(
                     cr,
@@ -453,8 +454,7 @@ class HenryGtkWindow:
             self._draw_adaptive_view(cr, width, height, str(active_view), panel)
 
     def _paint_background(self, cr: Any, width: int, height: int) -> None:
-        active_view = str(self.ui_state.get("active_view", "idle"))
-        accent = view_accent(active_view)
+        accent = surface_accent(self.ui_state, self.runtime)
         cr.set_source_rgb(0.102, 0.102, 0.102)
         cr.paint()
         cr.set_source_rgba(*accent, 0.18)
@@ -464,7 +464,13 @@ class HenryGtkWindow:
         cr.rectangle(0, 0, width, max(4, height * 0.012))
         cr.fill()
 
-    def _draw_face(self, cr: Any, width: int, height: int) -> None:
+    def _draw_face(
+        self,
+        cr: Any,
+        width: int,
+        height: int,
+        accent: tuple[float, float, float],
+    ) -> None:
         elapsed = time.time() - self._last_interaction_time
         sleepiness = sleepiness_for_elapsed(
             elapsed,
@@ -480,7 +486,7 @@ class HenryGtkWindow:
             blink_scale=self._blink_scale(),
         )
 
-        cr.set_source_rgb(*view_accent("idle"))
+        cr.set_source_rgb(*accent)
         self._draw_eye(cr, geometry.left_eye)
         self._draw_eye(cr, geometry.right_eye)
 
@@ -564,7 +570,7 @@ class HenryGtkWindow:
         self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
 
     def _draw_status_badges(self, cr: Any, width: int) -> None:
-        accent = view_accent(str(self.ui_state.get("active_view", "idle")))
+        accent = surface_accent(self.ui_state, self.runtime)
         badge_char_limit = min(44, max(12, int((width - 48) / (13 * 0.55))))
         badges = compact_status_badges(
             status_badges(self.ui_state, self.runtime),
