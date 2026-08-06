@@ -300,6 +300,24 @@ def test_state_key_normalizes_rendered_calendar_dates():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_calendar_status_fallbacks():
+    """Equivalent GTK calendar fallback summaries should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "calendar", "calendar_view_mode": "week", "status_text": ""},
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": "calendar", "calendar_view_mode": "week", "status_text": "Calendar"},
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_ignores_unrendered_calendar_event_suffixes():
     """Hidden calendar event ID suffixes should not reset GTK face timing."""
     runtime = {"state": "running", "model": "qwen3"}
