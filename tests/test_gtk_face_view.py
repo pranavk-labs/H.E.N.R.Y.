@@ -112,6 +112,14 @@ def test_view_summary_marks_idle_pending_runtime_state():
     )
 
 
+def test_view_summary_humanizes_unknown_view_runtime_fallback():
+    """Unknown GTK views should not show raw runtime state identifiers."""
+    assert (
+        view_summary({"active_view": "voice_note", "status_text": "   "}, {"state": "voice-error"})
+        == "Runtime Voice Error"
+    )
+
+
 def test_view_title_and_accent_make_active_context_scannable():
     """GTK active views expose concise labels and stable visual accents."""
     assert face_view.view_title("idle") == "Listening"
