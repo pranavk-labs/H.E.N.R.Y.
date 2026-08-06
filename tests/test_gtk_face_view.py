@@ -165,6 +165,13 @@ def test_runtime_summary_shows_state_and_loaded_model():
     assert face_view.runtime_summary({}) == "Unknown"
 
 
+def test_runtime_summary_labels_backend_outages_as_offline():
+    """GTK runtime labels should show backend outages as offline."""
+    runtime = face_view.offline_runtime_state(ConnectionError("connection refused"))
+
+    assert face_view.runtime_summary(runtime) == "Offline"
+
+
 def test_offline_runtime_state_clears_stale_runtime_context():
     """Backend loss gets a fresh error runtime without stale model context."""
     runtime = face_view.offline_runtime_state(ConnectionError("connection refused"))
@@ -175,7 +182,7 @@ def test_offline_runtime_state_clears_stale_runtime_context():
     }
     assert face_view.status_badges({"active_view": "idle"}, runtime) == (
         "Offline",
-        "Runtime: Error",
+        "Runtime: Offline",
         "Error: Backend unavailable: connection refused",
     )
 

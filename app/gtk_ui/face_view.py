@@ -142,6 +142,13 @@ def _runtime_error_summary(error: Any) -> str:
     return message
 
 
+def _runtime_state_label(runtime: dict[str, Any]) -> str:
+    error = str(runtime.get("error") or "").strip()
+    if error.startswith("Backend unavailable:"):
+        return "Offline"
+    return _humanize(runtime.get("state") or "unknown")
+
+
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
     active_view = ui_state.get("active_view", "idle")
@@ -234,8 +241,7 @@ def surface_accent(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[f
 
 def runtime_summary(runtime: dict[str, Any]) -> str:
     """Return a compact runtime summary for the GTK header."""
-    state = str(runtime.get("state") or "unknown")
-    label = state.replace("_", " ").title()
+    label = _runtime_state_label(runtime)
     model = str(runtime.get("model") or "").strip()
     if model:
         return f"{label} - {model}"
@@ -338,7 +344,7 @@ def active_states_status_class(ui_state: dict[str, Any]) -> str:
 def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[str, ...]:
     """Return compact canvas badges for current GTK context."""
     badges = [surface_title(ui_state, runtime)]
-    runtime_state = _humanize(runtime.get("state") or "unknown")
+    runtime_state = _runtime_state_label(runtime)
     badges.append(f"Runtime: {runtime_state}")
     error = str(runtime.get("error") or "").strip()
     if error:
