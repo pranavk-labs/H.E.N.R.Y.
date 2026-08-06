@@ -1220,14 +1220,17 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
         },
         {"state": "running"},
     ).detail_lines == ("Event: weekly_r",)
-    assert face_view.tool_panel(
-        {
-            "active_view": "calendar",
-            "active_event_id": "event:weekly_robotics_seminar_2026_01_27",
-            "active_event_title": "Weekly robotics seminar",
-        },
-        {"state": "running"},
-    ).detail_lines == ("Event: Weekly robotics seminar",)
+    assert (
+        face_view.tool_panel(
+            {
+                "active_view": "calendar",
+                "active_event_id": "event:weekly_robotics_seminar_2026_01_27",
+                "active_event_title": "Weekly robotics seminar",
+            },
+            {"state": "running"},
+        ).detail_lines
+        == ()
+    )
 
 
 def test_tool_panel_promotes_active_todo_title_to_summary():
@@ -1260,6 +1263,21 @@ def test_tool_panel_omits_duplicate_calendar_event_title_detail():
 
     assert panel.summary == "Weekly robotics seminar"
     assert panel.detail_lines == ("Date: Aug 5, 2026",)
+
+
+def test_tool_panel_omits_duplicate_calendar_event_title_without_other_details():
+    """Calendar panel should not repeat the event title as its only detail line."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "status_text": "Calendar",
+            "active_event_title": "Weekly robotics seminar",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Weekly robotics seminar"
+    assert panel.detail_lines == ()
 
 
 def test_tool_panel_marks_active_idea_without_draft_as_active():
