@@ -989,6 +989,31 @@ def test_tool_panel_treats_blank_active_view_as_idle():
     assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
 
 
+def test_active_view_labels_ignore_api_casing():
+    """GTK active view casing should not change user-facing labels or colors."""
+    ui_state = {
+        "active_view": " POMODORO ",
+        "timer_state": {
+            "status": "running",
+            "phase": "work",
+            "work_duration_minutes": 25,
+            "remaining_work_seconds": 1200,
+            "remaining_break_seconds": 300,
+        },
+    }
+    runtime = {"state": "running", "model": "qwen3"}
+
+    assert face_view.view_summary(ui_state, runtime) == "Work 20:00 | Break 05:00"
+    assert face_view.header_view_title(ui_state, runtime) == "Pomodoro"
+    assert face_view.surface_accent(ui_state, runtime) == (0.95, 0.39, 0.32)
+    assert face_view.tool_panel(ui_state, runtime) == face_view.ToolPanel(
+        title="Pomodoro",
+        summary="Work 20:00 | Break 05:00",
+        detail_lines=("Running work session", "Break queued for 05:00"),
+        progress=0.2,
+    )
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(

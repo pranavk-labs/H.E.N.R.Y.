@@ -149,6 +149,10 @@ def _list_state(value: Any) -> list[Any]:
     return value if isinstance(value, list) else []
 
 
+def _active_view_name(value: Any) -> str:
+    return str(value or "").strip().lower() or "idle"
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -195,7 +199,7 @@ def _runtime_state_label(runtime: dict[str, Any]) -> str:
 
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
-    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
+    active_view = _active_view_name(ui_state.get("active_view"))
     status_text = str(ui_state.get("status_text") or "").strip()
     if active_view == "idle":
         error = _runtime_error_summary(runtime.get("error"))
@@ -228,7 +232,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
 def view_title(active_view: str) -> str:
     """Return a concise human-facing title for the active GTK view."""
-    view_name = str(active_view or "").strip()
+    view_name = _active_view_name(active_view)
     labels = {
         "idle": "Listening",
         "pomodoro": "Pomodoro",
@@ -236,14 +240,12 @@ def view_title(active_view: str) -> str:
         "todo_list": "Todos",
         "calendar": "Calendar",
     }
-    if not view_name:
-        return labels["idle"]
     return labels.get(view_name, _humanized_label(view_name))
 
 
 def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the current GTK canvas surface title."""
-    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
+    active_view = _active_view_name(ui_state.get("active_view"))
     error = str(runtime.get("error") or "").strip()
     if active_view == "idle" and error.startswith("Backend unavailable:"):
         return "Offline"
@@ -275,7 +277,7 @@ def header_view_status_class(ui_state: dict[str, Any], runtime: dict[str, Any]) 
 
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
-    view_name = str(active_view or "").strip() or "idle"
+    view_name = _active_view_name(active_view)
     accents = {
         "idle": (0.31, 0.78, 0.47),
         "pomodoro": (0.95, 0.39, 0.32),
@@ -288,7 +290,7 @@ def view_accent(active_view: str) -> tuple[float, float, float]:
 
 def surface_accent(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[float, float, float]:
     """Return the current GTK canvas accent color."""
-    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
+    active_view = _active_view_name(ui_state.get("active_view"))
     if runtime_status_class(runtime) == "status-error":
         return (1.0, 0.42, 0.37)
     state = str(runtime.get("state") or "").strip().lower()
@@ -625,7 +627,7 @@ def action_tooltip(action_name: str, label: str) -> str:
 
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
-    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
+    active_view = _active_view_name(ui_state.get("active_view"))
     summary = view_summary(ui_state, runtime)
     details: list[str] = []
     progress: float | None = None

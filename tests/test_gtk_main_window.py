@@ -182,8 +182,14 @@ def test_state_key_normalizes_rendered_active_view_names():
         runtime,
         {"active_view": " idle ", "status_text": "Waiting"},
     )
+    third_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {"active_view": " IDLE ", "status_text": "Waiting"},
+    )
 
     assert first_key == second_key
+    assert first_key == third_key
 
 
 def test_state_key_normalizes_rendered_status_text():

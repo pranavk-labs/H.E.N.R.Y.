@@ -358,7 +358,7 @@ class HenryGtkWindow:
         runtime: dict[str, Any],
         ui_state: dict[str, Any],
     ) -> tuple[Any, ...]:
-        active_view = str(ui_state.get("active_view") or "").strip() or "idle"
+        active_view = str(ui_state.get("active_view") or "").strip().lower() or "idle"
         timer_key = (
             repr(tool_panel(ui_state, runtime))
             if active_view == "pomodoro"
