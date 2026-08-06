@@ -505,6 +505,9 @@ def compact_status_badges(
         if badge_limit == 0:
             return ()
         if len(visible_labels) > badge_limit:
+            if badge_limit == 1:
+                visible_labels = [f"{visible_labels[0]} +{len(visible_labels) - 1}"]
+                return tuple(_clip_text(label, char_limit) for label in visible_labels)
             keep_count = max(0, badge_limit - 1)
             overflow_count = len(visible_labels) - keep_count
             visible_labels = [*visible_labels[:keep_count], f"+{overflow_count} more"]

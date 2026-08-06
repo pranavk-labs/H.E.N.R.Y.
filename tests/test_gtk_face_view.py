@@ -674,6 +674,21 @@ def test_compact_status_badges_collapses_overflow_badges():
     ) == ("Calendar", "Runtime: Running", "+3 more")
 
 
+def test_compact_status_badges_keeps_primary_context_with_one_slot():
+    """GTK canvas badges should keep the current surface visible on very narrow windows."""
+    assert face_view.compact_status_badges(
+        (
+            "Calendar",
+            "Runtime: Running",
+            "Model: qwen3",
+            "Active: Timer, Idea",
+            "Error: microphone unavailable",
+        ),
+        max_chars=24,
+        max_badges=1,
+    ) == ("Calendar +4",)
+
+
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
