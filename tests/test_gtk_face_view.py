@@ -1205,6 +1205,29 @@ def test_tool_panel_labels_active_view_backend_outages_as_offline():
     )
 
 
+def test_tool_panel_omits_duplicate_unknown_view_runtime_fallback_details():
+    """Unknown GTK panels should not repeat runtime fallback text."""
+    offline_panel = face_view.tool_panel(
+        {"active_view": "voice_note", "status_text": "   "},
+        face_view.offline_runtime_state(ConnectionError("connection refused")),
+    )
+    loading_panel = face_view.tool_panel(
+        {"active_view": "voice_note", "status_text": "   "},
+        {"state": "loading"},
+    )
+    error_panel = face_view.tool_panel(
+        {"active_view": "voice_note", "status_text": "   "},
+        {"state": "error", "error": "microphone unavailable"},
+    )
+
+    assert offline_panel.summary == "Runtime: Offline"
+    assert offline_panel.detail_lines == ()
+    assert loading_panel.summary == "Runtime: Loading"
+    assert loading_panel.detail_lines == ()
+    assert error_panel.summary == "Runtime: Error"
+    assert error_panel.detail_lines == ("Runtime error: microphone unavailable",)
+
+
 def test_tool_panel_surfaces_active_view_pending_runtime_state():
     """Active GTK panels should include pending runtime state in central detail text."""
     panel = face_view.tool_panel(

@@ -848,7 +848,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         elif state and runtime_status_class(runtime) == "status-pending":
             attention_detail = f"Runtime: {_humanize(state)}"
 
-    if active_view != "idle" and attention_detail:
+    if active_view != "idle" and attention_detail and attention_detail != summary:
         if len(details) >= 3:
             details = [*details[:2], attention_detail]
         else:
