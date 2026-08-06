@@ -22,6 +22,18 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check changed whitespace
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          if [ -n "$BASE_SHA" ] && git cat-file -e "$BASE_SHA^{commit}" 2>/dev/null; then
+            git diff --check "$BASE_SHA"...HEAD
+          else
+            git diff --check
+          fi
 
       - name: Install system packages
         run: |
@@ -59,8 +71,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --all-extras --no-interaction --no-ansi
 
-      - name: Check Poetry metadata
-        run: poetry check
+      - name: Check Poetry metadata and lockfile
+        run: poetry check --lock
+
+      - name: Compile Python sources
+        run: poetry run python -m compileall -q app backend scripts tools
 
       - name: Run tests
         run: poetry run pytest
