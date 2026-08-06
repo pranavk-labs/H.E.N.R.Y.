@@ -159,6 +159,11 @@ def test_surface_accent_marks_runtime_health():
         0.78,
         0.47,
     )
+    assert face_view.surface_accent({"active_view": "   "}, {"state": "running"}) == (
+        0.31,
+        0.78,
+        0.47,
+    )
     assert face_view.surface_accent({"active_view": "pomodoro"}, {"state": "error"}) == (
         1.0,
         0.42,
