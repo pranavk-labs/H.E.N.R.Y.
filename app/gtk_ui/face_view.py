@@ -140,6 +140,9 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     active_view = ui_state.get("active_view", "idle")
     status_text = str(ui_state.get("status_text") or "")
     if active_view == "idle":
+        error = str(runtime.get("error") or "").strip()
+        if error:
+            return error
         return status_text
 
     if active_view == "pomodoro":

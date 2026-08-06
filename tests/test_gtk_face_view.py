@@ -60,6 +60,17 @@ def test_view_summary_prefers_active_tool_context():
     )
 
 
+def test_view_summary_prioritizes_idle_runtime_errors():
+    """Idle GTK canvas should surface runtime errors over stale status text."""
+    assert (
+        view_summary(
+            {"active_view": "idle", "status_text": "Ready"},
+            {"state": "error", "error": "microphone unavailable"},
+        )
+        == "microphone unavailable"
+    )
+
+
 def test_view_title_and_accent_make_active_context_scannable():
     """GTK active views expose concise labels and stable visual accents."""
     assert face_view.view_title("idle") == "Listening"
@@ -527,7 +538,7 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
         {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
     )
 
-    assert panel.summary == "Waiting"
+    assert panel.summary == "microphone unavailable"
     assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
 
 
