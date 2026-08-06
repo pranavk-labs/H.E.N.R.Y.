@@ -455,6 +455,7 @@ class HenryGtkWindow:
                 STATUS_CLASSES,
                 "status-error",
             )
+            self.action_status_label.set_text("")
             self._apply_control_state({})
             self._apply_header_state({})
             self.runtime = offline_runtime_state(exc)

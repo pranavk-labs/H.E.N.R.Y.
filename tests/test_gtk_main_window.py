@@ -41,6 +41,7 @@ class FakeWindow:
         self.connection_status_label = FakeLabel()
         self.runtime_status_label = FakeLabel()
         self.view_status_label = FakeLabel()
+        self.action_status_label = FakeLabel()
         self.canvas = FakeCanvas()
         self.runtime = {"state": "running", "model": "qwen3"}
         self.ui_state = {"active_view": "idle", "status_text": "Ready"}
@@ -130,6 +131,16 @@ def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():
     }
     assert window.synced_runtime == window.runtime
     assert window.canvas.queued is True
+
+
+def test_refresh_clears_stale_action_status_on_backend_loss():
+    """Backend loss should not leave stale action feedback in the GTK header."""
+    window = FakeWindow()
+    window.action_status_label.set_text("Start: Running qwen3")
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert window.action_status_label.text == ""
 
 
 def test_state_key_tracks_runtime_error_detail_changes():
