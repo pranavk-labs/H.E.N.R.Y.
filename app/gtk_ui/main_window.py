@@ -8,7 +8,15 @@ import os
 import time
 from typing import Any, Callable
 
-from app.gtk_ui.face_view import face_geometry, sleepiness_for_elapsed, view_summary
+from app.gtk_ui.face_view import (
+    control_state,
+    face_geometry,
+    runtime_summary,
+    sleepiness_for_elapsed,
+    view_accent,
+    view_summary,
+    view_title,
+)
 from app.gtk_ui.runtime_client import RuntimeClient
 
 logger = logging.getLogger(__name__)
@@ -45,10 +53,13 @@ class HenryGtkWindow:
         self.window.set_title("H.E.N.R.Y.")
         self.window.set_default_size(1100, 640)
 
+        self.view_status_label = Gtk.Label(label="Listening")
+        self.view_status_label.add_css_class("view-pill")
         self.runtime_status_label = Gtk.Label(label="Runtime: unknown")
         self.runtime_status_label.add_css_class("runtime-pill")
         self.connection_status_label = Gtk.Label(label="Backend: checking")
         self.connection_status_label.add_css_class("connection-label")
+        self.connection_status_label.add_css_class("status-pending")
 
         self.canvas = Gtk.DrawingArea()
         self.canvas.set_hexpand(True)
@@ -66,6 +77,7 @@ class HenryGtkWindow:
         self._happy_seconds = int(os.getenv("GUI_HAPPY_DURATION", "120"))
         self._neutral_seconds = int(os.getenv("GUI_NEUTRAL_DURATION", "300"))
         self._sleepy_seconds = int(os.getenv("GUI_SLEEPY_DURATION", "600"))
+        self._buttons: dict[str, Any] = {}
 
         self._install_css()
         self._build()
@@ -92,10 +104,29 @@ class HenryGtkWindow:
             font-size: 13px;
             margin-right: 8px;
         }
+        .view-pill {
+            color: #e6e6e6;
+            font-size: 13px;
+            font-weight: 700;
+            margin-left: 8px;
+            margin-right: 8px;
+        }
         .connection-label {
-            color: #50c878;
             font-size: 13px;
             margin-right: 12px;
+        }
+        .status-ok {
+            color: #50c878;
+        }
+        .status-error {
+            color: #ff6b5f;
+        }
+        .status-pending {
+            color: #d8b84f;
+        }
+        button.suggested-action {
+            background: #2f7d4c;
+            color: #ffffff;
         }
         """
 
@@ -124,41 +155,54 @@ class HenryGtkWindow:
 
         toolbar = Adw.HeaderBar()
         toolbar.set_title_widget(Adw.WindowTitle(title="H.E.N.R.Y.", subtitle=""))
-        toolbar.pack_start(
-            self._icon_button(
-                "media-playback-start-symbolic",
-                "Start voice runtime",
-                self.client.start_runtime,
-            )
+        self._buttons["start"] = self._icon_button(
+            "media-playback-start-symbolic",
+            "Start voice runtime",
+            self.client.start_runtime,
         )
-        toolbar.pack_start(
-            self._icon_button(
-                "media-playback-stop-symbolic",
-                "Stop voice runtime",
-                self.client.stop_runtime,
-            )
+        self._buttons["start"].add_css_class("suggested-action")
+        self._buttons["stop"] = self._icon_button(
+            "media-playback-stop-symbolic",
+            "Stop voice runtime",
+            self.client.stop_runtime,
         )
-        toolbar.pack_end(
-            self._icon_button(
-                "edit-clear-symbolic",
-                "Unload model",
-                self.client.unload_model,
-            )
+        self._buttons["unload"] = self._icon_button(
+            "edit-clear-symbolic",
+            "Unload model",
+            self.client.unload_model,
         )
-        toolbar.pack_end(
-            self._icon_button(
-                "view-refresh-symbolic",
-                "Preload model",
-                self.client.preload_model,
-            )
+        self._buttons["preload"] = self._icon_button(
+            "view-refresh-symbolic",
+            "Preload model",
+            self.client.preload_model,
         )
+        toolbar.pack_start(self._buttons["start"])
+        toolbar.pack_start(self._buttons["stop"])
+        toolbar.pack_end(self._buttons["unload"])
+        toolbar.pack_end(self._buttons["preload"])
         toolbar.pack_end(self.runtime_status_label)
         toolbar.pack_end(self.connection_status_label)
+        toolbar.pack_end(self.view_status_label)
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
         root.append(toolbar)
         root.append(self.canvas)
         self.window.set_content(root)
+
+    def _replace_css_classes(
+        self,
+        widget: Any,
+        classes: tuple[str, ...],
+        active_class: str,
+    ) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
+        widget.add_css_class(active_class)
+
+    def _apply_control_state(self, runtime: dict[str, Any]) -> None:
+        enabled = control_state(runtime)
+        for name, button in self._buttons.items():
+            button.set_sensitive(enabled.get(name, False))
 
     def _run_action(self, action: Callable[[], dict[str, Any]]) -> None:
         try:
@@ -194,13 +238,26 @@ class HenryGtkWindow:
 
             self.runtime = runtime
             self.ui_state = ui_state
+            active_view = str(ui_state.get("active_view", "idle"))
             self.connection_status_label.set_text("Backend: connected")
-            self.runtime_status_label.set_text(
-                f"Runtime: {runtime.get('state', 'unknown')}"
+            self._replace_css_classes(
+                self.connection_status_label,
+                ("status-ok", "status-error", "status-pending"),
+                "status-ok",
             )
+            self.view_status_label.set_text(view_title(active_view))
+            self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
+            self._apply_control_state(runtime)
         except Exception as exc:
             self.connection_status_label.set_text("Backend: unavailable")
+            self._replace_css_classes(
+                self.connection_status_label,
+                ("status-ok", "status-error", "status-pending"),
+                "status-error",
+            )
             self.runtime_status_label.set_text("Runtime: error")
+            self.view_status_label.set_text("Offline")
+            self._apply_control_state({})
             self.ui_state = {
                 "active_view": "idle",
                 "status_text": f"Backend unavailable: {exc}",
@@ -230,7 +287,7 @@ class HenryGtkWindow:
         return 1.0 - 0.95 * smooth
 
     def _draw(self, _area: Any, cr: Any, width: int, height: int) -> None:
-        self._paint_background(cr)
+        self._paint_background(cr, width, height)
         summary = view_summary(self.ui_state, self.runtime)
         active_view = self.ui_state.get("active_view", "idle")
         if active_view == "idle":
@@ -240,9 +297,17 @@ class HenryGtkWindow:
         else:
             self._draw_adaptive_view(cr, width, height, str(active_view), summary)
 
-    def _paint_background(self, cr: Any) -> None:
+    def _paint_background(self, cr: Any, width: int, height: int) -> None:
+        active_view = str(self.ui_state.get("active_view", "idle"))
+        accent = view_accent(active_view)
         cr.set_source_rgb(0.102, 0.102, 0.102)
         cr.paint()
+        cr.set_source_rgba(*accent, 0.18)
+        cr.rectangle(0, 0, max(6, width * 0.01), height)
+        cr.fill()
+        cr.set_source_rgba(*accent, 0.08)
+        cr.rectangle(0, 0, width, max(4, height * 0.012))
+        cr.fill()
 
     def _draw_face(self, cr: Any, width: int, height: int) -> None:
         elapsed = time.time() - self._last_interaction_time
@@ -260,7 +325,7 @@ class HenryGtkWindow:
             blink_scale=self._blink_scale(),
         )
 
-        cr.set_source_rgb(0.878, 0.878, 0.878)
+        cr.set_source_rgb(*view_accent("idle"))
         self._draw_eye(cr, geometry.left_eye)
         self._draw_eye(cr, geometry.right_eye)
 
@@ -313,15 +378,13 @@ class HenryGtkWindow:
         active_view: str,
         summary: str,
     ) -> None:
-        labels = {
-            "pomodoro": "Pomodoro",
-            "ideas": "Idea",
-            "todo_list": "Todos",
-            "calendar": "Calendar",
-        }
+        accent = view_accent(active_view)
+        cr.set_source_rgb(*accent)
+        cr.rectangle(width * 0.18, height * 0.28, width * 0.64, 4)
+        cr.fill()
         self._draw_centered_text(
             cr,
-            labels.get(active_view, active_view.replace("_", " ").title()),
+            view_title(active_view),
             width / 2,
             height * 0.36,
             width * 0.82,

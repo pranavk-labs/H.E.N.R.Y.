@@ -144,3 +144,49 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return status_text or "Calendar"
 
     return status_text or f"Runtime {runtime.get('state', 'unknown')}"
+
+
+def view_title(active_view: str) -> str:
+    """Return a concise human-facing title for the active GTK view."""
+    labels = {
+        "idle": "Listening",
+        "pomodoro": "Pomodoro",
+        "ideas": "Idea",
+        "todo_list": "Todos",
+        "calendar": "Calendar",
+    }
+    return labels.get(active_view, active_view.replace("_", " ").title())
+
+
+def view_accent(active_view: str) -> tuple[float, float, float]:
+    """Return stable RGB accent colors for the active GTK view."""
+    accents = {
+        "idle": (0.31, 0.78, 0.47),
+        "pomodoro": (0.95, 0.39, 0.32),
+        "ideas": (0.35, 0.63, 0.94),
+        "todo_list": (0.91, 0.73, 0.33),
+        "calendar": (0.65, 0.55, 0.95),
+    }
+    return accents.get(active_view, (0.72, 0.74, 0.78))
+
+
+def runtime_summary(runtime: dict[str, Any]) -> str:
+    """Return a compact runtime summary for the GTK header."""
+    state = str(runtime.get("state") or "unknown")
+    label = state.replace("_", " ").title()
+    model = str(runtime.get("model") or "").strip()
+    if model:
+        return f"{label} - {model}"
+    return label
+
+
+def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
+    """Return which runtime controls should be enabled for the current state."""
+    state = str(runtime.get("state") or "unknown").lower()
+    if state in {"starting", "stopping", "loading", "unloading"}:
+        return {"start": False, "stop": False, "preload": False, "unload": False}
+    if state == "running":
+        return {"start": False, "stop": True, "preload": True, "unload": True}
+    if state == "stopped":
+        return {"start": True, "stop": False, "preload": True, "unload": False}
+    return {"start": False, "stop": False, "preload": False, "unload": False}
