@@ -1535,6 +1535,33 @@ def test_active_view_labels_route_compact_known_tool_aliases():
     )
 
 
+def test_active_view_labels_route_timer_and_idea_aliases():
+    """GTK known tool views should tolerate timer and idea API aliases."""
+    timer_state = {
+        "active_view": "timer",
+        "timer_state": {
+            "status": "running",
+            "phase": "work",
+            "work_duration_minutes": 25,
+            "break_duration_minutes": 5,
+            "remaining_work_seconds": 1200,
+            "remaining_break_seconds": 300,
+        },
+    }
+    idea_state = {
+        "active_view": "idea",
+        "idea_view": {"draft_text": "Polish GTK aliases"},
+    }
+
+    assert face_view.view_summary(timer_state, {"state": "running"}) == "Work 20:00 | Break 05:00"
+    assert face_view.header_view_title(timer_state, {"state": "running"}) == "Pomodoro"
+    assert face_view.tool_panel(idea_state, {"state": "running"}) == face_view.ToolPanel(
+        title="Idea",
+        summary="Polish GTK aliases",
+        detail_lines=("Draft in progress",),
+    )
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(
