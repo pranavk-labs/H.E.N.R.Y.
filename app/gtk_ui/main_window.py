@@ -353,7 +353,7 @@ class HenryGtkWindow:
             runtime.get("state"),
             runtime.get("model"),
             runtime.get("error"),
-            ui_state.get("active_view"),
+            str(ui_state.get("active_view") or "").strip() or "idle",
             ui_state.get("status_text"),
             repr(ui_state.get("timer_state")),
             repr(ui_state.get("idea_view")),
