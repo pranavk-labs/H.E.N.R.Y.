@@ -542,6 +542,30 @@ def test_tool_panel_enriches_pomodoro_state():
     assert panel.progress == 0.6
 
 
+def test_tool_panel_surfaces_active_view_runtime_errors():
+    """Active GTK panels should include runtime errors in central detail text."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        {"state": "error", "error": "microphone unavailable"},
+    )
+
+    assert panel.detail_lines == (
+        "Running work session",
+        "Break queued for 05:00",
+        "Runtime error: microphone unavailable",
+    )
+
+
 def test_tool_panel_surfaces_idle_runtime_error_details():
     """Idle GTK panel shows the runtime error reason, not only the error state."""
     panel = face_view.tool_panel(

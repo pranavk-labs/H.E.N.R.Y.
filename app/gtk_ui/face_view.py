@@ -582,6 +582,10 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if error:
             details.append(f"Error: {error}")
 
+    error = _runtime_error_summary(runtime.get("error"))
+    if active_view != "idle" and error and len(details) < 3:
+        details.append(f"Runtime error: {error}")
+
     return ToolPanel(
         title=view_title(active_view),
         summary=summary,
