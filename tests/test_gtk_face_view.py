@@ -60,6 +60,23 @@ def test_view_summary_prefers_active_tool_context():
     )
 
 
+def test_view_summary_ignores_blank_tool_status_text():
+    """Adaptive view summary falls back instead of rendering whitespace."""
+    assert (
+        view_summary(
+            {"active_view": "ideas", "status_text": "   ", "idea_view": {"draft_text": "  "}},
+            {"state": "running"},
+        )
+        == "Idea captured"
+    )
+    assert view_summary(
+        {"active_view": "todo_list", "status_text": "   "}, {"state": "running"}
+    ) == ("Todos")
+    assert view_summary(
+        {"active_view": "calendar", "status_text": "   "}, {"state": "running"}
+    ) == ("Calendar")
+
+
 def test_view_summary_prioritizes_idle_runtime_errors():
     """Idle GTK canvas should surface runtime errors over stale status text."""
     assert (

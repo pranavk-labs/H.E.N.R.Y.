@@ -170,7 +170,7 @@ def _runtime_state_label(runtime: dict[str, Any]) -> str:
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
     active_view = ui_state.get("active_view", "idle")
-    status_text = str(ui_state.get("status_text") or "")
+    status_text = str(ui_state.get("status_text") or "").strip()
     if active_view == "idle":
         error = _runtime_error_summary(runtime.get("error"))
         if error:
@@ -188,7 +188,8 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
     if active_view == "ideas":
         idea = ui_state.get("idea_view") or {}
-        return str(idea.get("draft_text") or status_text or "Idea captured")
+        draft_text = str(idea.get("draft_text") or "").strip()
+        return draft_text or status_text or "Idea captured"
 
     if active_view == "todo_list":
         return status_text or "Todos"
