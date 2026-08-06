@@ -1181,6 +1181,30 @@ def test_tool_panel_surfaces_active_view_runtime_errors():
     )
 
 
+def test_tool_panel_labels_active_view_backend_outages_as_offline():
+    """Active GTK panels should use the same offline language as the header."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        face_view.offline_runtime_state(ConnectionError("connection refused")),
+    )
+
+    assert panel.detail_lines == (
+        "Running work session",
+        "Break queued for 05:00",
+        "Runtime: Offline",
+    )
+
+
 def test_tool_panel_surfaces_active_view_pending_runtime_state():
     """Active GTK panels should include pending runtime state in central detail text."""
     panel = face_view.tool_panel(
