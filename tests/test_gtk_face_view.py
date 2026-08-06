@@ -183,7 +183,7 @@ def test_offline_runtime_state_clears_stale_runtime_context():
     assert face_view.status_badges({"active_view": "idle"}, runtime) == (
         "Offline",
         "Runtime: Offline",
-        "Error: Backend unavailable: connection refused",
+        "Error: Backend offline",
     )
 
 
@@ -395,6 +395,19 @@ def test_status_badges_include_runtime_error_reason():
         "Todos",
         "Runtime: Error",
         "Error: microphone unavailable",
+        "Model: qwen3",
+    )
+    assert face_view.status_badges(
+        {"active_view": "todo_list"},
+        {
+            "state": "error",
+            "model": "qwen3",
+            "error": "Backend unavailable: connection refused",
+        },
+    ) == (
+        "Todos",
+        "Runtime: Offline",
+        "Error: Backend offline",
         "Model: qwen3",
     )
 
