@@ -481,7 +481,7 @@ class HenryGtkWindow:
         except Exception as exc:
             offline_runtime = offline_runtime_state(exc)
             connection_text = "Backend: unavailable"
-            runtime_text = "Runtime: error"
+            runtime_text = f"Runtime: {runtime_summary(offline_runtime)}"
             runtime_tooltip_text = f"Runtime: {runtime_tooltip(offline_runtime)}"
             view_text = "Offline"
             self.connection_status_label.set_text(connection_text)
