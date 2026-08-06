@@ -179,6 +179,8 @@ def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     error = str(runtime.get("error") or "").strip()
     if active_view == "idle" and error.startswith("Backend unavailable:"):
         return "Offline"
+    if active_view == "idle" and runtime_status_class(runtime) == "status-error":
+        return "Error"
     return view_title(active_view)
 
 

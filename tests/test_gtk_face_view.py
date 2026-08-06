@@ -277,6 +277,15 @@ def test_status_badges_summarize_current_surface_state():
 def test_status_badges_include_runtime_error_reason():
     """Canvas badges surface runtime errors even outside the idle panel."""
     assert face_view.status_badges(
+        {"active_view": "idle"},
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+    ) == (
+        "Error",
+        "Runtime: Error",
+        "Model: qwen3",
+        "Error: microphone unavailable",
+    )
+    assert face_view.status_badges(
         {"active_view": "todo_list"},
         {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
     ) == (
