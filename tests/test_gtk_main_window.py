@@ -116,6 +116,6 @@ def test_run_action_refreshes_after_action_exception():
         lambda: (_ for _ in ()).throw(ConnectionError("backend unavailable")),
     )
 
-    assert window.action_status_label.text == "Start: backend unavailable"
+    assert window.action_status_label.text == "Start: Backend offline"
     assert window.css_class == "status-error"
     assert window.refresh_called is True

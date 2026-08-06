@@ -10,6 +10,7 @@ from typing import Any, Callable
 
 from app.gtk_ui.face_view import (
     ToolPanel,
+    action_exception_feedback,
     action_feedback,
     action_status_class,
     action_tooltip,
@@ -313,7 +314,7 @@ class HenryGtkWindow:
             self.refresh()
         except Exception as exc:
             logger.error("GTK runtime action failed: %s", exc, exc_info=True)
-            self.action_status_label.set_text(f"{action_name.title()}: {exc}")
+            self.action_status_label.set_text(action_exception_feedback(action_name, exc))
             self._replace_css_classes(
                 self.action_status_label,
                 STATUS_CLASSES,

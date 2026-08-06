@@ -304,6 +304,15 @@ def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     return f"{action_label}: {state}{suffix}"
 
 
+def action_exception_feedback(action_name: str, error: Any) -> str:
+    """Turn an action exception into concise GTK feedback."""
+    action_label = _humanize(action_name)
+    if isinstance(error, ConnectionError):
+        return f"{action_label}: Backend offline"
+    message = str(error or "").strip() or error.__class__.__name__
+    return f"{action_label}: {message}"
+
+
 def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     """Return which runtime controls should be enabled for the current state."""
     state = str(runtime.get("state") or "unknown").lower()
