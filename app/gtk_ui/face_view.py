@@ -787,6 +787,9 @@ def control_tooltip(
 def tool_panel_tooltip(panel: ToolPanel) -> str:
     """Return full hover text for the central GTK canvas panel."""
     lines = [panel.title, panel.summary, *panel.detail_lines]
+    if panel.progress is not None:
+        progress = max(0.0, min(1.0, panel.progress))
+        lines.append(f"Progress: {round(progress * 100)}%")
     return "\n".join(line for line in lines if str(line).strip())
 
 

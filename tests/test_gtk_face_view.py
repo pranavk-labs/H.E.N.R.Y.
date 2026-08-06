@@ -548,6 +548,21 @@ def test_action_tooltip_humanizes_punctuation_shortcuts():
     assert face_view.action_tooltip("stop", "Stop voice runtime") == ("Stop voice runtime (Ctrl+.)")
 
 
+def test_tool_panel_tooltip_includes_progress_percentage():
+    """GTK canvas hover text should make progress bars inspectable."""
+    assert (
+        face_view.tool_panel_tooltip(
+            face_view.ToolPanel(
+                title="Pomodoro",
+                summary="Work 10:00 | Break 05:00",
+                detail_lines=("Running work session",),
+                progress=0.6,
+            )
+        )
+        == "Pomodoro\nWork 10:00 | Break 05:00\nRunning work session\nProgress: 60%"
+    )
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {
