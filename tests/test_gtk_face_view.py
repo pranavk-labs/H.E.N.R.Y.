@@ -744,3 +744,10 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
         },
         {"state": "running"},
     ).detail_lines == ("Date: Aug 5, 2026",)
+    assert face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "active_event_id": "event:weekly_robotics_seminar_2026_01_27",
+        },
+        {"state": "running"},
+    ).detail_lines == ("Event: weekly_r",)

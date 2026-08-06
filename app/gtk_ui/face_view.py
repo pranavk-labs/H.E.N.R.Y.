@@ -147,6 +147,12 @@ def _date_label(value: Any) -> str:
     return f"{month} {parsed.day}, {parsed.year}"
 
 
+def _short_identifier(value: Any) -> str:
+    raw_value = str(value or "").strip()
+    label = raw_value.split(":", 1)[1] if ":" in raw_value else raw_value
+    return label[:8]
+
+
 def _runtime_error_summary(error: Any) -> str:
     message = str(error or "").strip()
     if message.startswith("Backend unavailable:"):
@@ -625,7 +631,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if ui_state.get("calendar_filter_type"):
             details.append(f"Type: {_humanize(ui_state['calendar_filter_type'])}")
         if ui_state.get("active_event_id"):
-            details.append(f"Event: {str(ui_state['active_event_id'])[:8]}")
+            details.append(f"Event: {_short_identifier(ui_state['active_event_id'])}")
 
     elif active_view == "idle":
         if runtime:
