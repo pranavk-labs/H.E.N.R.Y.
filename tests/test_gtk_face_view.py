@@ -515,7 +515,7 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
     )
 
     assert panel.summary == "Waiting"
-    assert panel.detail_lines == ("Error - qwen3", "Error: microphone unavailable")
+    assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
 
 
 def test_tool_panel_enriches_todo_and_calendar_filters():
