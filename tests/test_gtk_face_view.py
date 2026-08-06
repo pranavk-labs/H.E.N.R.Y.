@@ -490,6 +490,8 @@ def test_status_badge_tone_marks_important_states():
     assert face_view.status_badge_tone("Runtime: Offline") == "error"
     assert face_view.status_badge_tone("Runtime: Running") == "ok"
     assert face_view.status_badge_tone("Runtime: Loading") == "pending"
+    assert face_view.status_badge_tone("Loading") == "pending"
+    assert face_view.status_badge_tone("Starting") == "pending"
     assert face_view.status_badge_tone("Pomodoro") == "neutral"
 
 

@@ -422,6 +422,8 @@ def status_badge_tone(label: Any) -> str:
         "Error:"
     ):
         return "error"
+    if value in {"Starting", "Stopping", "Loading", "Unloading"}:
+        return "pending"
     if value in {
         "Runtime: Running",
         "Runtime: Stopped",
