@@ -151,11 +151,11 @@ class HenryGtkWindow:
         self,
         icon_name: str,
         tooltip: str,
-        action: Callable[[], dict[str, Any]],
+        action: Callable[[], Any],
     ) -> Any:
         button = self.Gtk.Button.new_from_icon_name(icon_name)
         button.set_tooltip_text(tooltip)
-        button.connect("clicked", lambda _button: self._run_action(action))
+        button.connect("clicked", lambda _button: action())
         return button
 
     def _build(self) -> None:
@@ -167,28 +167,28 @@ class HenryGtkWindow:
         self._buttons["back"] = self._icon_button(
             "go-previous-symbolic",
             "Go back",
-            self.client.go_back,
+            self.go_back,
         )
         self._buttons["start"] = self._icon_button(
             "media-playback-start-symbolic",
             "Start voice runtime",
-            self.client.start_runtime,
+            self.start_runtime,
         )
         self._buttons["start"].add_css_class("suggested-action")
         self._buttons["stop"] = self._icon_button(
             "media-playback-stop-symbolic",
             "Stop voice runtime",
-            self.client.stop_runtime,
+            self.stop_runtime,
         )
         self._buttons["unload"] = self._icon_button(
             "edit-clear-symbolic",
             "Unload model",
-            self.client.unload_model,
+            self.unload_model,
         )
         self._buttons["preload"] = self._icon_button(
             "view-refresh-symbolic",
             "Preload model",
-            self.client.preload_model,
+            self.preload_model,
         )
         toolbar.pack_start(self._buttons["back"])
         toolbar.pack_start(self._buttons["start"])
@@ -235,6 +235,26 @@ class HenryGtkWindow:
         except Exception as exc:
             logger.error("GTK runtime action failed: %s", exc, exc_info=True)
             self.runtime_status_label.set_text(f"Runtime error: {exc}")
+
+    def go_back(self) -> None:
+        """Navigate back in the UI stack."""
+        self._run_action(self.client.go_back)
+
+    def start_runtime(self) -> None:
+        """Start the voice runtime."""
+        self._run_action(self.client.start_runtime)
+
+    def stop_runtime(self) -> None:
+        """Stop the voice runtime."""
+        self._run_action(self.client.stop_runtime)
+
+    def preload_model(self) -> None:
+        """Preload the configured model."""
+        self._run_action(self.client.preload_model)
+
+    def unload_model(self) -> None:
+        """Unload the configured model."""
+        self._run_action(self.client.unload_model)
 
     def _state_key(
         self,

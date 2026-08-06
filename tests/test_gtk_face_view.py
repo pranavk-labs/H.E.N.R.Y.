@@ -100,6 +100,17 @@ def test_header_state_exposes_back_and_active_states():
     }
 
 
+def test_action_shortcuts_are_stable_and_discoverable():
+    """GTK app actions expose predictable keyboard accelerators."""
+    assert face_view.action_shortcuts() == {
+        "back": ["Escape", "<Alt>Left"],
+        "start": ["<Primary>Return"],
+        "stop": ["<Primary>period"],
+        "preload": ["<Primary>r"],
+        "unload": ["<Primary>u"],
+    }
+
+
 def test_tool_panel_enriches_pomodoro_state():
     """Pomodoro view exposes phase, next break, and progress for rendering."""
     panel = face_view.tool_panel(

@@ -221,6 +221,17 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def action_shortcuts() -> dict[str, list[str]]:
+    """Return GTK app action keyboard shortcuts."""
+    return {
+        "back": ["Escape", "<Alt>Left"],
+        "start": ["<Primary>Return"],
+        "stop": ["<Primary>period"],
+        "preload": ["<Primary>r"],
+        "unload": ["<Primary>u"],
+    }
+
+
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
     active_view = str(ui_state.get("active_view", "idle"))
