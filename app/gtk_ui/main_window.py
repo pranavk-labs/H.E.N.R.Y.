@@ -12,6 +12,7 @@ from app.gtk_ui.face_view import (
     ToolPanel,
     action_feedback,
     action_status_class,
+    action_tooltip,
     active_states_status_class,
     compact_status_badges,
     control_state,
@@ -205,28 +206,28 @@ class HenryGtkWindow:
         toolbar.set_title_widget(Adw.WindowTitle(title="H.E.N.R.Y.", subtitle=""))
         self._buttons["back"] = self._icon_button(
             "go-previous-symbolic",
-            "Go back",
+            action_tooltip("back", "Go back"),
             self.go_back,
         )
         self._buttons["start"] = self._icon_button(
             "media-playback-start-symbolic",
-            "Start voice runtime",
+            action_tooltip("start", "Start voice runtime"),
             self.start_runtime,
         )
         self._buttons["start"].add_css_class("suggested-action")
         self._buttons["stop"] = self._icon_button(
             "media-playback-stop-symbolic",
-            "Stop voice runtime",
+            action_tooltip("stop", "Stop voice runtime"),
             self.stop_runtime,
         )
         self._buttons["unload"] = self._icon_button(
             "edit-clear-symbolic",
-            "Unload model",
+            action_tooltip("unload", "Unload model"),
             self.unload_model,
         )
         self._buttons["preload"] = self._icon_button(
             "view-refresh-symbolic",
-            "Preload model",
+            action_tooltip("preload", "Preload model"),
             self.preload_model,
         )
         toolbar.pack_start(self._buttons["back"])

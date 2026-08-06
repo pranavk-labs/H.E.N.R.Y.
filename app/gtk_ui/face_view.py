@@ -490,6 +490,25 @@ def action_shortcuts() -> dict[str, list[str]]:
     }
 
 
+def _humanize_shortcut(shortcut: str) -> str:
+    value = shortcut.replace("<Primary>", "Ctrl+").replace("<Alt>", "Alt+")
+    value = value.replace("Escape", "Esc").replace("Return", "Enter")
+    if value.startswith("Ctrl+") and len(value) == len("Ctrl+") + 1:
+        return f"Ctrl+{value[-1].upper()}"
+    if value.startswith("Alt+") and len(value) == len("Alt+") + 1:
+        return f"Alt+{value[-1].upper()}"
+    return value
+
+
+def action_tooltip(action_name: str, label: str) -> str:
+    """Return a toolbar tooltip with human-readable shortcuts."""
+    shortcuts = action_shortcuts().get(action_name, [])
+    if not shortcuts:
+        return label
+    shortcut_text = ", ".join(_humanize_shortcut(shortcut) for shortcut in shortcuts)
+    return f"{label} ({shortcut_text})"
+
+
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
     active_view = str(ui_state.get("active_view", "idle"))

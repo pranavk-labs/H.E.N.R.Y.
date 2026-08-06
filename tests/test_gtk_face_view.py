@@ -248,6 +248,14 @@ def test_action_feedback_prefers_response_state_and_model():
     )
 
 
+def test_action_tooltip_includes_human_keyboard_shortcuts():
+    """GTK toolbar tooltips expose shortcuts without raw accelerator syntax."""
+    assert face_view.action_tooltip("start", "Start voice runtime") == (
+        "Start voice runtime (Ctrl+Enter)"
+    )
+    assert face_view.action_tooltip("back", "Go back") == "Go back (Esc, Alt+Left)"
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {
