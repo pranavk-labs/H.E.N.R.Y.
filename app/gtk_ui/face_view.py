@@ -771,7 +771,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if runtime:
             details.append(f"Runtime: {runtime_summary(runtime)}")
         error = _runtime_error_summary(runtime.get("error"))
-        if error:
+        if error and error != summary:
             details.append(f"Error: {error}")
 
     attention_detail = ""

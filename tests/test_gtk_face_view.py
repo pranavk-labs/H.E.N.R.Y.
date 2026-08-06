@@ -1127,13 +1127,30 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
     )
 
     assert panel.summary == "microphone unavailable"
-    assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
+    assert panel.detail_lines == ("Runtime: Error - qwen3",)
     offline_panel = face_view.tool_panel(
         {"active_view": "idle", "status_text": "Waiting"},
         face_view.offline_runtime_state(ConnectionError("connection refused")),
     )
     assert offline_panel.summary == "Backend offline"
-    assert offline_panel.detail_lines == ("Runtime: Offline", "Error: Backend offline")
+    assert offline_panel.detail_lines == ("Runtime: Offline",)
+
+
+def test_tool_panel_omits_duplicate_idle_error_detail():
+    """Idle error panels should not repeat the headline as a detail line."""
+    panel = face_view.tool_panel(
+        {"active_view": "idle", "status_text": "Waiting"},
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+    )
+    offline_panel = face_view.tool_panel(
+        {"active_view": "idle", "status_text": "Waiting"},
+        face_view.offline_runtime_state(ConnectionError("connection refused")),
+    )
+
+    assert panel.summary == "microphone unavailable"
+    assert panel.detail_lines == ("Runtime: Error - qwen3",)
+    assert offline_panel.summary == "Backend offline"
+    assert offline_panel.detail_lines == ("Runtime: Offline",)
 
 
 def test_tool_panel_treats_blank_active_view_as_idle():
@@ -1145,7 +1162,7 @@ def test_tool_panel_treats_blank_active_view_as_idle():
 
     assert panel.title == "Listening"
     assert panel.summary == "microphone unavailable"
-    assert panel.detail_lines == ("Runtime: Error - qwen3", "Error: microphone unavailable")
+    assert panel.detail_lines == ("Runtime: Error - qwen3",)
 
 
 def test_active_view_labels_ignore_api_casing():
