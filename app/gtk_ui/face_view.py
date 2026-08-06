@@ -499,6 +499,8 @@ def _overflow_primary_label(primary: str) -> str:
         return "Error"
     if primary.startswith("Active:"):
         return "Active"
+    if primary.startswith("Model:"):
+        return "Model"
     return primary
 
 

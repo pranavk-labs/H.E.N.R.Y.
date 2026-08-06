@@ -733,6 +733,15 @@ def test_compact_status_badges_keeps_active_state_readable_when_clipped():
     assert face_view.status_badge_tone(active_badge) == "pending"
 
 
+def test_compact_status_badges_keeps_model_badges_readable_when_clipped():
+    """Very narrow model badges should keep the badge type visible."""
+    assert face_view.compact_status_badges(
+        ("Model: qwen3", "Runtime: Running"),
+        max_chars=12,
+        max_badges=1,
+    ) == ("Model +1",)
+
+
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
