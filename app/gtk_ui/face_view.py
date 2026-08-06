@@ -223,7 +223,10 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return status_text
 
     if active_view == "pomodoro":
-        timer = _dict_state(ui_state.get("timer_state"))
+        raw_timer = ui_state.get("timer_state")
+        if raw_timer is None:
+            return "Timer ready"
+        timer = _dict_state(raw_timer)
         work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
         rest = _format_seconds(_timer_int(timer.get("remaining_break_seconds")))
         return f"Work {work} | Break {rest}"
@@ -652,23 +655,27 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     progress: float | None = None
 
     if active_view == "pomodoro":
-        timer = _dict_state(ui_state.get("timer_state"))
-        status = _humanized_label(timer.get("status")) or "Timer"
-        phase = str(timer.get("phase") or "").strip().lower() or "work"
-        phase_label = phase if phase == "work" else _humanized_label(phase)
-        work_remaining = _timer_int(timer.get("remaining_work_seconds"))
-        break_remaining = _timer_int(timer.get("remaining_break_seconds"))
-        details.append(f"{status} {phase_label} session")
-        if phase == "work":
-            details.append(f"Break queued for {_format_seconds(break_remaining)}")
-            total = _timer_int(timer.get("work_duration_minutes")) * 60
-            remaining = work_remaining
+        raw_timer = ui_state.get("timer_state")
+        if raw_timer is None:
+            details.append("Ready to start")
         else:
-            details.append(f"Next work block after {_format_seconds(break_remaining)}")
-            total = _timer_int(timer.get("break_duration_minutes")) * 60
-            remaining = break_remaining
-        if total > 0:
-            progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
+            timer = _dict_state(raw_timer)
+            status = _humanized_label(timer.get("status")) or "Timer"
+            phase = str(timer.get("phase") or "").strip().lower() or "work"
+            phase_label = phase if phase == "work" else _humanized_label(phase)
+            work_remaining = _timer_int(timer.get("remaining_work_seconds"))
+            break_remaining = _timer_int(timer.get("remaining_break_seconds"))
+            details.append(f"{status} {phase_label} session")
+            if phase == "work":
+                details.append(f"Break queued for {_format_seconds(break_remaining)}")
+                total = _timer_int(timer.get("work_duration_minutes")) * 60
+                remaining = work_remaining
+            else:
+                details.append(f"Next work block after {_format_seconds(break_remaining)}")
+                total = _timer_int(timer.get("break_duration_minutes")) * 60
+                remaining = break_remaining
+            if total > 0:
+                progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
 
     elif active_view == "ideas":
         idea = _dict_state(ui_state.get("idea_view"))

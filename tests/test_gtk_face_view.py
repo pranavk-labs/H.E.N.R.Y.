@@ -885,6 +885,15 @@ def test_tool_panel_tolerates_blank_pomodoro_timer_numbers():
     assert panel.progress is None
 
 
+def test_tool_panel_marks_missing_pomodoro_timer_state_ready():
+    """Pomodoro panel should not render zeroed timers before state arrives."""
+    panel = face_view.tool_panel({"active_view": "pomodoro"}, {"state": "running"})
+
+    assert panel.summary == "Timer ready"
+    assert panel.detail_lines == ("Ready to start",)
+    assert panel.progress is None
+
+
 def test_view_summary_tolerates_non_mapping_pomodoro_timer_state():
     """Malformed Pomodoro timer state should not crash the GTK summary."""
     assert (
