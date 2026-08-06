@@ -490,7 +490,18 @@ def _overflow_text(text: str, max_chars: int) -> str:
     return f"{text[: max_chars - 3].rstrip()}..."
 
 
+def _overflow_primary_label(primary: str) -> str:
+    if primary.startswith("Runtime:"):
+        runtime_label = primary.split(":", 1)[1].strip()
+        if runtime_label:
+            return runtime_label
+    if primary.startswith("Error:"):
+        return "Error"
+    return primary
+
+
 def _primary_overflow_badge(primary: str, overflow_count: int, max_chars: int) -> str:
+    primary = _overflow_primary_label(primary)
     suffix = f" +{overflow_count}"
     if len(primary) + len(suffix) <= max_chars:
         return f"{primary}{suffix}"
@@ -544,6 +555,10 @@ def status_badge_tone(label: Any) -> str:
     if value in {"Starting", "Stopping", "Loading", "Unloading"}:
         return "pending"
     if value in {
+        "Running",
+        "Stopped",
+        "Loaded",
+        "Unloaded",
         "Runtime: Running",
         "Runtime: Stopped",
         "Runtime: Loaded",

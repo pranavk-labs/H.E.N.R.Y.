@@ -702,6 +702,25 @@ def test_compact_status_badges_preserves_one_slot_overflow_count_when_clipped():
     ) == ("Cale... +2",)
 
 
+def test_compact_status_badges_keeps_runtime_state_readable_when_clipped():
+    """Very narrow runtime badges should keep the status word and tone readable."""
+    offline_badge = face_view.compact_status_badges(
+        ("Runtime: Offline", "Error: backend unavailable"),
+        max_chars=12,
+        max_badges=1,
+    )[0]
+    running_badge = face_view.compact_status_badges(
+        ("Runtime: Running", "Model: qwen3"),
+        max_chars=12,
+        max_badges=1,
+    )[0]
+
+    assert offline_badge == "Offline +1"
+    assert face_view.status_badge_tone(offline_badge) == "error"
+    assert running_badge == "Running +1"
+    assert face_view.status_badge_tone(running_badge) == "ok"
+
+
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
