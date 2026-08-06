@@ -9,12 +9,13 @@ import time
 from typing import Any, Callable
 
 from app.gtk_ui.face_view import (
+    ToolPanel,
     control_state,
     face_geometry,
     runtime_summary,
     sleepiness_for_elapsed,
+    tool_panel,
     view_accent,
-    view_summary,
     view_title,
 )
 from app.gtk_ui.runtime_client import RuntimeClient
@@ -224,6 +225,15 @@ class HenryGtkWindow:
             ui_state.get("status_text"),
             repr(ui_state.get("timer_state")),
             repr(ui_state.get("idea_view")),
+            ui_state.get("active_todo_id"),
+            ui_state.get("active_todo_title"),
+            ui_state.get("todo_filter_status"),
+            ui_state.get("selected_category_id"),
+            ui_state.get("calendar_view_mode"),
+            ui_state.get("calendar_selected_date"),
+            ui_state.get("calendar_filter_type"),
+            ui_state.get("active_event_id"),
+            repr(ui_state.get("active_states")),
         )
 
     def refresh(self) -> bool:
@@ -288,14 +298,22 @@ class HenryGtkWindow:
 
     def _draw(self, _area: Any, cr: Any, width: int, height: int) -> None:
         self._paint_background(cr, width, height)
-        summary = view_summary(self.ui_state, self.runtime)
+        panel = tool_panel(self.ui_state, self.runtime)
         active_view = self.ui_state.get("active_view", "idle")
         if active_view == "idle":
             self._draw_face(cr, width, height)
-            if summary:
-                self._draw_centered_text(cr, summary, width / 2, height * 0.86, width * 0.8, 24)
+            if panel.summary:
+                self._draw_centered_text(
+                    cr,
+                    panel.summary,
+                    width / 2,
+                    height * 0.84,
+                    width * 0.8,
+                    24,
+                )
+            self._draw_detail_lines(cr, panel.detail_lines, width, height * 0.9, 18)
         else:
-            self._draw_adaptive_view(cr, width, height, str(active_view), summary)
+            self._draw_adaptive_view(cr, width, height, str(active_view), panel)
 
     def _paint_background(self, cr: Any, width: int, height: int) -> None:
         active_view = str(self.ui_state.get("active_view", "idle"))
@@ -376,7 +394,7 @@ class HenryGtkWindow:
         width: int,
         height: int,
         active_view: str,
-        summary: str,
+        panel: ToolPanel,
     ) -> None:
         accent = view_accent(active_view)
         cr.set_source_rgb(*accent)
@@ -384,7 +402,7 @@ class HenryGtkWindow:
         cr.fill()
         self._draw_centered_text(
             cr,
-            view_title(active_view),
+            panel.title,
             width / 2,
             height * 0.36,
             width * 0.82,
@@ -392,12 +410,72 @@ class HenryGtkWindow:
         )
         self._draw_centered_text(
             cr,
-            summary,
+            panel.summary,
             width / 2,
             height * 0.52,
             width * 0.82,
             28,
         )
+        if panel.progress is not None:
+            self._draw_progress_bar(cr, width, height * 0.61, width * 0.56, panel.progress, accent)
+            detail_y = height * 0.71
+        else:
+            detail_y = height * 0.66
+        self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
+
+    def _draw_progress_bar(
+        self,
+        cr: Any,
+        width: int,
+        y: float,
+        bar_width: float,
+        progress: float,
+        accent: tuple[float, float, float],
+    ) -> None:
+        bar_height = max(8, width * 0.012)
+        x = (width - bar_width) / 2
+        radius = bar_height / 2
+        cr.set_source_rgba(1, 1, 1, 0.12)
+        self._rounded_rect(cr, x, y, bar_width, bar_height, radius)
+        cr.fill()
+        cr.set_source_rgb(*accent)
+        self._rounded_rect(cr, x, y, bar_width * max(0, min(progress, 1)), bar_height, radius)
+        cr.fill()
+
+    def _rounded_rect(
+        self,
+        cr: Any,
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        radius: float,
+    ) -> None:
+        radius = min(radius, width / 2, height / 2)
+        cr.new_sub_path()
+        cr.arc(x + width - radius, y + radius, radius, -math.pi / 2, 0)
+        cr.arc(x + width - radius, y + height - radius, radius, 0, math.pi / 2)
+        cr.arc(x + radius, y + height - radius, radius, math.pi / 2, math.pi)
+        cr.arc(x + radius, y + radius, radius, math.pi, 3 * math.pi / 2)
+        cr.close_path()
+
+    def _draw_detail_lines(
+        self,
+        cr: Any,
+        lines: tuple[str, ...],
+        width: int,
+        start_y: float,
+        font_size: int,
+    ) -> None:
+        for index, line in enumerate(lines):
+            self._draw_centered_text(
+                cr,
+                line,
+                width / 2,
+                start_y + index * font_size * 1.55,
+                width * 0.74,
+                font_size,
+            )
 
     def _draw_centered_text(
         self,

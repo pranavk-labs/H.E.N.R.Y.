@@ -84,3 +84,53 @@ def test_control_state_matches_runtime_lifecycle():
         "preload": False,
         "unload": False,
     }
+
+
+def test_tool_panel_enriches_pomodoro_state():
+    """Pomodoro view exposes phase, next break, and progress for rendering."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.title == "Pomodoro"
+    assert panel.summary == "Work 10:00 | Break 05:00"
+    assert panel.detail_lines == ("Running work session", "Break queued for 05:00")
+    assert panel.progress == 0.6
+
+
+def test_tool_panel_enriches_todo_and_calendar_filters():
+    """Todo and calendar views surface filters instead of generic placeholder text."""
+    todo_panel = face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "todo_filter_status": "in_progress",
+            "active_todo_title": "Polish GTK",
+        },
+        {"state": "running"},
+    )
+    calendar_panel = face_view.tool_panel(
+        {
+            "active_view": "calendar",
+            "calendar_view_mode": "week",
+            "calendar_selected_date": "2026-08-05",
+            "calendar_filter_type": "meeting",
+        },
+        {"state": "running"},
+    )
+
+    assert todo_panel.summary == "3 tasks"
+    assert todo_panel.detail_lines == ("Active: Polish GTK", "Filter: In Progress")
+    assert calendar_panel.summary == "Week"
+    assert calendar_panel.detail_lines == ("Date: 2026-08-05", "Type: Meeting")

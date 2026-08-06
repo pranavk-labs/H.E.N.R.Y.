@@ -40,6 +40,16 @@ class FaceGeometry:
     mouth: MouthGeometry
 
 
+@dataclass(frozen=True)
+class ToolPanel:
+    """Text and progress model for one adaptive GTK tool screen."""
+
+    title: str
+    summary: str
+    detail_lines: tuple[str, ...] = ()
+    progress: float | None = None
+
+
 def sleepiness_for_elapsed(
     elapsed_seconds: float,
     *,
@@ -120,6 +130,11 @@ def _format_seconds(total_seconds: int) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
+def _humanize(value: Any) -> str:
+    """Convert compact API values into short labels."""
+    return str(value or "").replace("_", " ").strip().title()
+
+
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
     active_view = ui_state.get("active_view", "idle")
@@ -190,3 +205,70 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     if state == "stopped":
         return {"start": True, "stop": False, "preload": True, "unload": False}
     return {"start": False, "stop": False, "preload": False, "unload": False}
+
+
+def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
+    """Build the richer content model rendered by the GTK canvas."""
+    active_view = str(ui_state.get("active_view", "idle"))
+    summary = view_summary(ui_state, runtime)
+    details: list[str] = []
+    progress: float | None = None
+
+    if active_view == "pomodoro":
+        timer = ui_state.get("timer_state") or {}
+        status = _humanize(timer.get("status") or "timer")
+        phase = str(timer.get("phase") or "work").lower()
+        work_remaining = int(timer.get("remaining_work_seconds", 0))
+        break_remaining = int(timer.get("remaining_break_seconds", 0))
+        details.append(f"{status} {phase} session")
+        if phase == "work":
+            details.append(f"Break queued for {_format_seconds(break_remaining)}")
+            total = int(timer.get("work_duration_minutes", 0)) * 60
+            remaining = work_remaining
+        else:
+            details.append(f"Next work block after {_format_seconds(break_remaining)}")
+            total = int(timer.get("break_duration_minutes", 0)) * 60
+            remaining = break_remaining
+        if total > 0:
+            progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
+
+    elif active_view == "ideas":
+        idea = ui_state.get("idea_view") or {}
+        if idea.get("is_active"):
+            details.append("Active idea")
+        if idea.get("active_idea_id"):
+            details.append(f"ID: {str(idea['active_idea_id'])[:8]}")
+        if not details:
+            details.append("Ready to capture")
+
+    elif active_view == "todo_list":
+        active_title = str(ui_state.get("active_todo_title") or "").strip()
+        if active_title:
+            details.append(f"Active: {active_title}")
+        elif ui_state.get("active_todo_id"):
+            details.append(f"Active todo: {str(ui_state['active_todo_id'])[:8]}")
+        if ui_state.get("todo_filter_status"):
+            details.append(f"Filter: {_humanize(ui_state['todo_filter_status'])}")
+        if ui_state.get("selected_category_id"):
+            details.append(f"Category: {str(ui_state['selected_category_id'])[:8]}")
+
+    elif active_view == "calendar":
+        mode = _humanize(ui_state.get("calendar_view_mode") or "upcoming")
+        summary = summary if summary != "Calendar" else mode
+        if ui_state.get("calendar_selected_date"):
+            details.append(f"Date: {ui_state['calendar_selected_date']}")
+        if ui_state.get("calendar_filter_type"):
+            details.append(f"Type: {_humanize(ui_state['calendar_filter_type'])}")
+        if ui_state.get("active_event_id"):
+            details.append(f"Event: {str(ui_state['active_event_id'])[:8]}")
+
+    elif active_view == "idle":
+        if runtime:
+            details.append(runtime_summary(runtime))
+
+    return ToolPanel(
+        title=view_title(active_view),
+        summary=summary,
+        detail_lines=tuple(details[:3]),
+        progress=progress,
+    )

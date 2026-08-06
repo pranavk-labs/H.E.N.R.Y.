@@ -41,6 +41,7 @@ class UIStateResponse(BaseModel):
     todo_filter_status: Optional[str] = None
     selected_category_id: Optional[str] = None
     active_todo_id: Optional[str] = None
+    active_todo_title: str = ""
     # Calendar state
     calendar_view_mode: str = "upcoming"
     calendar_selected_date: Optional[str] = None
@@ -97,6 +98,7 @@ async def ui_state() -> Any:
         todo_filter_status=state.todo_filter_status,
         selected_category_id=state.selected_category_id,
         active_todo_id=state.active_todo_id,
+        active_todo_title=state.active_todo_title,
         calendar_view_mode=state.calendar_view_mode,
         calendar_selected_date=state.calendar_selected_date,
         calendar_filter_type=state.calendar_filter_type,
@@ -173,6 +175,5 @@ async def show_calendar(
     screen = ScreenManager.get_instance()
     screen.show_calendar(view_mode=view_mode, selected_date=selected_date, filter_type=filter_type)
     return {"success": True, "view": "calendar"}
-
 
 
