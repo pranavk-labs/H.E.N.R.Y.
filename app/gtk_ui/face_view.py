@@ -160,6 +160,7 @@ def _list_state(value: Any) -> list[Any]:
 def _active_view_name(value: Any) -> str:
     view_name = str(value or "").strip().lower() or "idle"
     aliases = {
+        "todo": "todo_list",
         "todo-list": "todo_list",
     }
     return aliases.get(view_name, view_name)

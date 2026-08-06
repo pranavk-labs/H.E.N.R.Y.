@@ -1518,6 +1518,23 @@ def test_active_view_labels_route_hyphenated_known_tool_names():
     )
 
 
+def test_active_view_labels_route_compact_known_tool_aliases():
+    """GTK known tool views should tolerate compact API aliases."""
+    ui_state = {
+        "active_view": "todo",
+        "status_text": "Todos",
+        "active_todo_title": "Polish GTK aliases",
+    }
+
+    assert face_view.view_summary(ui_state, {"state": "running"}) == "Polish GTK aliases"
+    assert face_view.header_view_title(ui_state, {"state": "running"}) == "Todos"
+    assert face_view.tool_panel(ui_state, {"state": "running"}) == face_view.ToolPanel(
+        title="Todos",
+        summary="Polish GTK aliases",
+        detail_lines=(),
+    )
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(
