@@ -324,6 +324,12 @@ def test_model_entry_user_edited_resets_after_successful_model_actions():
     )
     assert (
         face_view.model_entry_user_edited_after_action(
+            "preload", {"state": "loaded", "model": "qwen3", "error": "   "}, was_user_edited=True
+        )
+        is False
+    )
+    assert (
+        face_view.model_entry_user_edited_after_action(
             "unload", {"state": "unloaded", "model": "qwen3"}, was_user_edited=True
         )
         is False

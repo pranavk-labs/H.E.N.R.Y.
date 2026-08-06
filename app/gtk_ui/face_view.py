@@ -314,7 +314,7 @@ def model_entry_user_edited_after_action(
     was_user_edited: bool,
 ) -> bool:
     """Return whether GTK should keep protecting user-entered model text."""
-    if response.get("error"):
+    if str(response.get("error") or "").strip():
         return was_user_edited
     if action_name in {"preload", "unload"}:
         return False
