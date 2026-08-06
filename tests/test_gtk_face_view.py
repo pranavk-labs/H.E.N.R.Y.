@@ -302,6 +302,38 @@ def test_compact_status_badges_omits_blank_badges():
     ) == ("Listening", "Runtime: Running")
 
 
+def test_status_badge_tone_marks_important_states():
+    """GTK canvas badges use tones that make state severity scannable."""
+    assert face_view.status_badge_tone("Offline") == "error"
+    assert face_view.status_badge_tone("Error: microphone unavailable") == "error"
+    assert face_view.status_badge_tone("Runtime: Error") == "error"
+    assert face_view.status_badge_tone("Runtime: Running") == "ok"
+    assert face_view.status_badge_tone("Runtime: Loading") == "pending"
+    assert face_view.status_badge_tone("Pomodoro") == "neutral"
+
+
+def test_status_badge_rgba_uses_subtle_tinted_fills():
+    """GTK canvas badges keep contrast while carrying status color."""
+    assert face_view.status_badge_rgba("Runtime: Running", (0.1, 0.2, 0.3)) == (
+        0.31,
+        0.78,
+        0.47,
+        0.18,
+    )
+    assert face_view.status_badge_rgba("Offline", (0.1, 0.2, 0.3)) == (
+        1.0,
+        0.42,
+        0.37,
+        0.2,
+    )
+    assert face_view.status_badge_rgba("Pomodoro", (0.1, 0.2, 0.3)) == (
+        0.1,
+        0.2,
+        0.3,
+        0.16,
+    )
+
+
 def test_wrapped_text_lines_wraps_words_with_overflow_marker():
     """Long GTK summaries wrap into bounded canvas lines."""
     assert face_view.wrapped_text_lines(

@@ -347,6 +347,37 @@ def compact_status_badges(badges: tuple[str, ...], *, max_chars: int) -> tuple[s
     )
 
 
+def status_badge_tone(label: Any) -> str:
+    """Return the visual tone for one GTK canvas status badge."""
+    value = str(label or "").strip()
+    if value == "Offline" or value.startswith("Error:") or value == "Runtime: Error":
+        return "error"
+    if value in {
+        "Runtime: Running",
+        "Runtime: Stopped",
+        "Runtime: Loaded",
+        "Runtime: Unloaded",
+    }:
+        return "ok"
+    if value.startswith("Runtime:"):
+        return "pending"
+    return "neutral"
+
+
+def status_badge_rgba(
+    label: Any, accent: tuple[float, float, float]
+) -> tuple[float, float, float, float]:
+    """Return a subtle fill color for one GTK canvas status badge."""
+    tone = status_badge_tone(label)
+    if tone == "error":
+        return (1.0, 0.42, 0.37, 0.2)
+    if tone == "ok":
+        return (0.31, 0.78, 0.47, 0.18)
+    if tone == "pending":
+        return (0.85, 0.72, 0.31, 0.2)
+    return (*accent, 0.16)
+
+
 def wrapped_text_lines(text: Any, *, max_chars: int, max_lines: int) -> tuple[str, ...]:
     """Wrap text into a small bounded set of GTK canvas lines."""
     line_limit = max(0, int(max_lines))

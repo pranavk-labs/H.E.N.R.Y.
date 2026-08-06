@@ -24,6 +24,7 @@ from app.gtk_ui.face_view import (
     runtime_summary,
     runtime_status_class,
     sleepiness_for_elapsed,
+    status_badge_rgba,
     status_badges,
     tool_panel,
     view_accent,
@@ -563,6 +564,7 @@ class HenryGtkWindow:
         self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
 
     def _draw_status_badges(self, cr: Any, width: int) -> None:
+        accent = view_accent(str(self.ui_state.get("active_view", "idle")))
         badge_char_limit = min(44, max(12, int((width - 48) / (13 * 0.55))))
         badges = compact_status_badges(
             status_badges(self.ui_state, self.runtime),
@@ -585,7 +587,7 @@ class HenryGtkWindow:
             if x + badge_width > width - 24 and x > 24:
                 x = 24.0
                 y += badge_height + gap
-            cr.set_source_rgba(1, 1, 1, 0.1)
+            cr.set_source_rgba(*status_badge_rgba(badge, accent))
             self._rounded_rect(cr, x, y, badge_width, badge_height, 8)
             cr.fill()
             cr.set_source_rgba(1, 1, 1, 0.82)
