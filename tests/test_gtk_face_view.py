@@ -118,6 +118,7 @@ def test_view_title_and_accent_make_active_context_scannable():
     assert face_view.view_title("pomodoro") == "Pomodoro"
     assert face_view.view_title("todo_list") == "Todos"
     assert face_view.view_title("unknown_tool") == "Unknown Tool"
+    assert face_view.view_title("voice-note") == "Voice Note"
     assert face_view.view_title("   ") == "Listening"
     assert face_view.status_badges({"active_view": "   "}, {"state": "running"}) == (
         "Listening",

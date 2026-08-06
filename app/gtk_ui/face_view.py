@@ -220,7 +220,7 @@ def view_title(active_view: str) -> str:
     }
     if not view_name:
         return labels["idle"]
-    return labels.get(view_name, view_name.replace("_", " ").title())
+    return labels.get(view_name, _humanized_label(view_name))
 
 
 def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
