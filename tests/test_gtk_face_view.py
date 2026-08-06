@@ -787,3 +787,29 @@ def test_tool_panel_simplifies_scoped_fallback_identifiers():
         },
         {"state": "running"},
     ).detail_lines == ("Active: book_doc", "Category: health_a")
+
+
+def test_tool_panel_skips_blank_fallback_identifiers():
+    """Fallback GTK panel identifiers should not render empty labels."""
+    assert face_view.tool_panel(
+        {"active_view": "ideas", "idea_view": {"active_idea_id": "   "}},
+        {"state": "running"},
+    ).detail_lines == ("Ready to capture",)
+    assert (
+        face_view.tool_panel(
+            {
+                "active_view": "todo_list",
+                "active_todo_id": "   ",
+                "selected_category_id": "   ",
+            },
+            {"state": "running"},
+        ).detail_lines
+        == ()
+    )
+    assert (
+        face_view.tool_panel(
+            {"active_view": "calendar", "active_event_id": "   "},
+            {"state": "running"},
+        ).detail_lines
+        == ()
+    )

@@ -609,7 +609,9 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if idea.get("is_active"):
             details.append("Active idea")
         if idea.get("active_idea_id"):
-            details.append(f"ID: {_short_identifier(idea['active_idea_id'])}")
+            identifier = _short_identifier(idea["active_idea_id"])
+            if identifier:
+                details.append(f"ID: {identifier}")
         if not details:
             details.append("Ready to capture")
 
@@ -618,11 +620,15 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if active_title:
             details.append(f"Active: {active_title}")
         elif ui_state.get("active_todo_id"):
-            details.append(f"Active: {_short_identifier(ui_state['active_todo_id'])}")
+            identifier = _short_identifier(ui_state["active_todo_id"])
+            if identifier:
+                details.append(f"Active: {identifier}")
         if ui_state.get("todo_filter_status"):
             details.append(f"Filter: {_humanize(ui_state['todo_filter_status'])}")
         if ui_state.get("selected_category_id"):
-            details.append(f"Category: {_short_identifier(ui_state['selected_category_id'])}")
+            identifier = _short_identifier(ui_state["selected_category_id"])
+            if identifier:
+                details.append(f"Category: {identifier}")
 
     elif active_view == "calendar":
         mode = _humanize(ui_state.get("calendar_view_mode") or "upcoming")
@@ -632,7 +638,9 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if ui_state.get("calendar_filter_type"):
             details.append(f"Type: {_humanize(ui_state['calendar_filter_type'])}")
         if ui_state.get("active_event_id"):
-            details.append(f"Event: {_short_identifier(ui_state['active_event_id'])}")
+            identifier = _short_identifier(ui_state["active_event_id"])
+            if identifier:
+                details.append(f"Event: {identifier}")
 
     elif active_view == "idle":
         if runtime:
