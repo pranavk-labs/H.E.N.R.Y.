@@ -138,8 +138,9 @@ def _humanize(value: Any) -> str:
 
 def _date_label(value: Any) -> str:
     raw_value = str(value or "").strip()
+    date_value = raw_value[:10] if len(raw_value) >= 10 else raw_value
     try:
-        parsed = date.fromisoformat(raw_value)
+        parsed = date.fromisoformat(date_value)
     except ValueError:
         return raw_value
     month = parsed.strftime("%b")
