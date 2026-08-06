@@ -611,7 +611,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     if active_view == "pomodoro":
         timer = ui_state.get("timer_state") or {}
         status = _humanize(timer.get("status") or "timer")
-        phase = str(timer.get("phase") or "work").strip().lower()
+        phase = str(timer.get("phase") or "").strip().lower() or "work"
         phase_label = phase if phase == "work" else _humanized_label(phase)
         work_remaining = int(timer.get("remaining_work_seconds", 0))
         break_remaining = int(timer.get("remaining_break_seconds", 0))
