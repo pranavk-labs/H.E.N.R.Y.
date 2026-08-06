@@ -347,7 +347,8 @@ def action_exception_feedback(action_name: str, error: Any) -> str:
     action_label = _action_label(action_name)
     if isinstance(error, ConnectionError):
         return f"{action_label}: Backend offline"
-    message = str(error or "").strip() or error.__class__.__name__
+    fallback = error.__class__.__name__ if isinstance(error, BaseException) else "Error"
+    message = str(error or "").strip() or fallback
     return f"{action_label}: {message}"
 
 

@@ -340,6 +340,15 @@ def test_action_feedback_prefers_response_state_and_model():
     assert face_view.action_feedback("   ", {"state": "running"}) == "Action: Running"
 
 
+def test_action_exception_feedback_uses_readable_blank_fallback():
+    """GTK exception feedback should not expose Python type names for blank text."""
+    assert face_view.action_exception_feedback("start", "") == "Start: Error"
+    assert (
+        face_view.action_exception_feedback("start", ConnectionError("connection refused"))
+        == "Start: Backend offline"
+    )
+
+
 def test_action_tooltip_includes_human_keyboard_shortcuts():
     """GTK toolbar tooltips expose shortcuts without raw accelerator syntax."""
     assert face_view.action_tooltip("start", "Start voice runtime") == (
