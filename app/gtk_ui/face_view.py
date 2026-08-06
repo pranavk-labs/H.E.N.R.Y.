@@ -131,6 +131,13 @@ def _format_seconds(total_seconds: int) -> str:
     return f"{minutes:02d}:{seconds:02d}"
 
 
+def _timer_int(value: Any) -> int:
+    try:
+        return max(0, int(str(value or "").strip() or "0"))
+    except (TypeError, ValueError):
+        return 0
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -190,8 +197,8 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
     if active_view == "pomodoro":
         timer = ui_state.get("timer_state") or {}
-        work = _format_seconds(int(timer.get("remaining_work_seconds", 0)))
-        rest = _format_seconds(int(timer.get("remaining_break_seconds", 0)))
+        work = _format_seconds(_timer_int(timer.get("remaining_work_seconds")))
+        rest = _format_seconds(_timer_int(timer.get("remaining_break_seconds")))
         return f"Work {work} | Break {rest}"
 
     if active_view == "ideas":
@@ -613,16 +620,16 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         status = _humanize(timer.get("status") or "timer")
         phase = str(timer.get("phase") or "").strip().lower() or "work"
         phase_label = phase if phase == "work" else _humanized_label(phase)
-        work_remaining = int(timer.get("remaining_work_seconds", 0))
-        break_remaining = int(timer.get("remaining_break_seconds", 0))
+        work_remaining = _timer_int(timer.get("remaining_work_seconds"))
+        break_remaining = _timer_int(timer.get("remaining_break_seconds"))
         details.append(f"{status} {phase_label} session")
         if phase == "work":
             details.append(f"Break queued for {_format_seconds(break_remaining)}")
-            total = int(timer.get("work_duration_minutes", 0)) * 60
+            total = _timer_int(timer.get("work_duration_minutes")) * 60
             remaining = work_remaining
         else:
             details.append(f"Next work block after {_format_seconds(break_remaining)}")
-            total = int(timer.get("break_duration_minutes", 0)) * 60
+            total = _timer_int(timer.get("break_duration_minutes")) * 60
             remaining = break_remaining
         if total > 0:
             progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
