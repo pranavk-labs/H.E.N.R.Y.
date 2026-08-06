@@ -578,6 +578,31 @@ def test_header_state_deduplicates_active_state_labels():
     }
 
 
+def test_header_state_omits_current_view_from_active_states():
+    """GTK active-state labels should show concurrent work, not repeat the current view."""
+    ui_state = {
+        "active_view": "todo_list",
+        "view_stack": ["idle", "todo_list"],
+        "active_states": ["todo_list", "timer"],
+    }
+
+    assert face_view.header_state(ui_state) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer",
+    }
+    assert (
+        face_view.active_states_status_class(
+            {"active_view": "todo_list", "active_states": ["todo_list"]}
+        )
+        == "status-neutral"
+    )
+    assert face_view.status_badges(ui_state, {"state": "running"}) == (
+        "Todos",
+        "Runtime: Running",
+        "Active: Timer",
+    )
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (
