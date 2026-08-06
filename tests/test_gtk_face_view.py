@@ -1126,6 +1126,22 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
     ).detail_lines == ("Event: Weekly robotics seminar",)
 
 
+def test_tool_panel_promotes_active_todo_title_to_summary():
+    """Todo panel should use the active todo title as the headline when status is generic."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "status_text": "Todos",
+            "active_todo_title": "Polish GTK",
+            "todo_filter_status": "in_progress",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Polish GTK"
+    assert panel.detail_lines == ("Filter: In Progress",)
+
+
 def test_tool_panel_omits_duplicate_calendar_event_title_detail():
     """Calendar panel details should not repeat the event title headline."""
     panel = face_view.tool_panel(

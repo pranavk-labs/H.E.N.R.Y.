@@ -234,6 +234,9 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return draft_text or status_text or "Idea captured"
 
     if active_view == "todo_list":
+        active_todo_title = str(ui_state.get("active_todo_title") or "").strip()
+        if active_todo_title and (not status_text or status_text.lower() == "todos"):
+            return active_todo_title
         return status_text or "Todos"
 
     if active_view == "calendar":
@@ -683,7 +686,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
 
     elif active_view == "todo_list":
         active_title = str(ui_state.get("active_todo_title") or "").strip()
-        if active_title:
+        if active_title and summary != active_title:
             details.append(f"Active: {active_title}")
         elif ui_state.get("active_todo_id"):
             identifier = _short_identifier(ui_state["active_todo_id"])
