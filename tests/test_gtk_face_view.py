@@ -472,6 +472,20 @@ def test_action_exception_feedback_uses_readable_blank_fallback():
         face_view.action_exception_feedback("start", ConnectionError("connection refused"))
         == "Start: Backend offline"
     )
+    assert (
+        face_view.action_exception_feedback(
+            "preload",
+            RuntimeError("model qwen3-extra-long-model-name failed during warmup"),
+        )
+        == "Preload: model qwen3-ex..."
+    )
+    assert (
+        face_view.action_exception_feedback_tooltip(
+            "preload",
+            RuntimeError("model qwen3-extra-long-model-name failed during warmup"),
+        )
+        == "Preload: model qwen3-extra-long-model-name failed during warmup"
+    )
 
 
 def test_action_tooltip_includes_human_keyboard_shortcuts():

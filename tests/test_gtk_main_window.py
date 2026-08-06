@@ -646,6 +646,27 @@ def test_run_action_refreshes_after_action_exception():
     assert window.refresh_called is True
 
 
+def test_run_action_clips_long_exception_status_and_keeps_full_tooltip():
+    """Long GTK action exceptions should not crowd the header but remain inspectable."""
+    window = ActionFailureWindow()
+
+    HenryGtkWindow._run_action(
+        window,
+        "preload",
+        lambda: (_ for _ in ()).throw(
+            RuntimeError("model qwen3-extra-long-model-name failed during warmup")
+        ),
+    )
+
+    assert window.action_status_label.text == "Preload: model qwen3-ex..."
+    assert (
+        window.action_status_label.tooltip_text
+        == "Preload: model qwen3-extra-long-model-name failed during warmup"
+    )
+    assert window.css_class == "status-error"
+    assert window.refresh_called is True
+
+
 def test_run_action_sets_action_status_tooltip_after_success():
     """Successful GTK actions should expose compact action feedback on hover."""
     window = ActionFailureWindow()
