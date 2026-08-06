@@ -493,6 +493,7 @@ def action_shortcuts() -> dict[str, list[str]]:
 def _humanize_shortcut(shortcut: str) -> str:
     value = shortcut.replace("<Primary>", "Ctrl+").replace("<Alt>", "Alt+")
     value = value.replace("Escape", "Esc").replace("Return", "Enter")
+    value = value.replace("period", ".")
     if value.startswith("Ctrl+") and len(value) == len("Ctrl+") + 1:
         return f"Ctrl+{value[-1].upper()}"
     if value.startswith("Alt+") and len(value) == len("Alt+") + 1:

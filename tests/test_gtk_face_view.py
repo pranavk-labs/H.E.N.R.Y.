@@ -256,6 +256,11 @@ def test_action_tooltip_includes_human_keyboard_shortcuts():
     assert face_view.action_tooltip("back", "Go back") == "Go back (Esc, Alt+Left)"
 
 
+def test_action_tooltip_humanizes_punctuation_shortcuts():
+    """GTK toolbar tooltips show normal punctuation for punctuation keys."""
+    assert face_view.action_tooltip("stop", "Stop voice runtime") == ("Stop voice runtime (Ctrl+.)")
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {
