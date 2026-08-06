@@ -316,6 +316,12 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def active_states_status_class(ui_state: dict[str, Any]) -> str:
+    """Return a GTK status CSS class for the active-states header label."""
+    active_states = [state for state in (ui_state.get("active_states") or []) if str(state).strip()]
+    return "status-pending" if active_states else "status-neutral"
+
+
 def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[str, ...]:
     """Return compact canvas badges for current GTK context."""
     badges = [surface_title(ui_state, runtime)]

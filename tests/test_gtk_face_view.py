@@ -302,6 +302,16 @@ def test_header_state_exposes_back_and_active_states():
     }
 
 
+def test_active_states_status_class_marks_concurrent_work():
+    """GTK active-states label gets emphasis only when work is active."""
+    assert (
+        face_view.active_states_status_class({"active_states": ["timer", "idea"]})
+        == "status-pending"
+    )
+    assert face_view.active_states_status_class({"active_states": []}) == "status-neutral"
+    assert face_view.active_states_status_class({}) == "status-neutral"
+
+
 def test_status_badges_summarize_current_surface_state():
     """Canvas status badges make key context visible away from the dense header."""
     assert face_view.status_badges(

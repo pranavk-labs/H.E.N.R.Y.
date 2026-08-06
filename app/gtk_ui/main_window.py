@@ -12,6 +12,7 @@ from app.gtk_ui.face_view import (
     ToolPanel,
     action_feedback,
     action_status_class,
+    active_states_status_class,
     compact_status_badges,
     control_state,
     face_geometry,
@@ -267,6 +268,11 @@ class HenryGtkWindow:
         if "back" in self._buttons:
             self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
         self.active_states_label.set_text(str(state["active_states_label"]))
+        self._replace_css_classes(
+            self.active_states_label,
+            STATUS_CLASSES,
+            active_states_status_class(ui_state),
+        )
 
     def _on_model_entry_changed(self, _entry: Any) -> None:
         self._model_entry_user_edited = model_entry_user_edited_after_change(
