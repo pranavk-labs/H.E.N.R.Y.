@@ -82,6 +82,19 @@ def test_view_summary_labels_backend_outages_as_offline():
     )
 
 
+def test_view_summary_marks_idle_pending_runtime_state():
+    """Idle GTK canvas should show runtime startup work when status text is empty."""
+    assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "loading"}) == (
+        "Loading"
+    )
+    assert view_summary({"active_view": "idle", "status_text": ""}, {"state": "starting"}) == (
+        "Starting"
+    )
+    assert view_summary({"active_view": "idle", "status_text": "Ready"}, {"state": "loading"}) == (
+        "Ready"
+    )
+
+
 def test_view_title_and_accent_make_active_context_scannable():
     """GTK active views expose concise labels and stable visual accents."""
     assert face_view.view_title("idle") == "Listening"
