@@ -230,6 +230,19 @@ def test_status_badges_summarize_current_surface_state():
     )
 
 
+def test_status_badges_include_runtime_error_reason():
+    """Canvas badges surface runtime errors even outside the idle panel."""
+    assert face_view.status_badges(
+        {"active_view": "todo_list"},
+        {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
+    ) == (
+        "Todos",
+        "Runtime: Error",
+        "Model: qwen3",
+        "Error: microphone unavailable",
+    )
+
+
 def test_compact_status_badges_clips_long_badges():
     """GTK canvas badges stay bounded when model names are long."""
     assert face_view.compact_status_badges(
