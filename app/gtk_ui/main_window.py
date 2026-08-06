@@ -266,6 +266,10 @@ class HenryGtkWindow:
             widget.remove_css_class(css_class)
         widget.add_css_class(active_class)
 
+    def _clear_css_classes(self, widget: Any, classes: tuple[str, ...]) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
+
     def _apply_control_state(self, runtime: dict[str, Any]) -> None:
         enabled = control_state(runtime)
         for name, button in self._buttons.items():
@@ -456,6 +460,7 @@ class HenryGtkWindow:
                 "status-error",
             )
             self.action_status_label.set_text("")
+            self._clear_css_classes(self.action_status_label, STATUS_CLASSES)
             self._apply_control_state({})
             self._apply_header_state({})
             self.runtime = offline_runtime_state(exc)

@@ -11,9 +11,18 @@ class FakeLabel:
 
     def __init__(self) -> None:
         self.text = ""
+        self.css_classes: list[str] = []
 
     def set_text(self, text: str) -> None:
         self.text = text
+
+    def add_css_class(self, css_class: str) -> None:
+        if css_class not in self.css_classes:
+            self.css_classes.append(css_class)
+
+    def remove_css_class(self, css_class: str) -> None:
+        if css_class in self.css_classes:
+            self.css_classes.remove(css_class)
 
 
 class FakeCanvas:
@@ -47,8 +56,14 @@ class FakeWindow:
         self.ui_state = {"active_view": "idle", "status_text": "Ready"}
         self.synced_runtime: dict[str, str] | None = None
 
-    def _replace_css_classes(self, *_args) -> None:
-        return None
+    def _replace_css_classes(self, widget, classes, active_class: str) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
+        widget.add_css_class(active_class)
+
+    def _clear_css_classes(self, widget, classes) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
 
     def _apply_control_state(self, runtime: dict[str, str]) -> None:
         self.control_runtime = runtime
@@ -141,6 +156,16 @@ def test_refresh_clears_stale_action_status_on_backend_loss():
     assert HenryGtkWindow.refresh(window) is True
 
     assert window.action_status_label.text == ""
+
+
+def test_refresh_clears_stale_action_status_class_on_backend_loss():
+    """Backend loss should remove stale action badge styling from the header."""
+    window = FakeWindow()
+    window.action_status_label.add_css_class("status-ok")
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert not set(window.action_status_label.css_classes).intersection(main_window.STATUS_CLASSES)
 
 
 def test_state_key_tracks_runtime_error_detail_changes():
