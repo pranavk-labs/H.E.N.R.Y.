@@ -1482,6 +1482,42 @@ def test_active_view_labels_ignore_api_casing():
     )
 
 
+def test_active_view_labels_route_hyphenated_known_tool_names():
+    """GTK known tool views should tolerate hyphenated API names."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "todo-list",
+            "status_text": "Todos",
+            "active_todo_title": "Polish GTK routing",
+        },
+        {"state": "running"},
+    )
+
+    assert (
+        face_view.view_summary(
+            {
+                "active_view": "todo-list",
+                "status_text": "Todos",
+                "active_todo_title": "Polish GTK routing",
+            },
+            {"state": "running"},
+        )
+        == "Polish GTK routing"
+    )
+    assert face_view.header_view_title({"active_view": "todo-list"}, {"state": "running"}) == (
+        "Todos"
+    )
+    assert face_view.status_badges({"active_view": "todo-list"}, {"state": "running"}) == (
+        "Todos",
+        "Runtime: Running",
+    )
+    assert panel == face_view.ToolPanel(
+        title="Todos",
+        summary="Polish GTK routing",
+        detail_lines=(),
+    )
+
+
 def test_tool_panel_enriches_todo_and_calendar_filters():
     """Todo and calendar views surface filters instead of generic placeholder text."""
     todo_panel = face_view.tool_panel(

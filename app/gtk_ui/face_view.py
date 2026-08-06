@@ -158,7 +158,11 @@ def _list_state(value: Any) -> list[Any]:
 
 
 def _active_view_name(value: Any) -> str:
-    return str(value or "").strip().lower() or "idle"
+    view_name = str(value or "").strip().lower() or "idle"
+    aliases = {
+        "todo-list": "todo_list",
+    }
+    return aliases.get(view_name, view_name)
 
 
 def _unique_labels(values: list[Any]) -> list[str]:
