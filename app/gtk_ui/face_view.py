@@ -254,6 +254,10 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
         return {"start": False, "stop": True, "preload": True, "unload": True}
     if state == "stopped":
         return {"start": True, "stop": False, "preload": True, "unload": False}
+    if state == "loaded":
+        return {"start": True, "stop": False, "preload": True, "unload": True}
+    if state == "unloaded":
+        return {"start": True, "stop": False, "preload": True, "unload": False}
     return {"start": False, "stop": False, "preload": False, "unload": False}
 
 
