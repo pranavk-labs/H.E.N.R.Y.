@@ -350,7 +350,7 @@ class HenryGtkWindow:
         ui_state: dict[str, Any],
     ) -> tuple[Any, ...]:
         return (
-            runtime.get("state"),
+            str(runtime.get("state") or "").strip().lower(),
             str(runtime.get("model") or "").strip(),
             runtime.get("error"),
             str(ui_state.get("active_view") or "").strip() or "idle",
