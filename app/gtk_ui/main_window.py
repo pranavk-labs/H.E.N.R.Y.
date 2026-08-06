@@ -282,6 +282,7 @@ class HenryGtkWindow:
         if "back" in self._buttons:
             self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
         self.active_states_label.set_text(str(state["active_states_label"]))
+        self.active_states_label.set_tooltip_text(str(state["active_states_label"]))
         self._replace_css_classes(
             self.active_states_label,
             STATUS_CLASSES,

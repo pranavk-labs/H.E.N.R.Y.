@@ -39,6 +39,16 @@ class FakeCanvas:
         self.queued = True
 
 
+class FakeButton:
+    """Small GTK button stand-in."""
+
+    def __init__(self) -> None:
+        self.sensitive: bool | None = None
+
+    def set_sensitive(self, sensitive: bool) -> None:
+        self.sensitive = sensitive
+
+
 class FailingClient:
     """Runtime client stand-in that simulates backend loss."""
 
@@ -109,6 +119,19 @@ class ActionFailureWindow:
     def refresh(self) -> bool:
         self.refresh_called = True
         return True
+
+
+class HeaderStateWindow:
+    """Minimal HenryGtkWindow shape for exercising header state updates."""
+
+    def __init__(self) -> None:
+        self.active_states_label = FakeLabel()
+        self._buttons = {"back": FakeButton()}
+
+    def _replace_css_classes(self, widget, classes, active_class: str) -> None:
+        for css_class in classes:
+            widget.remove_css_class(css_class)
+        widget.add_css_class(active_class)
 
 
 class DrawBranchWindow:
@@ -200,6 +223,40 @@ def test_refresh_sets_status_label_tooltips_to_visible_text():
     assert window.connection_status_label.tooltip_text == "Backend: connected"
     assert window.view_status_label.tooltip_text == "Listening"
     assert window.runtime_status_label.tooltip_text == "Runtime: Running - qwen3"
+
+
+def test_apply_header_state_sets_active_states_tooltip():
+    """Compact active-state labels should expose their full text on hover."""
+    window = HeaderStateWindow()
+
+    HenryGtkWindow._apply_header_state(
+        window,
+        {
+            "active_view": "idle",
+            "active_states": ["timer", "idea", "calendar", "todo"],
+            "view_stack": ["idle", "calendar"],
+        },
+    )
+
+    assert window.active_states_label.text == "Active: Timer, Idea, Calendar +1"
+    assert window.active_states_label.tooltip_text == "Active: Timer, Idea, Calendar +1"
+    assert window._buttons["back"].sensitive is True
+
+
+def test_apply_header_state_clears_active_states_tooltip_when_empty():
+    """Stale active-state tooltips should clear when no states are visible."""
+    window = HeaderStateWindow()
+    window.active_states_label.set_text("Active: timer")
+    window.active_states_label.set_tooltip_text("Active: timer")
+
+    HenryGtkWindow._apply_header_state(
+        window,
+        {"active_view": "idle", "active_states": [], "view_stack": ["idle"]},
+    )
+
+    assert window.active_states_label.text == ""
+    assert window.active_states_label.tooltip_text == ""
+    assert window._buttons["back"].sensitive is False
 
 
 def test_state_key_tracks_runtime_error_detail_changes():
