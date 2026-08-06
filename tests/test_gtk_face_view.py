@@ -92,6 +92,12 @@ def test_model_entry_text_syncs_runtime_model_until_user_edits():
     assert face_view.model_entry_text("", {}, user_edited=False) == ""
 
 
+def test_model_entry_text_clears_when_runtime_model_unloads():
+    """GTK model entry drops stale synced model text after unload."""
+    assert face_view.model_entry_text("qwen3:8b", {"model": ""}, user_edited=False) == ""
+    assert face_view.model_entry_text("qwen3:8b", {}, user_edited=False) == ""
+
+
 def test_action_feedback_prefers_response_state_and_model():
     """GTK action feedback turns API results into short human-facing messages."""
     assert (
