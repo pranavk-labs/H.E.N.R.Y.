@@ -92,6 +92,32 @@ def test_view_summary_prefers_calendar_event_title_over_generic_status():
     )
 
 
+def test_view_summary_prefers_selected_titles_over_generic_tool_statuses():
+    """Selected Todo and Calendar items should stay visible over generic list labels."""
+    assert (
+        view_summary(
+            {
+                "active_view": "todo_list",
+                "status_text": "Todo List",
+                "active_todo_title": "Polish GTK selected task",
+            },
+            {"state": "running"},
+        )
+        == "Polish GTK selected task"
+    )
+    assert (
+        view_summary(
+            {
+                "active_view": "calendar",
+                "status_text": "Events",
+                "active_event_title": "Design review",
+            },
+            {"state": "running"},
+        )
+        == "Design review"
+    )
+
+
 def test_view_summary_tolerates_non_mapping_idea_state():
     """Malformed idea state should not crash the GTK summary."""
     assert (

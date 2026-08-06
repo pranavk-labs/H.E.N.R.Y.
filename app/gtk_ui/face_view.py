@@ -224,6 +224,11 @@ def _runtime_state_label(runtime: dict[str, Any]) -> str:
     return _humanized_label(runtime.get("state")) or "Unknown"
 
 
+def _is_generic_status(status_text: str, generic_labels: set[str]) -> bool:
+    label = _humanized_label(status_text).lower()
+    return label in generic_labels
+
+
 def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the focused overlay text for the active adaptive view."""
     active_view = _active_view_name(ui_state.get("active_view"))
@@ -255,13 +260,17 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
 
     if active_view == "todo_list":
         active_todo_title = str(ui_state.get("active_todo_title") or "").strip()
-        if active_todo_title and (not status_text or status_text.lower() == "todos"):
+        if active_todo_title and (
+            not status_text or _is_generic_status(status_text, {"todo list", "todos", "tasks"})
+        ):
             return active_todo_title
         return status_text or "Todos"
 
     if active_view == "calendar":
         active_event_title = str(ui_state.get("active_event_title") or "").strip()
-        if active_event_title and (not status_text or status_text.lower() == "calendar"):
+        if active_event_title and (
+            not status_text or _is_generic_status(status_text, {"calendar", "events", "upcoming"})
+        ):
             return active_event_title
         return status_text or "Calendar"
 
