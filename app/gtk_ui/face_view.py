@@ -283,7 +283,8 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     if active_view == "ideas":
         idea = _dict_state(ui_state.get("idea_view"))
         draft_text = str(idea.get("draft_text") or "").strip()
-        if idea.get("is_active") and not draft_text and not status_text:
+        active_idea_id = str(idea.get("active_idea_id") or "").strip()
+        if (idea.get("is_active") or active_idea_id) and not draft_text and not status_text:
             return "Active idea"
         return draft_text or status_text or "Idea captured"
 

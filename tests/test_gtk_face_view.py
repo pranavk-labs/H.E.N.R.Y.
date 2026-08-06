@@ -1747,13 +1747,16 @@ def test_tool_panel_marks_active_idea_without_draft_as_active():
 
 def test_tool_panel_simplifies_scoped_fallback_identifiers():
     """Fallback GTK panel identifiers show the useful scoped ID segment."""
-    assert face_view.tool_panel(
+    idea_panel = face_view.tool_panel(
         {
             "active_view": "ideas",
             "idea_view": {"active_idea_id": "idea:capture_voice_routine_2026_08_06"},
         },
         {"state": "running"},
-    ).detail_lines == ("ID: capture_",)
+    )
+
+    assert idea_panel.summary == "Active idea"
+    assert idea_panel.detail_lines == ("ID: capture_",)
     assert face_view.tool_panel(
         {
             "active_view": "todo_list",
