@@ -566,6 +566,26 @@ def test_tool_panel_surfaces_active_view_runtime_errors():
     )
 
 
+def test_tool_panel_prioritizes_runtime_errors_when_detail_slots_are_full():
+    """Active GTK panels should not drop runtime errors when details are full."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "todo_filter_status": "in_progress",
+            "active_todo_title": "Polish GTK",
+            "selected_category_id": "local-runtime",
+        },
+        {"state": "error", "error": "microphone unavailable"},
+    )
+
+    assert panel.detail_lines == (
+        "Active: Polish GTK",
+        "Filter: In Progress",
+        "Runtime error: microphone unavailable",
+    )
+
+
 def test_tool_panel_surfaces_idle_runtime_error_details():
     """Idle GTK panel shows the runtime error reason, not only the error state."""
     panel = face_view.tool_panel(
