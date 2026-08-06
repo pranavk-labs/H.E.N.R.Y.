@@ -704,6 +704,14 @@ def test_status_badge_tone_marks_important_states():
     assert face_view.status_badge_tone("Pomodoro") == "neutral"
 
 
+def test_status_badge_tone_preserves_compacted_primary_severity():
+    """Overflow badge labels should keep the severity of their primary context."""
+    assert face_view.status_badge_tone("Error +4") == "error"
+    assert face_view.status_badge_tone("Runtime: Offline +2") == "error"
+    assert face_view.status_badge_tone("Runtime: Running +2") == "ok"
+    assert face_view.status_badge_tone("Loading +3") == "pending"
+
+
 def test_status_badge_rgba_uses_subtle_tinted_fills():
     """GTK canvas badges keep contrast while carrying status color."""
     assert face_view.status_badge_rgba("Runtime: Running", (0.1, 0.2, 0.3)) == (

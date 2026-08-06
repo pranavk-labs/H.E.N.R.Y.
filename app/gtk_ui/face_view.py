@@ -517,6 +517,9 @@ def compact_status_badges(
 def status_badge_tone(label: Any) -> str:
     """Return the visual tone for one GTK canvas status badge."""
     value = str(label or "").strip()
+    primary_value, overflow_suffix = value.rsplit(" +", 1) if " +" in value else (value, "")
+    if overflow_suffix.isdigit():
+        value = primary_value
     if value in {"Offline", "Error", "Runtime: Error", "Runtime: Offline"} or value.startswith(
         "Error:"
     ):
