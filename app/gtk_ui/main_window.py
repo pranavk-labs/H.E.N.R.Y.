@@ -17,6 +17,7 @@ from app.gtk_ui.face_view import (
     action_status_class,
     action_tooltip,
     active_states_status_class,
+    canvas_tooltip,
     compact_status_badges,
     control_tooltip,
     control_state,
@@ -38,7 +39,6 @@ from app.gtk_ui.face_view import (
     status_badges,
     surface_accent,
     tool_panel,
-    tool_panel_tooltip,
     wrapped_detail_lines,
     wrapped_text_lines,
 )
@@ -323,7 +323,7 @@ class HenryGtkWindow:
         )
 
     def _apply_canvas_tooltip(self) -> None:
-        self.canvas.set_tooltip_text(tool_panel_tooltip(tool_panel(self.ui_state, self.runtime)))
+        self.canvas.set_tooltip_text(canvas_tooltip(self.ui_state, self.runtime))
 
     def _on_model_entry_changed(self, _entry: Any) -> None:
         self._model_entry_user_edited = model_entry_user_edited_after_change(

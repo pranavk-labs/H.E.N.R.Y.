@@ -322,7 +322,27 @@ def test_refresh_sets_canvas_tooltip_from_visible_panel():
 
     assert HenryGtkWindow.refresh(window) is True
 
-    assert window.canvas.tooltip_text == "Listening\nReady\nRuntime: Running - qwen3"
+    assert window.canvas.tooltip_text == (
+        "Listening\n"
+        "Ready\n"
+        "Runtime: Running - qwen3\n"
+        "Badges: Listening | Runtime: Running | Model: qwen3"
+    )
+
+
+def test_refresh_canvas_tooltip_includes_full_status_badges():
+    """GTK canvas hover text should expose badge values that may be clipped."""
+    window = FakeWindow()
+    window.client = HealthyClient("qwen3-extra-long-model-name")
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert window.canvas.tooltip_text == (
+        "Listening\n"
+        "Ready\n"
+        "Runtime: Running - qwen3-extra-lon...\n"
+        "Badges: Listening | Runtime: Running | Model: qwen3-extra-long-model-name"
+    )
 
 
 def test_apply_header_state_sets_active_states_tooltip():
