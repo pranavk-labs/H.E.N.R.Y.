@@ -150,7 +150,7 @@ def test_header_view_status_class_marks_surface_severity():
     )
     assert (
         face_view.header_view_status_class({"active_view": "pomodoro"}, {"state": "error"})
-        == "status-neutral"
+        == "status-error"
     )
 
 
