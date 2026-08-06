@@ -195,6 +195,12 @@ def runtime_summary(runtime: dict[str, Any]) -> str:
     return label
 
 
+def offline_runtime_state(error: Any) -> dict[str, str]:
+    """Return a fresh GTK runtime state for backend outages."""
+    message = str(error or "").strip() or "unknown error"
+    return {"state": "error", "error": f"Backend unavailable: {message}"}
+
+
 def model_override(raw_value: Any) -> str | None:
     """Return a clean model override from GTK entry text."""
     value = str(raw_value or "").strip()

@@ -78,6 +78,29 @@ def test_runtime_summary_shows_state_and_loaded_model():
     assert face_view.runtime_summary({}) == "Unknown"
 
 
+def test_offline_runtime_state_clears_stale_runtime_context():
+    """Backend loss gets a fresh error runtime without stale model context."""
+    runtime = face_view.offline_runtime_state(ConnectionError("connection refused"))
+
+    assert runtime == {
+        "state": "error",
+        "error": "Backend unavailable: connection refused",
+    }
+    assert face_view.status_badges({"active_view": "idle"}, runtime) == (
+        "Listening",
+        "Runtime: Error",
+        "Error: Backend unavailable: connection refused",
+    )
+
+
+def test_offline_runtime_state_handles_blank_errors():
+    """Offline runtime state still gives GTK a useful error label."""
+    assert face_view.offline_runtime_state("") == {
+        "state": "error",
+        "error": "Backend unavailable: unknown error",
+    }
+
+
 def test_model_override_trims_blank_input():
     """GTK model entry sends a model only when the user typed a value."""
     assert face_view.model_override(" qwen3:8b ") == "qwen3:8b"

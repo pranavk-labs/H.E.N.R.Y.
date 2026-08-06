@@ -19,6 +19,7 @@ from app.gtk_ui.face_view import (
     model_entry_user_edited_after_action,
     model_entry_user_edited_after_change,
     model_override,
+    offline_runtime_state,
     runtime_summary,
     sleepiness_for_elapsed,
     status_badges,
@@ -373,6 +374,7 @@ class HenryGtkWindow:
             self.view_status_label.set_text("Offline")
             self._apply_control_state({})
             self._apply_header_state({})
+            self.runtime = offline_runtime_state(exc)
             self.ui_state = {
                 "active_view": "idle",
                 "status_text": f"Backend unavailable: {exc}",
