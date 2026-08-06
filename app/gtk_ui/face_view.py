@@ -490,6 +490,16 @@ def _overflow_text(text: str, max_chars: int) -> str:
     return f"{text[: max_chars - 3].rstrip()}..."
 
 
+def _primary_overflow_badge(primary: str, overflow_count: int, max_chars: int) -> str:
+    suffix = f" +{overflow_count}"
+    if len(primary) + len(suffix) <= max_chars:
+        return f"{primary}{suffix}"
+    if max_chars <= len(suffix):
+        return _clip_text(suffix.strip(), max_chars)
+    primary_limit = max_chars - len(suffix)
+    return f"{_clip_text(primary, primary_limit)}{suffix}"
+
+
 def compact_status_badges(
     badges: tuple[str, ...],
     *,
@@ -506,8 +516,13 @@ def compact_status_badges(
             return ()
         if len(visible_labels) > badge_limit:
             if badge_limit == 1:
-                visible_labels = [f"{visible_labels[0]} +{len(visible_labels) - 1}"]
-                return tuple(_clip_text(label, char_limit) for label in visible_labels)
+                return (
+                    _primary_overflow_badge(
+                        visible_labels[0],
+                        len(visible_labels) - 1,
+                        char_limit,
+                    ),
+                )
             keep_count = max(0, badge_limit - 1)
             overflow_count = len(visible_labels) - keep_count
             visible_labels = [*visible_labels[:keep_count], f"+{overflow_count} more"]

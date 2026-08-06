@@ -689,6 +689,19 @@ def test_compact_status_badges_keeps_primary_context_with_one_slot():
     ) == ("Calendar +4",)
 
 
+def test_compact_status_badges_preserves_one_slot_overflow_count_when_clipped():
+    """Very narrow primary overflow badges should keep the hidden badge count visible."""
+    assert face_view.compact_status_badges(
+        (
+            "Calendar",
+            "Runtime: Running",
+            "Model: qwen3",
+        ),
+        max_chars=10,
+        max_badges=1,
+    ) == ("Cale... +2",)
+
+
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
