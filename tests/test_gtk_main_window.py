@@ -291,6 +291,44 @@ def test_state_key_normalizes_rendered_active_states():
     assert blank_key == malformed_key
 
 
+def test_state_key_normalizes_rendered_pomodoro_timer_values():
+    """Equivalent GTK Pomodoro timer labels should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": " running ",
+                "phase": " work ",
+                "work_duration_minutes": 25.0,
+                "break_duration_minutes": 5.0,
+                "remaining_work_seconds": 600.0,
+                "remaining_break_seconds": 300.0,
+            },
+        },
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_runtime_model():
     """Equivalent GTK runtime model labels should not reset face timing."""
     ui_state = {"active_view": "idle", "status_text": "Ready"}
