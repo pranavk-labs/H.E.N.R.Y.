@@ -742,6 +742,32 @@ def test_header_state_omits_current_view_from_active_states():
     )
 
 
+def test_header_state_omits_current_view_aliases_from_active_states():
+    """GTK active-state labels should not repeat current tools with alternate names."""
+    assert face_view.header_state(
+        {
+            "active_view": "pomodoro",
+            "view_stack": ["idle", "pomodoro"],
+            "active_states": ["timer", "calendar"],
+        }
+    ) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Calendar",
+        "active_states_tooltip": "Active: Calendar",
+    }
+    assert face_view.header_state(
+        {
+            "active_view": "todo_list",
+            "view_stack": ["idle", "todo_list"],
+            "active_states": ["todo", "timer"],
+        }
+    ) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer",
+        "active_states_tooltip": "Active: Timer",
+    }
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (
@@ -761,7 +787,7 @@ def test_status_badges_summarize_current_surface_state():
     assert face_view.status_badges(
         {"active_view": "pomodoro", "active_states": ["timer", "idea"]},
         {"state": "running", "model": "qwen3"},
-    ) == ("Pomodoro", "Runtime: Running", "Model: qwen3", "Active: Timer, Idea")
+    ) == ("Pomodoro", "Runtime: Running", "Model: qwen3", "Active: Idea")
     assert face_view.status_badges({"active_view": "idle"}, {"state": "stopped"}) == (
         "Listening",
         "Runtime: Stopped",

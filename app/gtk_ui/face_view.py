@@ -180,7 +180,16 @@ def _action_label(value: Any) -> str:
 
 def _current_view_active_state_labels(active_view: Any) -> set[str]:
     view_name = _active_view_name(active_view)
-    labels = {view_title(view_name).lower(), _humanized_label(view_name).lower()}
+    aliases = {
+        "pomodoro": ("timer",),
+        "ideas": ("idea",),
+        "todo_list": ("todo", "todos"),
+    }
+    labels = {
+        view_title(view_name).lower(),
+        _humanized_label(view_name).lower(),
+        *(_humanized_label(alias).lower() for alias in aliases.get(view_name, ())),
+    }
     return {label for label in labels if label}
 
 
