@@ -318,6 +318,7 @@ class HenryGtkWindow:
                 STATUS_CLASSES,
                 "status-error",
             )
+            self.refresh()
 
     def go_back(self) -> None:
         """Navigate back in the UI stack."""

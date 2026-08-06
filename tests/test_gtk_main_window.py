@@ -58,6 +58,22 @@ class FakeWindow:
         self.synced_runtime = runtime
 
 
+class ActionFailureWindow:
+    """Minimal HenryGtkWindow shape for exercising action failure handling."""
+
+    def __init__(self) -> None:
+        self.action_status_label = FakeLabel()
+        self.css_class = ""
+        self.refresh_called = False
+
+    def _replace_css_classes(self, _widget, _classes, active_class: str) -> None:
+        self.css_class = active_class
+
+    def refresh(self) -> bool:
+        self.refresh_called = True
+        return True
+
+
 def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():
     """Backend loss clears stale synced model text from the GTK model entry."""
     window = FakeWindow()
@@ -88,3 +104,18 @@ def test_state_key_tracks_runtime_error_detail_changes():
     )
 
     assert first_key != second_key
+
+
+def test_run_action_refreshes_after_action_exception():
+    """Failed GTK actions should refresh visible runtime/backend state."""
+    window = ActionFailureWindow()
+
+    HenryGtkWindow._run_action(
+        window,
+        "start",
+        lambda: (_ for _ in ()).throw(ConnectionError("backend unavailable")),
+    )
+
+    assert window.action_status_label.text == "Start: backend unavailable"
+    assert window.css_class == "status-error"
+    assert window.refresh_called is True
