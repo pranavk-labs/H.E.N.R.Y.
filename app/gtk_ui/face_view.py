@@ -378,7 +378,9 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     """Return GTK header navigation and concurrent-state labels."""
     view_stack = ui_state.get("view_stack") or ["idle"]
     active_states = [
-        _humanize(state) for state in (ui_state.get("active_states") or []) if str(state).strip()
+        label
+        for label in (_humanized_label(state) for state in (ui_state.get("active_states") or []))
+        if label
     ]
     visible_states = active_states[:3]
     overflow_count = len(active_states) - len(visible_states)
@@ -395,7 +397,11 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
 
 def active_states_status_class(ui_state: dict[str, Any]) -> str:
     """Return a GTK status CSS class for the active-states header label."""
-    active_states = [state for state in (ui_state.get("active_states") or []) if str(state).strip()]
+    active_states = [
+        label
+        for label in (_humanized_label(state) for state in (ui_state.get("active_states") or []))
+        if label
+    ]
     return "status-pending" if active_states else "status-neutral"
 
 
