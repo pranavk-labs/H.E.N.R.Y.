@@ -794,6 +794,26 @@ def test_header_state_omits_current_view_aliases_from_active_states():
     }
 
 
+def test_header_state_omits_calendar_event_aliases_from_active_states():
+    """GTK Calendar should not show its event aliases as concurrent work."""
+    ui_state = {
+        "active_view": "calendar",
+        "view_stack": ["idle", "calendar"],
+        "active_states": ["events", "timer"],
+    }
+
+    assert face_view.header_state(ui_state) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer",
+        "active_states_tooltip": "Active: Timer",
+    }
+    assert face_view.status_badges(ui_state, {"state": "running"}) == (
+        "Calendar",
+        "Runtime: Running",
+        "Active: Timer",
+    )
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (

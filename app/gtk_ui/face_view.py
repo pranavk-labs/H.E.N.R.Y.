@@ -198,6 +198,7 @@ def _action_label(value: Any) -> str:
 def _current_view_active_state_labels(active_view: Any) -> set[str]:
     view_name = _active_view_name(active_view)
     aliases = {
+        "calendar": ("event", "events"),
         "pomodoro": ("timer",),
         "ideas": ("idea",),
         "todo_list": ("todo", "todos"),
