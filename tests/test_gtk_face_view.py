@@ -1697,6 +1697,20 @@ def test_tool_panel_omits_todo_id_when_active_title_is_headline():
     assert panel.detail_lines == ("Filter: In Progress",)
 
 
+def test_tool_panel_marks_active_todo_ids_as_active():
+    """Todo panel should not show active todo IDs under a generic headline."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "active_todo_id": "todo:book_doctor_appointment_2026_08_06",
+        },
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Active todo"
+    assert panel.detail_lines == ("Active: book_doc",)
+
+
 def test_tool_panel_omits_duplicate_calendar_event_title_detail():
     """Calendar panel details should not repeat the event title headline."""
     panel = face_view.tool_panel(

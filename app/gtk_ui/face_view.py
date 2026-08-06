@@ -294,6 +294,11 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             not status_text or _is_generic_status(status_text, {"todo list", "todos", "tasks"})
         ):
             return active_todo_title
+        active_todo_id = str(ui_state.get("active_todo_id") or "").strip()
+        if active_todo_id and (
+            not status_text or _is_generic_status(status_text, {"todo list", "todos", "tasks"})
+        ):
+            return "Active todo"
         return status_text or "Todos"
 
     if active_view == "calendar":
