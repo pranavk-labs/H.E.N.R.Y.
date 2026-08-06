@@ -442,6 +442,17 @@ def test_action_feedback_prefers_response_state_and_model():
     assert face_view.action_feedback("start", {"state": "   "}) == "Start: Complete"
 
 
+def test_action_feedback_clips_long_model_names():
+    """GTK action feedback should not let long model names crowd the header."""
+    assert (
+        face_view.action_feedback(
+            "preload",
+            {"state": "loaded", "model": "qwen3-extra-long-model-name"},
+        )
+        == "Preload: Loaded qwen3-extra-lon..."
+    )
+
+
 def test_action_exception_feedback_uses_readable_blank_fallback():
     """GTK exception feedback should not expose Python type names for blank text."""
     assert face_view.action_exception_feedback("start", "") == "Start: Error"
