@@ -141,6 +141,10 @@ def _timer_int(value: Any) -> int:
     return max(0, int(number))
 
 
+def _dict_state(value: Any) -> dict[str, Any]:
+    return value if isinstance(value, dict) else {}
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -205,7 +209,7 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return f"Work {work} | Break {rest}"
 
     if active_view == "ideas":
-        idea = ui_state.get("idea_view") or {}
+        idea = _dict_state(ui_state.get("idea_view"))
         draft_text = str(idea.get("draft_text") or "").strip()
         return draft_text or status_text or "Idea captured"
 
@@ -638,7 +642,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
             progress = max(0.0, min(1.0, round((total - remaining) / total, 3)))
 
     elif active_view == "ideas":
-        idea = ui_state.get("idea_view") or {}
+        idea = _dict_state(ui_state.get("idea_view"))
         if idea.get("is_active"):
             details.append("Active idea")
         if idea.get("active_idea_id"):

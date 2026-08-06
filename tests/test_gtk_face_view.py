@@ -77,6 +77,14 @@ def test_view_summary_ignores_blank_tool_status_text():
     ) == ("Calendar")
 
 
+def test_view_summary_tolerates_non_mapping_idea_state():
+    """Malformed idea state should not crash the GTK summary."""
+    assert (
+        view_summary({"active_view": "ideas", "status_text": "   ", "idea_view": "bad"}, {})
+        == "Idea captured"
+    )
+
+
 def test_view_summary_prioritizes_idle_runtime_errors():
     """Idle GTK canvas should surface runtime errors over stale status text."""
     assert (
@@ -1044,6 +1052,17 @@ def test_tool_panel_skips_blank_fallback_identifiers():
         ).detail_lines
         == ()
     )
+
+
+def test_tool_panel_tolerates_non_mapping_idea_state():
+    """Malformed idea state should render the Ideas fallback panel."""
+    panel = face_view.tool_panel(
+        {"active_view": "ideas", "status_text": "   ", "idea_view": "bad"},
+        {"state": "running"},
+    )
+
+    assert panel.summary == "Idea captured"
+    assert panel.detail_lines == ("Ready to capture",)
 
 
 def test_tool_panel_skips_blank_filter_labels():
