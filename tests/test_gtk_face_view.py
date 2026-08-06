@@ -156,6 +156,26 @@ def test_status_badges_summarize_current_surface_state():
     )
 
 
+def test_compact_status_badges_clips_long_badges():
+    """GTK canvas badges stay bounded when model names are long."""
+    assert face_view.compact_status_badges(
+        (
+            "Listening",
+            "Runtime: Running",
+            "Model: qwen3-extra-long-model-name",
+        ),
+        max_chars=18,
+    ) == ("Listening", "Runtime: Running", "Model: qwen3-ex...")
+
+
+def test_compact_status_badges_omits_blank_badges():
+    """GTK canvas badges skip empty labels instead of drawing empty pills."""
+    assert face_view.compact_status_badges(
+        ("Listening", "", "  ", "Runtime: Running"),
+        max_chars=24,
+    ) == ("Listening", "Runtime: Running")
+
+
 def test_wrapped_text_lines_wraps_words_with_overflow_marker():
     """Long GTK summaries wrap into bounded canvas lines."""
     assert face_view.wrapped_text_lines(

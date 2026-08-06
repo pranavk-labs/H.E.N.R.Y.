@@ -272,6 +272,14 @@ def _overflow_text(text: str, max_chars: int) -> str:
     return f"{text[: max_chars - 3].rstrip()}..."
 
 
+def compact_status_badges(badges: tuple[str, ...], *, max_chars: int) -> tuple[str, ...]:
+    """Clip GTK canvas badges to a bounded single-line label."""
+    char_limit = max(1, int(max_chars))
+    return tuple(
+        _clip_text(label, char_limit) for label in (str(badge).strip() for badge in badges) if label
+    )
+
+
 def wrapped_text_lines(text: Any, *, max_chars: int, max_lines: int) -> tuple[str, ...]:
     """Wrap text into a small bounded set of GTK canvas lines."""
     line_limit = max(0, int(max_lines))

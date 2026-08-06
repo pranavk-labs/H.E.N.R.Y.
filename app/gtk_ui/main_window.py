@@ -11,6 +11,7 @@ from typing import Any, Callable
 from app.gtk_ui.face_view import (
     ToolPanel,
     action_feedback,
+    compact_status_badges,
     control_state,
     face_geometry,
     header_state,
@@ -526,7 +527,11 @@ class HenryGtkWindow:
         self._draw_detail_lines(cr, panel.detail_lines, width, detail_y, 22)
 
     def _draw_status_badges(self, cr: Any, width: int) -> None:
-        badges = status_badges(self.ui_state, self.runtime)
+        badge_char_limit = min(44, max(12, int((width - 48) / (13 * 0.55))))
+        badges = compact_status_badges(
+            status_badges(self.ui_state, self.runtime),
+            max_chars=badge_char_limit,
+        )
         if not badges:
             return
 
