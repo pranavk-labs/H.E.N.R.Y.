@@ -329,6 +329,37 @@ def test_state_key_normalizes_rendered_pomodoro_timer_values():
     assert first_key == second_key
 
 
+def test_state_key_normalizes_rendered_idea_view_values():
+    """Equivalent GTK idea panel labels should not reset face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "ideas",
+            "idea_view": {
+                "is_active": True,
+                "active_idea_id": "idea:polish_gtk",
+            },
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "ideas",
+            "idea_view": {
+                "is_active": True,
+                "active_idea_id": " idea:polish_gtk ",
+                "unrendered_backend_revision": "ignored",
+            },
+        },
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_runtime_model():
     """Equivalent GTK runtime model labels should not reset face timing."""
     ui_state = {"active_view": "idle", "status_text": "Ready"}

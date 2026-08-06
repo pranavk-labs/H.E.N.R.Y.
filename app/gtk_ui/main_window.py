@@ -364,6 +364,11 @@ class HenryGtkWindow:
             if active_view == "pomodoro"
             else repr(ui_state.get("timer_state"))
         )
+        idea_key = (
+            repr(tool_panel(ui_state, runtime))
+            if active_view == "ideas"
+            else repr(ui_state.get("idea_view"))
+        )
         return (
             str(runtime.get("state") or "").strip().lower(),
             str(runtime.get("model") or "").strip(),
@@ -371,7 +376,7 @@ class HenryGtkWindow:
             active_view,
             str(ui_state.get("status_text") or "").strip(),
             timer_key,
-            repr(ui_state.get("idea_view")),
+            idea_key,
             str(ui_state.get("active_todo_id") or "").strip(),
             str(ui_state.get("active_todo_title") or "").strip(),
             str(ui_state.get("todo_filter_status") or "").strip(),
