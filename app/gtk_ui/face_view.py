@@ -497,6 +497,8 @@ def _overflow_primary_label(primary: str) -> str:
             return runtime_label
     if primary.startswith("Error:"):
         return "Error"
+    if primary.startswith("Active:"):
+        return "Active"
     return primary
 
 
@@ -550,7 +552,7 @@ def status_badge_tone(label: Any) -> str:
         "Error:"
     ):
         return "error"
-    if value.startswith("Active:"):
+    if value == "Active" or value.startswith("Active:"):
         return "pending"
     if value in {"Starting", "Stopping", "Loading", "Unloading"}:
         return "pending"

@@ -721,6 +721,18 @@ def test_compact_status_badges_keeps_runtime_state_readable_when_clipped():
     assert face_view.status_badge_tone(running_badge) == "ok"
 
 
+def test_compact_status_badges_keeps_active_state_readable_when_clipped():
+    """Very narrow active-state badges should keep active work visible."""
+    active_badge = face_view.compact_status_badges(
+        ("Active: Timer, Idea", "Runtime: Running"),
+        max_chars=10,
+        max_badges=1,
+    )[0]
+
+    assert active_badge == "Active +1"
+    assert face_view.status_badge_tone(active_badge) == "pending"
+
+
 def test_status_badge_tone_marks_important_states():
     """GTK canvas badges use tones that make state severity scannable."""
     assert face_view.status_badge_tone("Offline") == "error"
