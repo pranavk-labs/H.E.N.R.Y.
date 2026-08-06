@@ -12,6 +12,7 @@ from app.gtk_ui.face_view import (
     ToolPanel,
     control_state,
     face_geometry,
+    header_state,
     runtime_summary,
     sleepiness_for_elapsed,
     tool_panel,
@@ -56,6 +57,8 @@ class HenryGtkWindow:
 
         self.view_status_label = Gtk.Label(label="Listening")
         self.view_status_label.add_css_class("view-pill")
+        self.active_states_label = Gtk.Label(label="")
+        self.active_states_label.add_css_class("active-states")
         self.runtime_status_label = Gtk.Label(label="Runtime: unknown")
         self.runtime_status_label.add_css_class("runtime-pill")
         self.connection_status_label = Gtk.Label(label="Backend: checking")
@@ -112,6 +115,11 @@ class HenryGtkWindow:
             margin-left: 8px;
             margin-right: 8px;
         }
+        .active-states {
+            color: #d7d7d7;
+            font-size: 13px;
+            margin-right: 10px;
+        }
         .connection-label {
             font-size: 13px;
             margin-right: 12px;
@@ -156,6 +164,11 @@ class HenryGtkWindow:
 
         toolbar = Adw.HeaderBar()
         toolbar.set_title_widget(Adw.WindowTitle(title="H.E.N.R.Y.", subtitle=""))
+        self._buttons["back"] = self._icon_button(
+            "go-previous-symbolic",
+            "Go back",
+            self.client.go_back,
+        )
         self._buttons["start"] = self._icon_button(
             "media-playback-start-symbolic",
             "Start voice runtime",
@@ -177,12 +190,14 @@ class HenryGtkWindow:
             "Preload model",
             self.client.preload_model,
         )
+        toolbar.pack_start(self._buttons["back"])
         toolbar.pack_start(self._buttons["start"])
         toolbar.pack_start(self._buttons["stop"])
         toolbar.pack_end(self._buttons["unload"])
         toolbar.pack_end(self._buttons["preload"])
         toolbar.pack_end(self.runtime_status_label)
         toolbar.pack_end(self.connection_status_label)
+        toolbar.pack_end(self.active_states_label)
         toolbar.pack_end(self.view_status_label)
 
         root = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=0)
@@ -203,7 +218,15 @@ class HenryGtkWindow:
     def _apply_control_state(self, runtime: dict[str, Any]) -> None:
         enabled = control_state(runtime)
         for name, button in self._buttons.items():
+            if name == "back":
+                continue
             button.set_sensitive(enabled.get(name, False))
+
+    def _apply_header_state(self, ui_state: dict[str, Any]) -> None:
+        state = header_state(ui_state)
+        if "back" in self._buttons:
+            self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
+        self.active_states_label.set_text(str(state["active_states_label"]))
 
     def _run_action(self, action: Callable[[], dict[str, Any]]) -> None:
         try:
@@ -258,6 +281,7 @@ class HenryGtkWindow:
             self.view_status_label.set_text(view_title(active_view))
             self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
             self._apply_control_state(runtime)
+            self._apply_header_state(ui_state)
         except Exception as exc:
             self.connection_status_label.set_text("Backend: unavailable")
             self._replace_css_classes(
@@ -268,6 +292,7 @@ class HenryGtkWindow:
             self.runtime_status_label.set_text("Runtime: error")
             self.view_status_label.set_text("Offline")
             self._apply_control_state({})
+            self._apply_header_state({})
             self.ui_state = {
                 "active_view": "idle",
                 "status_text": f"Backend unavailable: {exc}",

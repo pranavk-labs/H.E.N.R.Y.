@@ -86,6 +86,20 @@ def test_control_state_matches_runtime_lifecycle():
     }
 
 
+def test_header_state_exposes_back_and_active_states():
+    """GTK header state makes navigation and concurrent work visible."""
+    assert face_view.header_state(
+        {"view_stack": ["idle", "pomodoro"], "active_states": ["timer", "idea"]}
+    ) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer, Idea",
+    }
+    assert face_view.header_state({"view_stack": ["idle"], "active_states": []}) == {
+        "can_go_back": False,
+        "active_states_label": "",
+    }
+
+
 def test_tool_panel_enriches_pomodoro_state():
     """Pomodoro view exposes phase, next break, and progress for rendering."""
     panel = face_view.tool_panel(

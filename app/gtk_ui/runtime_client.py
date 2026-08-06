@@ -51,3 +51,7 @@ class RuntimeClient:
     def unload_model(self, model: Optional[str] = None) -> dict[str, Any]:
         """Unload the configured or provided model."""
         return self._post("/voice-runtime/unload", {"model": model})
+
+    def go_back(self) -> dict[str, Any]:
+        """Navigate back in the current UI stack."""
+        return self._post("/conversation/ui/back")

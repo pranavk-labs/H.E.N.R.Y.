@@ -31,3 +31,16 @@ def test_runtime_client_posts_preload_model():
     http.post.assert_called_once_with(
         "http://testserver/voice-runtime/preload", json={"model": "qwen3"}
     )
+
+
+def test_runtime_client_posts_back_navigation():
+    """Back navigation posts to the UI navigation route."""
+    http = MagicMock()
+    response = MagicMock()
+    response.json.return_value = {"success": True, "current_view": "idle"}
+    response.raise_for_status.return_value = None
+    http.post.return_value = response
+    client = RuntimeClient(api_base_url="http://testserver", http_client=http)
+
+    assert client.go_back() == {"success": True, "current_view": "idle"}
+    http.post.assert_called_once_with("http://testserver/conversation/ui/back", json={})

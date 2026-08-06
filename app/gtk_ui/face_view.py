@@ -207,6 +207,20 @@ def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     return {"start": False, "stop": False, "preload": False, "unload": False}
 
 
+def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
+    """Return GTK header navigation and concurrent-state labels."""
+    view_stack = ui_state.get("view_stack") or ["idle"]
+    active_states = [
+        _humanize(state)
+        for state in (ui_state.get("active_states") or [])
+        if str(state).strip()
+    ]
+    return {
+        "can_go_back": len(view_stack) > 1,
+        "active_states_label": f"Active: {', '.join(active_states)}" if active_states else "",
+    }
+
+
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
     active_view = str(ui_state.get("active_view", "idle"))
