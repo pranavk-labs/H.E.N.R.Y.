@@ -453,6 +453,9 @@ def action_exception_feedback_tooltip(action_name: str, error: Any) -> str:
 def control_state(runtime: dict[str, Any]) -> dict[str, bool]:
     """Return which runtime controls should be enabled for the current state."""
     state = str(runtime.get("state") or "unknown").strip().lower()
+    error = str(runtime.get("error") or "").strip().lower()
+    if error.startswith("backend unavailable:"):
+        return {"start": False, "stop": False, "preload": False, "unload": False}
     if state in {"starting", "stopping", "loading", "unloading"}:
         return {"start": False, "stop": False, "preload": False, "unload": False}
     if state == "running":

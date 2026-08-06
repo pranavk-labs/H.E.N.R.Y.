@@ -586,6 +586,14 @@ def test_control_state_matches_runtime_lifecycle():
         "preload": True,
         "unload": True,
     }
+    assert face_view.control_state(
+        face_view.offline_runtime_state(ConnectionError("connection refused"))
+    ) == {
+        "start": False,
+        "stop": False,
+        "preload": False,
+        "unload": False,
+    }
     assert face_view.control_state({"state": "loading"}) == {
         "start": False,
         "stop": False,
