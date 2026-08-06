@@ -110,6 +110,28 @@ def test_header_view_title_matches_surface_error_state():
     )
 
 
+def test_header_view_status_class_marks_surface_severity():
+    """GTK header view label uses color only when the surface state needs it."""
+    offline = face_view.offline_runtime_state(ConnectionError("connection refused"))
+
+    assert face_view.header_view_status_class({"active_view": "idle"}, offline) == "status-error"
+    assert (
+        face_view.header_view_status_class(
+            {"active_view": "idle"},
+            {"state": "error", "error": "microphone unavailable"},
+        )
+        == "status-error"
+    )
+    assert (
+        face_view.header_view_status_class({"active_view": "idle"}, {"state": "running"})
+        == "status-ok"
+    )
+    assert (
+        face_view.header_view_status_class({"active_view": "pomodoro"}, {"state": "error"})
+        == "status-neutral"
+    )
+
+
 def test_runtime_summary_shows_state_and_loaded_model():
     """Runtime summary is human-readable in the header."""
     assert face_view.runtime_summary({"state": "running", "model": "qwen3"}) == "Running - qwen3"

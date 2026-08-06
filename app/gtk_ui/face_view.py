@@ -189,6 +189,16 @@ def header_view_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     return surface_title(ui_state, runtime)
 
 
+def header_view_status_class(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
+    """Return a GTK status CSS class for the header view label."""
+    title = header_view_title(ui_state, runtime)
+    if title in {"Offline", "Error"}:
+        return "status-error"
+    if title == "Listening":
+        return "status-ok"
+    return "status-neutral"
+
+
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
     accents = {

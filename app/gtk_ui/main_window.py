@@ -16,6 +16,7 @@ from app.gtk_ui.face_view import (
     control_state,
     face_geometry,
     header_state,
+    header_view_status_class,
     header_view_title,
     model_entry_text,
     model_entry_user_edited_after_action,
@@ -37,7 +38,7 @@ from app.gtk_ui.runtime_client import RuntimeClient
 
 logger = logging.getLogger(__name__)
 
-STATUS_CLASSES = ("status-ok", "status-error", "status-pending")
+STATUS_CLASSES = ("status-ok", "status-error", "status-pending", "status-neutral")
 
 
 def require_gtk():
@@ -166,6 +167,9 @@ class HenryGtkWindow:
         }
         .status-pending {
             color: #d8b84f;
+        }
+        .status-neutral {
+            color: #e6e6e6;
         }
         button.suggested-action {
             background: #2f7d4c;
@@ -374,6 +378,11 @@ class HenryGtkWindow:
                 "status-ok",
             )
             self.view_status_label.set_text(header_view_title(ui_state, runtime))
+            self._replace_css_classes(
+                self.view_status_label,
+                STATUS_CLASSES,
+                header_view_status_class(ui_state, runtime),
+            )
             self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
             self._replace_css_classes(
                 self.runtime_status_label,
@@ -397,6 +406,11 @@ class HenryGtkWindow:
                 "status-error",
             )
             self.view_status_label.set_text("Offline")
+            self._replace_css_classes(
+                self.view_status_label,
+                STATUS_CLASSES,
+                "status-error",
+            )
             self._apply_control_state({})
             self._apply_header_state({})
             self.runtime = offline_runtime_state(exc)
