@@ -313,6 +313,7 @@ def test_runtime_summary_labels_backend_outages_as_offline():
     runtime = face_view.offline_runtime_state(ConnectionError("connection refused"))
 
     assert face_view.runtime_summary(runtime) == "Offline"
+    assert face_view.runtime_tooltip(runtime) == "Offline - Backend unavailable: connection refused"
 
 
 def test_offline_runtime_state_clears_stale_runtime_context():

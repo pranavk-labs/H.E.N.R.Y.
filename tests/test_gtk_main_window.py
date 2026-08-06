@@ -190,6 +190,11 @@ def test_refresh_syncs_model_entry_to_offline_runtime_on_backend_loss():
         "state": "error",
         "error": "Backend unavailable: connection refused",
     }
+    assert window.runtime_status_label.text == "Runtime: error"
+    assert (
+        window.runtime_status_label.tooltip_text
+        == "Runtime: Offline - Backend unavailable: connection refused"
+    )
     assert window.synced_runtime == window.runtime
     assert window.canvas.queued is True
 

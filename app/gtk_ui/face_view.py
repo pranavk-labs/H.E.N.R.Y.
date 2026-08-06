@@ -340,6 +340,9 @@ def runtime_summary(runtime: dict[str, Any]) -> str:
 def runtime_tooltip(runtime: dict[str, Any]) -> str:
     """Return full runtime detail for GTK header hover text."""
     label = _runtime_state_label(runtime)
+    error = str(runtime.get("error") or "").strip()
+    if error:
+        return f"{label} - {error}"
     model = str(runtime.get("model") or "").strip()
     if model:
         return f"{label} - {model}"

@@ -456,8 +456,10 @@ class HenryGtkWindow:
             self._apply_control_state(runtime)
             self._apply_header_state(ui_state)
         except Exception as exc:
+            offline_runtime = offline_runtime_state(exc)
             connection_text = "Backend: unavailable"
             runtime_text = "Runtime: error"
+            runtime_tooltip_text = f"Runtime: {runtime_tooltip(offline_runtime)}"
             view_text = "Offline"
             self.connection_status_label.set_text(connection_text)
             self.connection_status_label.set_tooltip_text(connection_text)
@@ -467,7 +469,7 @@ class HenryGtkWindow:
                 "status-error",
             )
             self.runtime_status_label.set_text(runtime_text)
-            self.runtime_status_label.set_tooltip_text(runtime_text)
+            self.runtime_status_label.set_tooltip_text(runtime_tooltip_text)
             self._replace_css_classes(
                 self.runtime_status_label,
                 STATUS_CLASSES,
@@ -485,7 +487,7 @@ class HenryGtkWindow:
             self._clear_css_classes(self.action_status_label, STATUS_CLASSES)
             self._apply_control_state({})
             self._apply_header_state({})
-            self.runtime = offline_runtime_state(exc)
+            self.runtime = offline_runtime
             self._sync_model_entry(self.runtime)
             self.ui_state = {
                 "active_view": "idle",
