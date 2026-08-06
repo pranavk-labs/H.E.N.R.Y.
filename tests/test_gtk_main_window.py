@@ -250,6 +250,38 @@ def test_state_key_normalizes_rendered_tool_detail_fields():
     assert first_key == second_key
 
 
+def test_state_key_ignores_unrendered_todo_identifiers_when_title_is_visible():
+    """Hidden todo identifiers should not reset GTK face timing."""
+    runtime = {"state": "running", "model": "qwen3"}
+
+    first_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "active_todo_id": "todo:polish_gtk",
+            "active_todo_title": "Polish GTK",
+            "todo_filter_status": "in_progress",
+            "selected_category_id": "category:ui",
+        },
+    )
+    second_key = HenryGtkWindow._state_key(
+        object(),
+        runtime,
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "active_todo_id": "todo:backend_revision_changed",
+            "active_todo_title": "Polish GTK",
+            "todo_filter_status": "in_progress",
+            "selected_category_id": "category:ui",
+        },
+    )
+
+    assert first_key == second_key
+
+
 def test_state_key_normalizes_rendered_calendar_dates():
     """Equivalent GTK calendar date labels should not reset face timing."""
     runtime = {"state": "running", "model": "qwen3"}

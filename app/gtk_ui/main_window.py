@@ -359,15 +359,20 @@ class HenryGtkWindow:
         ui_state: dict[str, Any],
     ) -> tuple[Any, ...]:
         active_view = str(ui_state.get("active_view") or "").strip().lower() or "idle"
+        rendered_panel_key = repr(tool_panel(ui_state, runtime))
         timer_key = (
-            repr(tool_panel(ui_state, runtime))
-            if active_view == "pomodoro"
-            else repr(ui_state.get("timer_state"))
+            rendered_panel_key if active_view == "pomodoro" else repr(ui_state.get("timer_state"))
         )
-        idea_key = (
-            repr(tool_panel(ui_state, runtime))
-            if active_view == "ideas"
-            else repr(ui_state.get("idea_view"))
+        idea_key = rendered_panel_key if active_view == "ideas" else repr(ui_state.get("idea_view"))
+        todo_key = (
+            rendered_panel_key
+            if active_view == "todo_list"
+            else (
+                str(ui_state.get("active_todo_id") or "").strip(),
+                str(ui_state.get("active_todo_title") or "").strip(),
+                str(ui_state.get("todo_filter_status") or "").strip(),
+                str(ui_state.get("selected_category_id") or "").strip(),
+            )
         )
         return (
             str(runtime.get("state") or "").strip().lower(),
@@ -377,10 +382,7 @@ class HenryGtkWindow:
             str(ui_state.get("status_text") or "").strip(),
             timer_key,
             idea_key,
-            str(ui_state.get("active_todo_id") or "").strip(),
-            str(ui_state.get("active_todo_title") or "").strip(),
-            str(ui_state.get("todo_filter_status") or "").strip(),
-            str(ui_state.get("selected_category_id") or "").strip(),
+            todo_key,
             str(ui_state.get("calendar_view_mode") or "").strip(),
             str(ui_state.get("calendar_selected_date") or "").strip()[:10],
             str(ui_state.get("calendar_filter_type") or "").strip(),
