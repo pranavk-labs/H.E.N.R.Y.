@@ -436,7 +436,7 @@ def runtime_status_class(runtime: dict[str, Any]) -> str:
 
 def action_status_class(response: dict[str, Any]) -> str:
     """Return a GTK status CSS class for action feedback."""
-    if response.get("error"):
+    if str(response.get("error") or "").strip():
         return "status-error"
     return runtime_status_class(response)
 

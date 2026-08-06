@@ -571,6 +571,7 @@ def test_runtime_status_class_marks_state_severity():
 def test_action_status_class_marks_response_severity():
     """GTK action feedback label mirrors success, progress, and failure."""
     assert face_view.action_status_class({"state": "running"}) == "status-ok"
+    assert face_view.action_status_class({"state": "running", "error": "   "}) == "status-ok"
     assert face_view.action_status_class({"state": "loading"}) == "status-pending"
     assert face_view.action_status_class({"error": "no microphone"}) == "status-error"
 
