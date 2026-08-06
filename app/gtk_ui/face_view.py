@@ -225,7 +225,7 @@ def view_title(active_view: str) -> str:
 
 def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return the current GTK canvas surface title."""
-    active_view = str(ui_state.get("active_view", "idle"))
+    active_view = str(ui_state.get("active_view") or "").strip() or "idle"
     error = str(runtime.get("error") or "").strip()
     if active_view == "idle" and error.startswith("Backend unavailable:"):
         return "Offline"

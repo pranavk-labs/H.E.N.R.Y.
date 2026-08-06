@@ -267,6 +267,11 @@ def test_offline_runtime_state_clears_stale_runtime_context():
         "Runtime: Offline",
         "Error: Backend offline",
     )
+    assert face_view.status_badges({"active_view": "   "}, runtime) == (
+        "Offline",
+        "Runtime: Offline",
+        "Error: Backend offline",
+    )
 
 
 def test_offline_runtime_state_handles_blank_errors():
