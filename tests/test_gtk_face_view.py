@@ -386,6 +386,15 @@ def test_header_state_exposes_back_and_active_states():
         "can_go_back": False,
         "active_states_label": "",
     }
+    assert face_view.header_state(
+        {
+            "view_stack": ["idle"],
+            "active_states": ["timer", "idea", "todo_list", "calendar", "voice_note"],
+        }
+    ) == {
+        "can_go_back": False,
+        "active_states_label": "Active: Timer, Idea, Todo List +2",
+    }
 
 
 def test_active_states_status_class_marks_concurrent_work():

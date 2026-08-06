@@ -347,9 +347,16 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
     active_states = [
         _humanize(state) for state in (ui_state.get("active_states") or []) if str(state).strip()
     ]
+    visible_states = active_states[:3]
+    overflow_count = len(active_states) - len(visible_states)
+    active_states_label = ""
+    if visible_states:
+        active_states_label = f"Active: {', '.join(visible_states)}"
+        if overflow_count > 0:
+            active_states_label = f"{active_states_label} +{overflow_count}"
     return {
         "can_go_back": len(view_stack) > 1,
-        "active_states_label": f"Active: {', '.join(active_states)}" if active_states else "",
+        "active_states_label": active_states_label,
     }
 
 
