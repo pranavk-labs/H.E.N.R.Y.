@@ -525,6 +525,19 @@ def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[st
     return tuple(badges)
 
 
+def status_badge_tooltip_labels(
+    ui_state: dict[str, Any], runtime: dict[str, Any]
+) -> tuple[str, ...]:
+    """Return full badge labels for GTK canvas hover text."""
+    labels = list(status_badges(ui_state, runtime))
+    active_state = header_state(ui_state)
+    active_label = str(active_state["active_states_label"])
+    active_tooltip = str(active_state["active_states_tooltip"])
+    if active_label and active_tooltip and active_label in labels:
+        labels[labels.index(active_label)] = active_tooltip
+    return tuple(labels)
+
+
 def runtime_status_class(runtime: dict[str, Any]) -> str:
     """Return a GTK status CSS class for runtime health."""
     state = str(runtime.get("state") or "unknown").strip().lower()
@@ -796,7 +809,7 @@ def tool_panel_tooltip(panel: ToolPanel) -> str:
 def canvas_tooltip(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
     """Return full hover text for the GTK canvas, including clipped badge context."""
     lines = [tool_panel_tooltip(tool_panel(ui_state, runtime))]
-    badges = status_badges(ui_state, runtime)
+    badges = status_badge_tooltip_labels(ui_state, runtime)
     if badges:
         lines.append(f"Badges: {' | '.join(badges)}")
     return "\n".join(line for line in lines if str(line).strip())

@@ -563,6 +563,26 @@ def test_tool_panel_tooltip_includes_progress_percentage():
     )
 
 
+def test_canvas_tooltip_expands_active_state_badge_overflow():
+    """GTK canvas hover text should expose active states hidden behind badge overflow."""
+    tooltip = face_view.canvas_tooltip(
+        {
+            "active_view": "idle",
+            "status_text": "Ready",
+            "active_states": ["timer", "idea", "todo_list", "calendar", "voice_note"],
+        },
+        {"state": "running"},
+    )
+
+    assert tooltip == (
+        "Listening\n"
+        "Ready\n"
+        "Runtime: Running\n"
+        "Badges: Listening | Runtime: Running | "
+        "Active: Timer, Idea, Todo List, Calendar, Voice Note"
+    )
+
+
 def test_control_state_matches_runtime_lifecycle():
     """GTK controls disable actions that do not apply to the current runtime state."""
     assert face_view.control_state({"state": "running"}) == {
