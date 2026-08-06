@@ -231,7 +231,7 @@ def surface_title(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         return "Offline"
     if active_view == "idle" and runtime_status_class(runtime) == "status-error":
         return "Error"
-    state = str(runtime.get("state") or "").lower()
+    state = str(runtime.get("state") or "").strip().lower()
     if active_view == "idle" and state in {"starting", "stopping", "loading", "unloading"}:
         return _humanize(state)
     return view_title(active_view)

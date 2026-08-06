@@ -210,6 +210,7 @@ def test_header_view_title_matches_surface_error_state():
 def test_header_view_title_marks_idle_pending_runtime_state():
     """Idle GTK title should show runtime startup work instead of Listening."""
     assert face_view.header_view_title({"active_view": "idle"}, {"state": "loading"}) == "Loading"
+    assert face_view.header_view_title({"active_view": "idle"}, {"state": " loading "}) == "Loading"
     assert face_view.header_view_title({"active_view": "idle"}, {"state": "starting"}) == "Starting"
     assert face_view.status_badges({"active_view": "idle"}, {"state": "loading"}) == (
         "Loading",
