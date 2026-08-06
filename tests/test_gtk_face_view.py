@@ -570,6 +570,30 @@ def test_tool_panel_surfaces_active_view_runtime_errors():
     )
 
 
+def test_tool_panel_surfaces_active_view_pending_runtime_state():
+    """Active GTK panels should include pending runtime state in central detail text."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "work",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 5,
+                "remaining_work_seconds": 600,
+                "remaining_break_seconds": 300,
+            },
+        },
+        {"state": "loading"},
+    )
+
+    assert panel.detail_lines == (
+        "Running work session",
+        "Break queued for 05:00",
+        "Runtime: Loading",
+    )
+
+
 def test_tool_panel_prioritizes_runtime_errors_when_detail_slots_are_full():
     """Active GTK panels should not drop runtime errors when details are full."""
     panel = face_view.tool_panel(

@@ -585,13 +585,20 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if error:
             details.append(f"Error: {error}")
 
-    error = _runtime_error_summary(runtime.get("error"))
-    if active_view != "idle" and error:
-        error_detail = f"Runtime error: {error}"
+    attention_detail = ""
+    if active_view != "idle":
+        error = _runtime_error_summary(runtime.get("error"))
+        state = str(runtime.get("state") or "").strip()
+        if error:
+            attention_detail = f"Runtime error: {error}"
+        elif state and runtime_status_class(runtime) == "status-pending":
+            attention_detail = f"Runtime: {_humanize(state)}"
+
+    if active_view != "idle" and attention_detail:
         if len(details) >= 3:
-            details = [*details[:2], error_detail]
+            details = [*details[:2], attention_detail]
         else:
-            details.append(error_detail)
+            details.append(attention_detail)
 
     return ToolPanel(
         title=view_title(active_view),
