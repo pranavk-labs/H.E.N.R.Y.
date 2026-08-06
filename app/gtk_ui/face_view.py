@@ -257,7 +257,7 @@ def header_view_status_class(ui_state: dict[str, Any], runtime: dict[str, Any]) 
 
 def view_accent(active_view: str) -> tuple[float, float, float]:
     """Return stable RGB accent colors for the active GTK view."""
-    view_name = str(active_view or "").strip()
+    view_name = str(active_view or "").strip() or "idle"
     accents = {
         "idle": (0.31, 0.78, 0.47),
         "pomodoro": (0.95, 0.39, 0.32),
