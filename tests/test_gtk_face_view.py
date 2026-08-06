@@ -727,5 +727,13 @@ def test_tool_panel_enriches_todo_and_calendar_filters():
 
     assert todo_panel.summary == "3 tasks"
     assert todo_panel.detail_lines == ("Active: Polish GTK", "Filter: In Progress")
+    assert face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "status_text": "3 tasks",
+            "active_todo_id": "todo-123456789",
+        },
+        {"state": "running"},
+    ).detail_lines == ("Active: todo-123",)
     assert calendar_panel.summary == "Week"
     assert calendar_panel.detail_lines == ("Date: 2026-08-05", "Type: Meeting")

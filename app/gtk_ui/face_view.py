@@ -599,7 +599,7 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         if active_title:
             details.append(f"Active: {active_title}")
         elif ui_state.get("active_todo_id"):
-            details.append(f"Active todo: {str(ui_state['active_todo_id'])[:8]}")
+            details.append(f"Active: {str(ui_state['active_todo_id'])[:8]}")
         if ui_state.get("todo_filter_status"):
             details.append(f"Filter: {_humanize(ui_state['todo_filter_status'])}")
         if ui_state.get("selected_category_id"):
