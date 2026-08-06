@@ -303,7 +303,7 @@ def model_entry_text(current_text: Any, runtime: dict[str, Any], *, user_edited:
     """Return the model entry text after syncing with runtime status."""
     if user_edited:
         return str(current_text or "")
-    return str(runtime.get("model") or "")
+    return str(runtime.get("model") or "").strip()
 
 
 def model_entry_user_edited_after_action(
