@@ -959,6 +959,9 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
             identifier = _short_identifier(ui_state["selected_category_id"])
             if identifier:
                 details.append(f"Category: {identifier}")
+        active_todo_id = str(ui_state.get("active_todo_id") or "").strip()
+        if not details and not active_title and not active_todo_id:
+            details.append("Ready to plan")
 
     elif active_view == "calendar":
         mode = _humanized_label(ui_state.get("calendar_view_mode")) or "Upcoming"

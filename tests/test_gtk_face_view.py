@@ -1711,6 +1711,14 @@ def test_tool_panel_marks_active_todo_ids_as_active():
     assert panel.detail_lines == ("Active: book_doc",)
 
 
+def test_tool_panel_marks_empty_todo_view_ready_to_plan():
+    """Todo panel should not render a blank detail area when no task is selected."""
+    panel = face_view.tool_panel({"active_view": "todo_list"}, {"state": "running"})
+
+    assert panel.summary == "Todos"
+    assert panel.detail_lines == ("Ready to plan",)
+
+
 def test_tool_panel_omits_duplicate_calendar_event_title_detail():
     """Calendar panel details should not repeat the event title headline."""
     panel = face_view.tool_panel(
@@ -1832,17 +1840,14 @@ def test_tool_panel_skips_blank_fallback_identifiers():
         {"active_view": "ideas", "idea_view": {"active_idea_id": "   "}},
         {"state": "running"},
     ).detail_lines == ("Ready to capture",)
-    assert (
-        face_view.tool_panel(
-            {
-                "active_view": "todo_list",
-                "active_todo_id": "   ",
-                "selected_category_id": "   ",
-            },
-            {"state": "running"},
-        ).detail_lines
-        == ()
-    )
+    assert face_view.tool_panel(
+        {
+            "active_view": "todo_list",
+            "active_todo_id": "   ",
+            "selected_category_id": "   ",
+        },
+        {"state": "running"},
+    ).detail_lines == ("Ready to plan",)
     assert (
         face_view.tool_panel(
             {"active_view": "calendar", "active_event_id": "   "},
@@ -1865,13 +1870,10 @@ def test_tool_panel_tolerates_non_mapping_idea_state():
 
 def test_tool_panel_skips_blank_filter_labels():
     """GTK filter labels should fall back instead of rendering blank text."""
-    assert (
-        face_view.tool_panel(
-            {"active_view": "todo_list", "todo_filter_status": "   "},
-            {"state": "running"},
-        ).detail_lines
-        == ()
-    )
+    assert face_view.tool_panel(
+        {"active_view": "todo_list", "todo_filter_status": "   "},
+        {"state": "running"},
+    ).detail_lines == ("Ready to plan",)
     calendar_panel = face_view.tool_panel(
         {
             "active_view": "calendar",
