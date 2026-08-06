@@ -411,7 +411,7 @@ def action_feedback_tooltip(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into full GTK hover feedback."""
     action_label = _action_label(action_name)
     if response.get("error"):
-        error = _runtime_error_summary(response["error"])
+        error = str(response["error"] or "").strip()
         if error:
             return f"{action_label}: {error}"
     state = _humanized_label(response.get("state")) or "Complete"

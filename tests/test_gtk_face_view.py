@@ -462,6 +462,13 @@ def test_action_feedback_prefers_response_state_and_model():
         )
         == "Start: Backend offline"
     )
+    assert (
+        face_view.action_feedback_tooltip(
+            "start",
+            {"state": "error", "error": "Backend unavailable: connection refused"},
+        )
+        == "Start: Backend unavailable: connection refused"
+    )
     assert face_view.action_feedback("stop", {"state": "error", "error": "   "}) == "Stop: Error"
     assert face_view.action_feedback("   ", {"state": "running"}) == "Action: Running"
     assert face_view.action_feedback("start", {"state": "   "}) == "Start: Complete"

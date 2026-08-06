@@ -689,6 +689,24 @@ def test_run_action_clips_long_error_response_and_keeps_full_tooltip():
     assert window.refresh_called is True
 
 
+def test_run_action_backend_error_response_tooltip_keeps_full_detail():
+    """Backend error responses should stay compact but remain inspectable."""
+    window = ActionFailureWindow()
+
+    HenryGtkWindow._run_action(
+        window,
+        "start",
+        lambda: {"state": "error", "error": "Backend unavailable: connection refused"},
+    )
+
+    assert window.action_status_label.text == "Start: Backend offline"
+    assert (
+        window.action_status_label.tooltip_text == "Start: Backend unavailable: connection refused"
+    )
+    assert window.css_class == "status-error"
+    assert window.refresh_called is True
+
+
 def test_run_action_sets_action_status_tooltip_after_success():
     """Successful GTK actions should expose compact action feedback on hover."""
     window = ActionFailureWindow()
