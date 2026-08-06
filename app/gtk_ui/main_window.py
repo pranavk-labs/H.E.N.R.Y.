@@ -14,6 +14,7 @@ from app.gtk_ui.face_view import (
     control_state,
     face_geometry,
     header_state,
+    model_entry_text,
     model_override,
     runtime_summary,
     sleepiness_for_elapsed,
@@ -73,6 +74,7 @@ class HenryGtkWindow:
         self.model_entry.set_tooltip_text("Model override for preload and unload")
         self.model_entry.set_width_chars(18)
         self.model_entry.add_css_class("model-entry")
+        self.model_entry.connect("changed", self._on_model_entry_changed)
 
         self.canvas = Gtk.DrawingArea()
         self.canvas.set_hexpand(True)
@@ -91,6 +93,8 @@ class HenryGtkWindow:
         self._neutral_seconds = int(os.getenv("GUI_NEUTRAL_DURATION", "300"))
         self._sleepy_seconds = int(os.getenv("GUI_SLEEPY_DURATION", "600"))
         self._buttons: dict[str, Any] = {}
+        self._model_entry_user_edited = False
+        self._syncing_model_entry = False
 
         self._install_css()
         self._build()
@@ -247,6 +251,24 @@ class HenryGtkWindow:
             self._buttons["back"].set_sensitive(bool(state["can_go_back"]))
         self.active_states_label.set_text(str(state["active_states_label"]))
 
+    def _on_model_entry_changed(self, _entry: Any) -> None:
+        if not self._syncing_model_entry:
+            self._model_entry_user_edited = True
+
+    def _sync_model_entry(self, runtime: dict[str, Any]) -> None:
+        next_text = model_entry_text(
+            self.model_entry.get_text(),
+            runtime,
+            user_edited=self._model_entry_user_edited,
+        )
+        if next_text == self.model_entry.get_text():
+            return
+        self._syncing_model_entry = True
+        try:
+            self.model_entry.set_text(next_text)
+        finally:
+            self._syncing_model_entry = False
+
     def _run_action(self, action_name: str, action: Callable[[], dict[str, Any]]) -> None:
         try:
             response = action()
@@ -323,6 +345,7 @@ class HenryGtkWindow:
             )
             self.view_status_label.set_text(view_title(active_view))
             self.runtime_status_label.set_text(f"Runtime: {runtime_summary(runtime)}")
+            self._sync_model_entry(runtime)
             self._apply_control_state(runtime)
             self._apply_header_state(ui_state)
         except Exception as exc:

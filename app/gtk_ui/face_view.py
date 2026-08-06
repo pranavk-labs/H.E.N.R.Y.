@@ -201,6 +201,13 @@ def model_override(raw_value: Any) -> str | None:
     return value or None
 
 
+def model_entry_text(current_text: Any, runtime: dict[str, Any], *, user_edited: bool) -> str:
+    """Return the model entry text after syncing with runtime status."""
+    if user_edited:
+        return str(current_text or "")
+    return str(runtime.get("model") or current_text or "")
+
+
 def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into concise GTK feedback."""
     action_label = _humanize(action_name)

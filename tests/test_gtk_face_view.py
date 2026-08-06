@@ -71,6 +71,19 @@ def test_model_override_trims_blank_input():
     assert face_view.model_override(None) is None
 
 
+def test_model_entry_text_syncs_runtime_model_until_user_edits():
+    """GTK model entry mirrors runtime model until the user types an override."""
+    assert (
+        face_view.model_entry_text("", {"model": "qwen3:8b"}, user_edited=False)
+        == "qwen3:8b"
+    )
+    assert (
+        face_view.model_entry_text("custom", {"model": "qwen3:8b"}, user_edited=True)
+        == "custom"
+    )
+    assert face_view.model_entry_text("", {}, user_edited=False) == ""
+
+
 def test_action_feedback_prefers_response_state_and_model():
     """GTK action feedback turns API results into short human-facing messages."""
     assert (
