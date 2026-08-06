@@ -604,9 +604,10 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         timer = ui_state.get("timer_state") or {}
         status = _humanize(timer.get("status") or "timer")
         phase = str(timer.get("phase") or "work").lower()
+        phase_label = phase if phase == "work" else _humanized_label(phase)
         work_remaining = int(timer.get("remaining_work_seconds", 0))
         break_remaining = int(timer.get("remaining_break_seconds", 0))
-        details.append(f"{status} {phase} session")
+        details.append(f"{status} {phase_label} session")
         if phase == "work":
             details.append(f"Break queued for {_format_seconds(break_remaining)}")
             total = int(timer.get("work_duration_minutes", 0)) * 60

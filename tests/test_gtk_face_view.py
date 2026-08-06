@@ -679,6 +679,30 @@ def test_tool_panel_enriches_pomodoro_state():
     assert panel.progress == 0.6
 
 
+def test_tool_panel_humanizes_pomodoro_break_phases():
+    """Pomodoro detail text should not expose raw phase identifiers."""
+    panel = face_view.tool_panel(
+        {
+            "active_view": "pomodoro",
+            "timer_state": {
+                "status": "running",
+                "phase": "long_break",
+                "work_duration_minutes": 25,
+                "break_duration_minutes": 15,
+                "remaining_work_seconds": 0,
+                "remaining_break_seconds": 600,
+            },
+        },
+        {"state": "running"},
+    )
+
+    assert panel.detail_lines == (
+        "Running Long Break session",
+        "Next work block after 10:00",
+    )
+    assert panel.progress == 0.333
+
+
 def test_tool_panel_surfaces_active_view_runtime_errors():
     """Active GTK panels should include runtime errors in central detail text."""
     panel = face_view.tool_panel(
