@@ -337,6 +337,7 @@ def test_action_feedback_prefers_response_state_and_model():
         == "Start: Backend offline"
     )
     assert face_view.action_feedback("stop", {"state": "error", "error": "   "}) == "Stop: Error"
+    assert face_view.action_feedback("   ", {"state": "running"}) == "Action: Running"
 
 
 def test_action_tooltip_includes_human_keyboard_shortcuts():

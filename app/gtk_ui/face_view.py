@@ -140,6 +140,10 @@ def _humanized_label(value: Any) -> str:
     return _humanize(value).strip()
 
 
+def _action_label(value: Any) -> str:
+    return _humanized_label(value) or "Action"
+
+
 def _date_label(value: Any) -> str:
     raw_value = str(value or "").strip()
     date_value = raw_value[:10] if len(raw_value) >= 10 else raw_value
@@ -327,7 +331,7 @@ def model_entry_user_edited_after_change(
 
 def action_feedback(action_name: str, response: dict[str, Any]) -> str:
     """Turn an action API response into concise GTK feedback."""
-    action_label = _humanize(action_name)
+    action_label = _action_label(action_name)
     if response.get("error"):
         error = _runtime_error_summary(response["error"])
         if error:
@@ -340,7 +344,7 @@ def action_feedback(action_name: str, response: dict[str, Any]) -> str:
 
 def action_exception_feedback(action_name: str, error: Any) -> str:
     """Turn an action exception into concise GTK feedback."""
-    action_label = _humanize(action_name)
+    action_label = _action_label(action_name)
     if isinstance(error, ConnectionError):
         return f"{action_label}: Backend offline"
     message = str(error or "").strip() or error.__class__.__name__
