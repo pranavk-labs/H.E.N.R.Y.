@@ -424,7 +424,7 @@ def status_badges(ui_state: dict[str, Any], runtime: dict[str, Any]) -> tuple[st
 
 def runtime_status_class(runtime: dict[str, Any]) -> str:
     """Return a GTK status CSS class for runtime health."""
-    state = str(runtime.get("state") or "unknown").lower()
+    state = str(runtime.get("state") or "unknown").strip().lower()
     error = str(runtime.get("error") or "").strip()
     if state == "error" or error:
         return "status-error"
