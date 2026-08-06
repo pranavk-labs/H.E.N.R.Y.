@@ -38,6 +38,7 @@ from app.gtk_ui.face_view import (
     status_badges,
     surface_accent,
     tool_panel,
+    tool_panel_tooltip,
     wrapped_detail_lines,
     wrapped_text_lines,
 )
@@ -321,6 +322,9 @@ class HenryGtkWindow:
             active_states_status_class(ui_state),
         )
 
+    def _apply_canvas_tooltip(self) -> None:
+        self.canvas.set_tooltip_text(tool_panel_tooltip(tool_panel(self.ui_state, self.runtime)))
+
     def _on_model_entry_changed(self, _entry: Any) -> None:
         self._model_entry_user_edited = model_entry_user_edited_after_change(
             self.model_entry.get_text(),
@@ -501,6 +505,7 @@ class HenryGtkWindow:
             self._sync_model_entry(runtime)
             self._apply_control_state(runtime)
             self._apply_header_state(ui_state)
+            self._apply_canvas_tooltip()
         except Exception as exc:
             offline_runtime = offline_runtime_state(exc)
             connection_text = "Backend: unavailable"
@@ -543,6 +548,7 @@ class HenryGtkWindow:
                 "active_view": "idle",
                 "status_text": f"Backend unavailable: {exc}",
             }
+            self._apply_canvas_tooltip()
         self.canvas.queue_draw()
         return True
 

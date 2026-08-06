@@ -784,6 +784,12 @@ def control_tooltip(
     return f"{label} unavailable: {reason}"
 
 
+def tool_panel_tooltip(panel: ToolPanel) -> str:
+    """Return full hover text for the central GTK canvas panel."""
+    lines = [panel.title, panel.summary, *panel.detail_lines]
+    return "\n".join(line for line in lines if str(line).strip())
+
+
 def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
     """Build the richer content model rendered by the GTK canvas."""
     active_view = _active_view_name(ui_state.get("active_view"))

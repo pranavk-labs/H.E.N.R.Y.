@@ -34,9 +34,13 @@ class FakeCanvas:
 
     def __init__(self) -> None:
         self.queued = False
+        self.tooltip_text = ""
 
     def queue_draw(self) -> None:
         self.queued = True
+
+    def set_tooltip_text(self, text: str) -> None:
+        self.tooltip_text = text
 
 
 class FakeButton:
@@ -132,6 +136,9 @@ class FakeWindow:
 
     def _apply_header_state(self, ui_state: dict[str, str]) -> None:
         self.header_ui_state = ui_state
+
+    def _apply_canvas_tooltip(self) -> None:
+        HenryGtkWindow._apply_canvas_tooltip(self)
 
     def _sync_model_entry(self, runtime: dict[str, str]) -> None:
         self.synced_runtime = runtime
@@ -306,6 +313,16 @@ def test_refresh_runtime_tooltip_keeps_full_model_name():
     assert (
         window.runtime_status_label.tooltip_text == "Runtime: Running - qwen3-extra-long-model-name"
     )
+
+
+def test_refresh_sets_canvas_tooltip_from_visible_panel():
+    """GTK canvas hover text should expose the full central panel content."""
+    window = FakeWindow()
+    window.client = HealthyClient()
+
+    assert HenryGtkWindow.refresh(window) is True
+
+    assert window.canvas.tooltip_text == "Listening\nReady\nRuntime: Running - qwen3"
 
 
 def test_apply_header_state_sets_active_states_tooltip():
