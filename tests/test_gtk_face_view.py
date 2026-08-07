@@ -962,6 +962,22 @@ def test_active_state_errors_keep_error_tone():
     assert face_view.status_badge_tone(active_badge) == "error"
 
 
+def test_literal_active_state_errors_keep_canvas_error_tone():
+    """Literal GTK active error states should stay urgent in canvas badges."""
+    ui_state = {"active_view": "todo_list", "active_states": ["error", "calendar"]}
+
+    assert face_view.header_state(ui_state)["active_states_label"] == "Active: Error, Calendar"
+    assert face_view.active_states_status_class(ui_state) == "status-error"
+    assert face_view.status_badge_tone("Active: Error, Calendar") == "error"
+    active_badge = face_view.compact_status_badges(
+        ("Active: Error, Calendar", "Runtime: Running"),
+        max_chars=10,
+        max_badges=1,
+    )[0]
+    assert active_badge == "Error +1"
+    assert face_view.status_badge_tone(active_badge) == "error"
+
+
 def test_status_badges_summarize_current_surface_state():
     """Canvas status badges make key context visible away from the dense header."""
     assert face_view.status_badges(

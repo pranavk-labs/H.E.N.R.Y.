@@ -255,7 +255,12 @@ def _runtime_error_summary(error: Any) -> str:
 
 def _label_has_error(value: Any) -> bool:
     label = _humanized_label(value)
-    return label == "Error" or label.endswith(" Error") or " Error," in label
+    return (
+        label == "Error"
+        or label.startswith("Error,")
+        or label.endswith(" Error")
+        or " Error," in label
+    )
 
 
 def _runtime_state_label(runtime: dict[str, Any]) -> str:
