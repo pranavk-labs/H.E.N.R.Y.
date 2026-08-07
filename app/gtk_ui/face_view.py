@@ -673,6 +673,8 @@ def _overflow_text(text: str, max_chars: int) -> str:
 def _overflow_primary_label(primary: str) -> str:
     if primary.startswith("Runtime:"):
         runtime_label = primary.split(":", 1)[1].strip()
+        if runtime_label.endswith("Error"):
+            return "Error"
         if runtime_label:
             return runtime_label
     if primary.startswith("Error:"):
@@ -730,8 +732,10 @@ def status_badge_tone(label: Any) -> str:
     primary_value, overflow_suffix = value.rsplit(" +", 1) if " +" in value else (value, "")
     if overflow_suffix.isdigit():
         value = primary_value
-    if value in {"Offline", "Error", "Runtime: Error", "Runtime: Offline"} or value.startswith(
-        "Error:"
+    if (
+        value in {"Offline", "Error", "Runtime: Error", "Runtime: Offline"}
+        or value.startswith("Error:")
+        or (value.startswith("Runtime:") and value.endswith("Error"))
     ):
         return "error"
     if value == "Active" or value.startswith("Active:"):

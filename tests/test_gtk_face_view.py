@@ -1095,6 +1095,19 @@ def test_compact_status_badges_keeps_runtime_state_readable_when_clipped():
     assert face_view.status_badge_tone(running_badge) == "ok"
 
 
+def test_compact_status_badges_keeps_runtime_error_tone_when_clipped():
+    """Very narrow runtime error badges should keep error tone."""
+    voice_error_badge = face_view.compact_status_badges(
+        ("Runtime: Voice Error", "Model: qwen3"),
+        max_chars=12,
+        max_badges=1,
+    )[0]
+
+    assert face_view.status_badge_tone("Runtime: Voice Error") == "error"
+    assert voice_error_badge == "Error +1"
+    assert face_view.status_badge_tone(voice_error_badge) == "error"
+
+
 def test_compact_status_badges_keeps_unknown_runtime_tone_when_clipped():
     """Very narrow unknown runtime badges should keep pending tone."""
     unknown_badge = face_view.compact_status_badges(
