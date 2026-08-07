@@ -120,6 +120,33 @@ def test_view_summary_prefers_selected_titles_over_generic_tool_statuses():
     )
 
 
+def test_view_summary_prefers_selected_titles_over_singular_generic_statuses():
+    """Selected Todo and Calendar items should beat singular generic status labels."""
+    for generic_status in ("Todo", "Task"):
+        assert (
+            view_summary(
+                {
+                    "active_view": "todo_list",
+                    "status_text": generic_status,
+                    "active_todo_title": "Pay rent",
+                },
+                {"state": "running"},
+            )
+            == "Pay rent"
+        )
+    assert (
+        view_summary(
+            {
+                "active_view": "calendar",
+                "status_text": "Event",
+                "active_event_title": "Design review",
+            },
+            {"state": "running"},
+        )
+        == "Design review"
+    )
+
+
 def test_view_summary_tolerates_non_mapping_idea_state():
     """Malformed idea state should not crash the GTK summary."""
     assert (
