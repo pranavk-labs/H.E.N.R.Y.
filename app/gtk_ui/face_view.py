@@ -1065,8 +1065,12 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         else:
             details.append(attention_detail)
 
+    panel_title = (
+        surface_title(ui_state, runtime) if active_view == "idle" else view_title(active_view)
+    )
+
     return ToolPanel(
-        title=view_title(active_view),
+        title=panel_title,
         summary=summary,
         detail_lines=tuple(details[:3]),
         progress=progress,

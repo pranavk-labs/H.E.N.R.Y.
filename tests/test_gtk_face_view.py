@@ -1619,6 +1619,27 @@ def test_tool_panel_surfaces_idle_runtime_error_details():
     assert offline_panel.detail_lines == ("Runtime: Offline",)
 
 
+def test_tool_panel_uses_surface_title_for_idle_runtime_states():
+    """Idle GTK panel title should match runtime-driven surface state."""
+    for ui_state, runtime, expected_title in (
+        ({"active_view": "idle", "status_text": ""}, {"state": "loading"}, "Loading"),
+        ({"active_view": "idle", "status_text": ""}, {"state": "voice-error"}, "Error"),
+        (
+            {"active_view": "idle", "status_text": ""},
+            face_view.offline_runtime_state(ConnectionError("connection refused")),
+            "Offline",
+        ),
+        (
+            {"active_view": "   ", "status_text": ""},
+            {"state": "error", "error": "microphone unavailable"},
+            "Error",
+        ),
+    ):
+        panel = face_view.tool_panel(ui_state, runtime)
+
+        assert panel.title == expected_title
+
+
 def test_tool_panel_shows_unknown_idle_runtime_detail():
     """Idle GTK panel should not look empty while runtime state is unknown."""
     panel = face_view.tool_panel({"active_view": "idle", "status_text": ""}, {})
@@ -1652,7 +1673,7 @@ def test_tool_panel_treats_blank_active_view_as_idle():
         {"state": "error", "model": "qwen3", "error": "microphone unavailable"},
     )
 
-    assert panel.title == "Listening"
+    assert panel.title == "Error"
     assert panel.summary == "microphone unavailable"
     assert panel.detail_lines == ("Runtime: Error - qwen3",)
 
