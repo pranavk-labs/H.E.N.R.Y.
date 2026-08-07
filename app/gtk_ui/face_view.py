@@ -199,6 +199,10 @@ def _unique_labels(values: list[Any]) -> list[str]:
     return labels
 
 
+def _prioritized_active_state_labels(labels: list[str]) -> list[str]:
+    return sorted(labels, key=lambda label: 0 if _label_has_error(label) else 1)
+
+
 def _humanize(value: Any) -> str:
     """Convert compact API values into short labels."""
     return str(value or "").replace("_", " ").replace("-", " ").strip().title()
@@ -591,6 +595,7 @@ def header_state(ui_state: dict[str, Any]) -> dict[str, Any]:
         for label in _unique_labels(_list_state(ui_state.get("active_states")))
         if label.lower() not in current_view_labels
     ]
+    active_states = _prioritized_active_state_labels(active_states)
     visible_states = active_states[:3]
     overflow_count = len(active_states) - len(visible_states)
     active_states_label = ""

@@ -962,6 +962,25 @@ def test_active_state_errors_keep_error_tone():
     assert face_view.status_badge_tone(active_badge) == "error"
 
 
+def test_header_state_prioritizes_hidden_active_state_errors():
+    """GTK active-state errors should stay visible when the active header overflows."""
+    ui_state = {
+        "active_view": "idle",
+        "active_states": ["timer", "idea", "todo_list", "calendar", "voice-error"],
+    }
+
+    assert face_view.header_state(ui_state) == {
+        "can_go_back": False,
+        "active_states_label": "Active: Voice Error, Timer, Idea +2",
+        "active_states_tooltip": "Active: Voice Error, Timer, Idea, Todo List, Calendar",
+    }
+    assert face_view.status_badges(ui_state, {"state": "running"}) == (
+        "Listening",
+        "Runtime: Running",
+        "Active: Voice Error, Timer, Idea +2",
+    )
+
+
 def test_literal_active_state_errors_keep_canvas_error_tone():
     """Literal GTK active error states should stay urgent in canvas badges."""
     ui_state = {"active_view": "todo_list", "active_states": ["error", "calendar"]}
