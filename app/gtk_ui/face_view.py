@@ -789,6 +789,7 @@ def status_badge_tone(label: Any) -> str:
         value = primary_value
     if (
         value in {"Offline", "Error", "Runtime: Error", "Runtime: Offline"}
+        or value.endswith(" Error")
         or value.startswith("Error:")
         or (value.startswith("Runtime:") and value.endswith("Error"))
         or (value.startswith("Active:") and _label_has_error(value.split(":", 1)[1]))
@@ -807,7 +808,6 @@ def status_badge_tone(label: Any) -> str:
         "Stopping",
         "Unknown",
         "Unloading",
-        "Voice Error",
     }:
         return "pending"
     if value in {

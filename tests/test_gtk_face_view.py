@@ -1272,6 +1272,7 @@ def test_status_badge_tone_marks_important_states():
     assert face_view.status_badge_tone("Error: microphone unavailable") == "error"
     assert face_view.status_badge_tone("Runtime: Error") == "error"
     assert face_view.status_badge_tone("Runtime: Offline") == "error"
+    assert face_view.status_badge_tone("Voice Error") == "error"
     assert face_view.status_badge_tone("Runtime: Running") == "ok"
     assert face_view.status_badge_tone("Runtime: Loading") == "pending"
     assert face_view.status_badge_tone("Loading") == "pending"
