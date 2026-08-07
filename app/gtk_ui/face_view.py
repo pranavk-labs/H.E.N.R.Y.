@@ -736,7 +736,7 @@ def status_badge_tone(label: Any) -> str:
         return "error"
     if value == "Active" or value.startswith("Active:"):
         return "pending"
-    if value in {"Starting", "Stopping", "Loading", "Unloading"}:
+    if value in {"Starting", "Stopping", "Loading", "Unloading", "Unknown"}:
         return "pending"
     if value in {
         "Running",

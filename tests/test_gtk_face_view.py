@@ -1084,6 +1084,18 @@ def test_compact_status_badges_keeps_runtime_state_readable_when_clipped():
     assert face_view.status_badge_tone(running_badge) == "ok"
 
 
+def test_compact_status_badges_keeps_unknown_runtime_tone_when_clipped():
+    """Very narrow unknown runtime badges should keep pending tone."""
+    unknown_badge = face_view.compact_status_badges(
+        ("Runtime: Unknown", "Model: qwen3"),
+        max_chars=12,
+        max_badges=1,
+    )[0]
+
+    assert unknown_badge == "Unknown +1"
+    assert face_view.status_badge_tone(unknown_badge) == "pending"
+
+
 def test_compact_status_badges_keeps_active_state_readable_when_clipped():
     """Very narrow active-state badges should keep active work visible."""
     active_badge = face_view.compact_status_badges(
