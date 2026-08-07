@@ -719,6 +719,10 @@ def _hidden_overflow_badge(hidden_labels: list[str], overflow_count: int, max_ch
     return f"+{overflow_count} more"
 
 
+def _tone_priority(tone: str) -> int:
+    return {"error": 3, "pending": 2, "ok": 1}.get(tone, 0)
+
+
 def compact_status_badges(
     badges: tuple[str, ...],
     *,
@@ -736,9 +740,15 @@ def compact_status_badges(
         if len(visible_labels) > badge_limit:
             if badge_limit == 1:
                 hidden_labels = visible_labels[1:]
-                if status_badge_tone(visible_labels[0]) != "error" and any(
-                    status_badge_tone(label) == "error" for label in hidden_labels
-                ):
+                primary_tone = status_badge_tone(visible_labels[0])
+                hidden_attention_tones = [
+                    status_badge_tone(label)
+                    for label in hidden_labels
+                    if status_badge_tone(label) in {"error", "pending"}
+                ]
+                if hidden_attention_tones and max(
+                    _tone_priority(tone) for tone in hidden_attention_tones
+                ) > _tone_priority(primary_tone):
                     return (
                         _hidden_overflow_badge(
                             hidden_labels,

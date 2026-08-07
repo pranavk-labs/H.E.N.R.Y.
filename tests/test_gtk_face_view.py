@@ -1140,6 +1140,22 @@ def test_compact_status_badges_prioritizes_hidden_errors_with_one_slot():
     assert face_view.status_badge_tone(badge) == "error"
 
 
+def test_compact_status_badges_prioritizes_hidden_pending_with_one_slot():
+    """One-slot GTK badge overflow should still surface hidden pending work."""
+    badge = face_view.compact_status_badges(
+        (
+            "Calendar",
+            "Runtime: Loading",
+            "Model: qwen3",
+        ),
+        max_chars=24,
+        max_badges=1,
+    )[0]
+
+    assert badge == "Loading +2"
+    assert face_view.status_badge_tone(badge) == "pending"
+
+
 def test_compact_status_badges_preserves_one_slot_overflow_count_when_clipped():
     """Very narrow primary overflow badges should keep the hidden badge count visible."""
     assert face_view.compact_status_badges(
