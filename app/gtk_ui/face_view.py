@@ -980,6 +980,9 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
             identifier = _short_identifier(ui_state["active_event_id"])
             if identifier:
                 details.append(f"Event: {identifier}")
+        active_event_id = str(ui_state.get("active_event_id") or "").strip()
+        if not details and not active_event_title and not active_event_id:
+            details.append("Ready to schedule")
 
     elif active_view == "idle":
         details.append(f"Runtime: {runtime_summary(runtime)}")

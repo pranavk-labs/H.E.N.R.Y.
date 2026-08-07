@@ -1750,6 +1750,14 @@ def test_tool_panel_omits_duplicate_calendar_event_title_without_other_details()
     assert panel.detail_lines == ()
 
 
+def test_tool_panel_marks_empty_calendar_view_ready_to_schedule():
+    """Calendar panel should not render a blank detail area when no event is selected."""
+    panel = face_view.tool_panel({"active_view": "calendar"}, {"state": "running"})
+
+    assert panel.summary == "Upcoming"
+    assert panel.detail_lines == ("Ready to schedule",)
+
+
 def test_tool_panel_marks_active_calendar_event_ids_as_active():
     """Calendar panel should not show active event IDs under a generic headline."""
     panel = face_view.tool_panel(
@@ -1848,13 +1856,10 @@ def test_tool_panel_skips_blank_fallback_identifiers():
         },
         {"state": "running"},
     ).detail_lines == ("Ready to plan",)
-    assert (
-        face_view.tool_panel(
-            {"active_view": "calendar", "active_event_id": "   "},
-            {"state": "running"},
-        ).detail_lines
-        == ()
-    )
+    assert face_view.tool_panel(
+        {"active_view": "calendar", "active_event_id": "   "},
+        {"state": "running"},
+    ).detail_lines == ("Ready to schedule",)
 
 
 def test_tool_panel_tolerates_non_mapping_idea_state():
@@ -1885,4 +1890,4 @@ def test_tool_panel_skips_blank_filter_labels():
     )
 
     assert calendar_panel.summary == "Upcoming"
-    assert calendar_panel.detail_lines == ()
+    assert calendar_panel.detail_lines == ("Ready to schedule",)
