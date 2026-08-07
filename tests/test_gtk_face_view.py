@@ -175,6 +175,22 @@ def test_view_summary_prefers_selected_titles_over_generic_list_statuses():
         )
 
 
+def test_view_summary_prefers_active_idea_over_generic_statuses():
+    """Active Ideas should beat generic capture status labels."""
+    for generic_status in ("Idea", "Ideas", "Idea Captured"):
+        assert (
+            view_summary(
+                {
+                    "active_view": "ideas",
+                    "status_text": generic_status,
+                    "idea_view": {"active_idea_id": "idea:polish_gtk"},
+                },
+                {"state": "running"},
+            )
+            == "Active idea"
+        )
+
+
 def test_view_summary_tolerates_non_mapping_idea_state():
     """Malformed idea state should not crash the GTK summary."""
     assert (
