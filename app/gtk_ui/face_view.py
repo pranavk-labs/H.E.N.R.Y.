@@ -966,7 +966,7 @@ def control_tooltip(
         reason = "no model loaded"
     else:
         reason = f"runtime state is {_humanize(state).lower()}"
-    return f"{label} unavailable: {reason}"
+    return f"{action_tooltip(action_name, label)} unavailable: {reason}"
 
 
 def tool_panel_tooltip(panel: ToolPanel) -> str:

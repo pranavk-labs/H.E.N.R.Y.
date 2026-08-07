@@ -396,23 +396,25 @@ def test_apply_control_state_explains_disabled_runtime_controls():
     assert window._buttons["start"].sensitive is False
     assert window._buttons["preload"].sensitive is False
     assert window._buttons["start"].tooltip_text == (
-        "Start voice runtime unavailable: backend offline"
+        "Start voice runtime (Ctrl+Enter) unavailable: backend offline"
     )
-    assert window._buttons["preload"].tooltip_text == "Preload model unavailable: backend offline"
+    assert window._buttons["preload"].tooltip_text == (
+        "Preload model (Ctrl+R) unavailable: backend offline"
+    )
 
     HenryGtkWindow._apply_control_state(window, {"state": "loading"})
 
     assert window._buttons["start"].tooltip_text == (
-        "Start voice runtime unavailable: runtime is loading"
+        "Start voice runtime (Ctrl+Enter) unavailable: runtime is loading"
     )
     assert window._buttons["stop"].tooltip_text == (
-        "Stop voice runtime unavailable: runtime is loading"
+        "Stop voice runtime (Ctrl+.) unavailable: runtime is loading"
     )
 
     HenryGtkWindow._apply_control_state(window, {"state": "running"})
 
     assert window._buttons["start"].tooltip_text == (
-        "Start voice runtime unavailable: runtime is already running"
+        "Start voice runtime (Ctrl+Enter) unavailable: runtime is already running"
     )
     assert window._buttons["stop"].tooltip_text == "Stop voice runtime (Ctrl+.)"
 

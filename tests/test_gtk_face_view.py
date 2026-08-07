@@ -651,6 +651,19 @@ def test_action_tooltip_humanizes_punctuation_shortcuts():
     assert face_view.action_tooltip("stop", "Stop voice runtime") == ("Stop voice runtime (Ctrl+.)")
 
 
+def test_control_tooltip_keeps_shortcut_when_disabled():
+    """Disabled GTK controls should still expose their keyboard shortcut."""
+    assert (
+        face_view.control_tooltip(
+            "start",
+            "Start voice runtime",
+            {"state": "running"},
+            enabled=False,
+        )
+        == "Start voice runtime (Ctrl+Enter) unavailable: runtime is already running"
+    )
+
+
 def test_tool_panel_tooltip_includes_progress_percentage():
     """GTK canvas hover text should make progress bars inspectable."""
     assert (
