@@ -305,13 +305,19 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         active_todo_title = str(ui_state.get("active_todo_title") or "").strip()
         if active_todo_title and (
             not status_text
-            or _is_generic_status(status_text, {"todo", "todo list", "todos", "task", "tasks"})
+            or _is_generic_status(
+                status_text,
+                {"to do", "todo", "todo list", "todos", "task", "task list", "tasks"},
+            )
         ):
             return active_todo_title
         active_todo_id = str(ui_state.get("active_todo_id") or "").strip()
         if active_todo_id and (
             not status_text
-            or _is_generic_status(status_text, {"todo", "todo list", "todos", "task", "tasks"})
+            or _is_generic_status(
+                status_text,
+                {"to do", "todo", "todo list", "todos", "task", "task list", "tasks"},
+            )
         ):
             return "Active todo"
         return status_text or "Todos"
@@ -320,13 +326,19 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
         active_event_title = str(ui_state.get("active_event_title") or "").strip()
         if active_event_title and (
             not status_text
-            or _is_generic_status(status_text, {"calendar", "event", "events", "upcoming"})
+            or _is_generic_status(
+                status_text,
+                {"calendar", "calendar events", "event", "events", "upcoming", "upcoming events"},
+            )
         ):
             return active_event_title
         active_event_id = str(ui_state.get("active_event_id") or "").strip()
         if active_event_id and (
             not status_text
-            or _is_generic_status(status_text, {"calendar", "event", "events", "upcoming"})
+            or _is_generic_status(
+                status_text,
+                {"calendar", "calendar events", "event", "events", "upcoming", "upcoming events"},
+            )
         ):
             return "Active event"
         return status_text or "Calendar"
