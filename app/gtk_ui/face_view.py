@@ -172,9 +172,11 @@ def _active_view_name(value: Any) -> str:
         "tasks": "todo_list",
         "timer": "pomodoro",
         "todo": "todo_list",
+        "todo list": "todo_list",
         "todo-list": "todo_list",
         "todos": "todo_list",
         "voice": "voice_note",
+        "voice note": "voice_note",
         "voice-note": "voice_note",
     }
     return aliases.get(view_name, view_name)

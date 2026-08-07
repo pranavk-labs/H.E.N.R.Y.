@@ -1625,6 +1625,29 @@ def test_active_view_labels_route_plural_todo_aliases():
         assert face_view.tool_panel(ui_state, {"state": "running"}) == expected
 
 
+def test_active_view_labels_route_spaced_known_tool_aliases():
+    """GTK known tool views should tolerate space-separated API aliases."""
+    todo_state = {
+        "active_view": "todo list",
+        "status_text": "Todos",
+        "active_todo_title": "Polish GTK aliases",
+    }
+    voice_state = {"active_view": "voice note", "status_text": "   "}
+
+    assert face_view.active_view_name("todo list") == "todo_list"
+    assert face_view.tool_panel(todo_state, {"state": "running"}) == face_view.ToolPanel(
+        title="Todos",
+        summary="Polish GTK aliases",
+        detail_lines=(),
+    )
+    assert face_view.active_view_name("voice note") == "voice_note"
+    assert face_view.tool_panel(voice_state, {"state": "running"}) == face_view.ToolPanel(
+        title="Voice Note",
+        summary="Voice note ready",
+        detail_lines=("Ready to listen",),
+    )
+
+
 def test_active_view_labels_route_timer_and_idea_aliases():
     """GTK known tool views should tolerate timer and idea API aliases."""
     timer_state = {
