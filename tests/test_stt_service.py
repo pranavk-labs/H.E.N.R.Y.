@@ -87,7 +87,7 @@ def test_stt_service_whisper_engine_success(mock_import):
     mock_load_model.assert_called_once_with("small")
 
     # Test transcription
-    audio_bytes = np.zeros(16000, dtype=np.int16).tobytes()  # 1 second at 16kHz
+    audio_bytes = np.array([1000, -1000] * 8000, dtype=np.int16).tobytes()
     result = service.transcribe(audio_bytes, 16000)
 
     assert result == "hello world"
@@ -95,6 +95,34 @@ def test_stt_service_whisper_engine_success(mock_import):
     # Verify fp16=False for CPU compatibility
     call_kwargs = mock_model.transcribe.call_args[1]
     assert call_kwargs.get("fp16") is False
+
+
+@patch("builtins.__import__")
+def test_stt_service_whisper_skips_silent_audio(mock_import):
+    """Silent microphone buffers should return quickly without Whisper hallucinations."""
+    SpeechToTextService._instance = None
+
+    mock_model = MagicMock()
+    mock_model.transcribe.return_value = {"text": "you"}
+    mock_load_model = MagicMock(return_value=mock_model)
+    mock_whisper_module = MagicMock()
+    mock_whisper_module.load_model = mock_load_model
+
+    def import_side_effect(name, *args, **kwargs):
+        if name == "whisper":
+            return mock_whisper_module
+        return _original_import(name, *args, **kwargs)
+
+    mock_import.side_effect = import_side_effect
+
+    settings = Settings()
+    settings.stt_engine = "whisper"
+    service = SpeechToTextService(settings)
+
+    audio_bytes = np.zeros(16000, dtype=np.int16).tobytes()
+
+    assert service.transcribe(audio_bytes, 16000) == ""
+    mock_model.transcribe.assert_not_called()
 
 
 @patch("builtins.__import__")

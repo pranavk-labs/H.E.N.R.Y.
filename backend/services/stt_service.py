@@ -76,9 +76,12 @@ class SpeechToTextService:
         if self.engine == "whisper" and self._whisper_model is not None:
             try:
                 # Convert bytes to numpy array (int16)
-                audio_array = np.frombuffer(audio_bytes, dtype=np.int16).astype(
-                    np.float32
-                ) / 32768.0
+                audio_array = (
+                    np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+                )
+                if audio_array.size == 0 or float(np.max(np.abs(audio_array))) < 0.001:
+                    logger.info("OpenAI Whisper transcription skipped for silent audio")
+                    return ""
 
                 # OpenAI Whisper expects 16kHz audio
                 # Transcribe using OpenAI Whisper
