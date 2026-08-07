@@ -215,6 +215,7 @@ def _current_view_active_state_labels(active_view: Any) -> set[str]:
         "pomodoro": ("timer",),
         "ideas": ("idea",),
         "todo_list": ("todo", "todos"),
+        "voice_note": ("voice",),
     }
     labels = {
         view_title(view_name).lower(),

@@ -818,6 +818,26 @@ def test_header_state_omits_calendar_event_aliases_from_active_states():
     )
 
 
+def test_header_state_omits_voice_note_aliases_from_active_states():
+    """GTK Voice Note should not show its voice aliases as concurrent work."""
+    ui_state = {
+        "active_view": "voice",
+        "view_stack": ["idle", "voice"],
+        "active_states": ["voice", "timer"],
+    }
+
+    assert face_view.header_state(ui_state) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer",
+        "active_states_tooltip": "Active: Timer",
+    }
+    assert face_view.status_badges(ui_state, {"state": "running"}) == (
+        "Voice Note",
+        "Runtime: Running",
+        "Active: Timer",
+    )
+
+
 def test_active_states_status_class_marks_concurrent_work():
     """GTK active-states label gets emphasis only when work is active."""
     assert (
