@@ -936,6 +936,26 @@ def test_active_states_status_class_marks_concurrent_work():
     assert face_view.active_states_status_class({"active_states": "timer"}) == "status-neutral"
 
 
+def test_active_state_errors_keep_error_tone():
+    """GTK active-state errors should not look like ordinary background work."""
+    ui_state = {"active_view": "todo_list", "active_states": ["voice-error", "calendar"]}
+
+    assert face_view.header_state(ui_state) == {
+        "can_go_back": False,
+        "active_states_label": "Active: Voice Error, Calendar",
+        "active_states_tooltip": "Active: Voice Error, Calendar",
+    }
+    assert face_view.active_states_status_class(ui_state) == "status-error"
+    assert face_view.status_badge_tone("Active: Voice Error, Calendar") == "error"
+    active_badge = face_view.compact_status_badges(
+        ("Active: Voice Error, Calendar", "Runtime: Running"),
+        max_chars=10,
+        max_badges=1,
+    )[0]
+    assert active_badge == "Error +1"
+    assert face_view.status_badge_tone(active_badge) == "error"
+
+
 def test_status_badges_summarize_current_surface_state():
     """Canvas status badges make key context visible away from the dense header."""
     assert face_view.status_badges(

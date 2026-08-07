@@ -253,6 +253,11 @@ def _runtime_error_summary(error: Any) -> str:
     return message
 
 
+def _label_has_error(value: Any) -> bool:
+    label = _humanized_label(value)
+    return label == "Error" or label.endswith(" Error") or " Error," in label
+
+
 def _runtime_state_label(runtime: dict[str, Any]) -> str:
     error = str(runtime.get("error") or "").strip()
     if error.lower().startswith("backend unavailable:"):
@@ -605,6 +610,8 @@ def active_states_status_class(ui_state: dict[str, Any]) -> str:
         for label in _unique_labels(_list_state(ui_state.get("active_states")))
         if label.lower() not in current_view_labels
     ]
+    if any(_label_has_error(label) for label in active_states):
+        return "status-error"
     return "status-pending" if active_states else "status-neutral"
 
 
@@ -680,6 +687,8 @@ def _overflow_primary_label(primary: str) -> str:
     if primary.startswith("Error:"):
         return "Error"
     if primary.startswith("Active:"):
+        if _label_has_error(primary.split(":", 1)[1]):
+            return "Error"
         return "Active"
     if primary.startswith("Model:"):
         return "Model"
@@ -736,6 +745,7 @@ def status_badge_tone(label: Any) -> str:
         value in {"Offline", "Error", "Runtime: Error", "Runtime: Offline"}
         or value.startswith("Error:")
         or (value.startswith("Runtime:") and value.endswith("Error"))
+        or (value.startswith("Active:") and _label_has_error(value.split(":", 1)[1]))
     ):
         return "error"
     if value == "Active" or value.startswith("Active:"):
