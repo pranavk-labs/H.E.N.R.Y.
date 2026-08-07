@@ -798,6 +798,17 @@ def test_header_state_omits_current_view_aliases_from_active_states():
         "active_states_label": "Active: Timer",
         "active_states_tooltip": "Active: Timer",
     }
+    assert face_view.header_state(
+        {
+            "active_view": "tasks",
+            "view_stack": ["idle", "tasks"],
+            "active_states": ["tasks", "timer"],
+        }
+    ) == {
+        "can_go_back": True,
+        "active_states_label": "Active: Timer",
+        "active_states_tooltip": "Active: Timer",
+    }
 
 
 def test_header_state_omits_calendar_event_aliases_from_active_states():

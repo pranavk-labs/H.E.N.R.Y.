@@ -216,7 +216,7 @@ def _current_view_active_state_labels(active_view: Any) -> set[str]:
         "calendar": ("event", "events"),
         "pomodoro": ("timer",),
         "ideas": ("idea",),
-        "todo_list": ("todo", "todos"),
+        "todo_list": ("todo", "todos", "tasks"),
         "voice_note": ("voice",),
     }
     labels = {
