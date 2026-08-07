@@ -385,6 +385,7 @@ def view_accent(active_view: str) -> tuple[float, float, float]:
         "ideas": (0.35, 0.63, 0.94),
         "todo_list": (0.91, 0.73, 0.33),
         "calendar": (0.65, 0.55, 0.95),
+        "voice_note": (0.3, 0.78, 0.82),
     }
     return accents.get(view_name, (0.72, 0.74, 0.78))
 

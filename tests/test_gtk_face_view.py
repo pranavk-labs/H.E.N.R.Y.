@@ -215,6 +215,8 @@ def test_view_title_and_accent_make_active_context_scannable():
     assert face_view.view_accent("idle") == (0.31, 0.78, 0.47)
     assert face_view.view_accent("pomodoro") == (0.95, 0.39, 0.32)
     assert face_view.view_accent(" pomodoro ") == (0.95, 0.39, 0.32)
+    assert face_view.view_accent("voice_note") == (0.3, 0.78, 0.82)
+    assert face_view.view_accent("voice-note") == (0.3, 0.78, 0.82)
     assert face_view.view_accent("   ") == (0.31, 0.78, 0.47)
 
 
