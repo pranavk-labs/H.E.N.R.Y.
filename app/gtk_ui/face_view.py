@@ -711,6 +711,14 @@ def _primary_overflow_badge(primary: str, overflow_count: int, max_chars: int) -
     return f"{_clip_text(primary, primary_limit)}{suffix}"
 
 
+def _hidden_overflow_badge(hidden_labels: list[str], overflow_count: int, max_chars: int) -> str:
+    for tone in ("error", "pending", "ok"):
+        for label in hidden_labels:
+            if status_badge_tone(label) == tone:
+                return _primary_overflow_badge(label, overflow_count, max_chars)
+    return f"+{overflow_count} more"
+
+
 def compact_status_badges(
     badges: tuple[str, ...],
     *,
@@ -736,7 +744,14 @@ def compact_status_badges(
                 )
             keep_count = max(0, badge_limit - 1)
             overflow_count = len(visible_labels) - keep_count
-            visible_labels = [*visible_labels[:keep_count], f"+{overflow_count} more"]
+            visible_labels = [
+                *visible_labels[:keep_count],
+                _hidden_overflow_badge(
+                    visible_labels[keep_count:],
+                    overflow_count,
+                    char_limit,
+                ),
+            ]
     return tuple(_clip_text(label, char_limit) for label in visible_labels)
 
 
