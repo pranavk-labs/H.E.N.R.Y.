@@ -991,7 +991,18 @@ def test_runtime_status_class_marks_state_severity():
     assert face_view.runtime_status_class({"state": "loaded"}) == "status-ok"
     assert face_view.runtime_status_class({"state": "loading"}) == "status-pending"
     assert face_view.runtime_status_class({"state": "error"}) == "status-error"
+    assert face_view.runtime_status_class({"state": "voice-error"}) == "status-error"
     assert face_view.runtime_status_class({}) == "status-pending"
+
+
+def test_runtime_error_states_surface_as_errors():
+    """GTK idle surface should show runtime error states as errors."""
+    runtime = {"state": "voice-error"}
+    ui_state = {"active_view": "idle"}
+
+    assert face_view.surface_title(ui_state, runtime) == "Error"
+    assert face_view.header_view_status_class(ui_state, runtime) == "status-error"
+    assert face_view.status_badges(ui_state, runtime) == ("Error", "Runtime: Voice Error")
 
 
 def test_action_status_class_marks_response_severity():

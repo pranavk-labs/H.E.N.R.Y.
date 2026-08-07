@@ -642,7 +642,7 @@ def runtime_status_class(runtime: dict[str, Any]) -> str:
     """Return a GTK status CSS class for runtime health."""
     state = str(runtime.get("state") or "unknown").strip().lower()
     error = str(runtime.get("error") or "").strip()
-    if state == "error" or error:
+    if state == "error" or state.endswith("-error") or error:
         return "status-error"
     if state in {"running", "stopped", "loaded", "unloaded"}:
         return "status-ok"
