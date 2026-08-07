@@ -1,0 +1,26 @@
+backend/api/routes/stt.py
+  s_0ebea46cd3e366::t_35982c8e2444a7 54-57
+  s_0ebea46cd3e366::t_299cdba1312195 22,30
+backend/services/stt_service.py
+  s_0ebea46cd3e366::t_5dfc8752a4a6f0 25,63-71,92
+tests/test_api_stt.py
+  s_0ebea46cd3e366::t_1c27855e7eb933 67-69,71-82
+  s_0ebea46cd3e366::t_d2170b76382e5f 27-34,37,53,70,102,120,138,154,168
+  s_0ebea46cd3e366::t_299cdba1312195 40,42,56,58,86,95,106,108,125-126,129,142,145,156,158,171,173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.21",
+  "base_commit_sha": "6a7995887367b0825d5a52317463b6767379cf33",
+  "prompts": {},
+  "sessions": {
+    "s_0ebea46cd3e366": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "019faca0-4aca-7142-ae7c-d359f0571308",
+        "model": "gpt-5.5"
+      },
+      "human_author": "Pranav Kannepalli <pranav.kannepalli@gmail.com>"
+    }
+  }
+}
