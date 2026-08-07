@@ -1599,6 +1599,22 @@ def test_active_view_labels_route_timer_and_idea_aliases():
     )
 
 
+def test_active_view_labels_route_voice_note_aliases():
+    """GTK Voice Note should tolerate compact and hyphenated API aliases."""
+    expected = face_view.ToolPanel(
+        title="Voice Note",
+        summary="Voice note ready",
+        detail_lines=("Ready to listen",),
+    )
+
+    for active_view in ("voice", "voice-note"):
+        ui_state = {"active_view": active_view, "status_text": "   "}
+
+        assert face_view.active_view_name(active_view) == "voice_note"
+        assert face_view.header_view_title(ui_state, {"state": "running"}) == "Voice Note"
+        assert face_view.tool_panel(ui_state, {"state": "running"}) == expected
+
+
 def test_active_view_labels_route_calendar_event_aliases():
     """GTK Calendar should tolerate event-oriented API view aliases."""
     ui_state = {
