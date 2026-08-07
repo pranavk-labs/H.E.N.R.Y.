@@ -194,7 +194,7 @@ def test_view_summary_treats_blank_active_view_as_idle():
 def test_view_summary_humanizes_unknown_view_runtime_fallback():
     """Unknown GTK views should not show raw runtime state identifiers."""
     assert (
-        view_summary({"active_view": "voice_note", "status_text": "   "}, {"state": "voice-error"})
+        view_summary({"active_view": "custom_tool", "status_text": "   "}, {"state": "voice-error"})
         == "Runtime: Voice Error"
     )
 
@@ -1363,15 +1363,15 @@ def test_tool_panel_labels_active_view_backend_outages_as_offline():
 def test_tool_panel_omits_duplicate_unknown_view_runtime_fallback_details():
     """Unknown GTK panels should not repeat runtime fallback text."""
     offline_panel = face_view.tool_panel(
-        {"active_view": "voice_note", "status_text": "   "},
+        {"active_view": "custom_tool", "status_text": "   "},
         face_view.offline_runtime_state(ConnectionError("connection refused")),
     )
     loading_panel = face_view.tool_panel(
-        {"active_view": "voice_note", "status_text": "   "},
+        {"active_view": "custom_tool", "status_text": "   "},
         {"state": "loading"},
     )
     error_panel = face_view.tool_panel(
-        {"active_view": "voice_note", "status_text": "   "},
+        {"active_view": "custom_tool", "status_text": "   "},
         {"state": "error", "error": "microphone unavailable"},
     )
 
@@ -1381,6 +1381,18 @@ def test_tool_panel_omits_duplicate_unknown_view_runtime_fallback_details():
     assert loading_panel.detail_lines == ()
     assert error_panel.summary == "Runtime: Error"
     assert error_panel.detail_lines == ("Runtime error: microphone unavailable",)
+
+
+def test_tool_panel_marks_voice_note_view_ready_to_listen():
+    """Voice Note panel should not render a generic runtime fallback when idle."""
+    panel = face_view.tool_panel(
+        {"active_view": "voice_note", "status_text": "   "},
+        {"state": "running"},
+    )
+
+    assert panel.title == "Voice Note"
+    assert panel.summary == "Voice note ready"
+    assert panel.detail_lines == ("Ready to listen",)
 
 
 def test_tool_panel_surfaces_active_view_pending_runtime_state():

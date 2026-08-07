@@ -320,6 +320,11 @@ def view_summary(ui_state: dict[str, Any], runtime: dict[str, Any]) -> str:
             return "Active event"
         return status_text or "Calendar"
 
+    if active_view == "voice_note":
+        if status_text and not _is_generic_status(status_text, {"voice note", "voice", "ready"}):
+            return status_text
+        return "Voice note ready"
+
     return status_text or f"Runtime: {_runtime_state_label(runtime)}"
 
 
@@ -983,6 +988,10 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
         active_event_id = str(ui_state.get("active_event_id") or "").strip()
         if not details and not active_event_title and not active_event_id:
             details.append("Ready to schedule")
+
+    elif active_view == "voice_note":
+        if summary == "Voice note ready":
+            details.append("Ready to listen")
 
     elif active_view == "idle":
         details.append(f"Runtime: {runtime_summary(runtime)}")
