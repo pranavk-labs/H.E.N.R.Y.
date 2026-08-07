@@ -1488,6 +1488,17 @@ def test_tool_panel_surfaces_active_view_runtime_errors():
     )
 
 
+def test_tool_panel_surfaces_state_only_runtime_errors():
+    """Active GTK panels should include runtime errors encoded in state."""
+    panel = face_view.tool_panel(
+        {"active_view": "todo_list"},
+        {"state": "voice-error"},
+    )
+
+    assert panel.summary == "Todos"
+    assert panel.detail_lines == ("Ready to plan", "Runtime error: Voice Error")
+
+
 def test_tool_panel_labels_active_view_backend_outages_as_offline():
     """Active GTK panels should use the same offline language as the header."""
     panel = face_view.tool_panel(

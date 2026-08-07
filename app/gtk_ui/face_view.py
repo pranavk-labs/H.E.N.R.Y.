@@ -1054,6 +1054,8 @@ def tool_panel(ui_state: dict[str, Any], runtime: dict[str, Any]) -> ToolPanel:
             attention_detail = (
                 "Runtime: Offline" if error == "Backend offline" else f"Runtime error: {error}"
             )
+        elif state and runtime_status_class(runtime) == "status-error":
+            attention_detail = f"Runtime error: {_humanize(state)}"
         elif state and runtime_status_class(runtime) == "status-pending":
             attention_detail = f"Runtime: {_humanize(state)}"
 
