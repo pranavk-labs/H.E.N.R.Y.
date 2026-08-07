@@ -1594,6 +1594,26 @@ def test_active_view_labels_route_compact_known_tool_aliases():
     )
 
 
+def test_active_view_labels_route_plural_todo_aliases():
+    """GTK Todos should tolerate plural task-oriented API aliases."""
+    expected = face_view.ToolPanel(
+        title="Todos",
+        summary="Polish GTK aliases",
+        detail_lines=(),
+    )
+
+    for active_view in ("todos", "tasks"):
+        ui_state = {
+            "active_view": active_view,
+            "status_text": "Todos",
+            "active_todo_title": "Polish GTK aliases",
+        }
+
+        assert face_view.active_view_name(active_view) == "todo_list"
+        assert face_view.header_view_title(ui_state, {"state": "running"}) == "Todos"
+        assert face_view.tool_panel(ui_state, {"state": "running"}) == expected
+
+
 def test_active_view_labels_route_timer_and_idea_aliases():
     """GTK known tool views should tolerate timer and idea API aliases."""
     timer_state = {
