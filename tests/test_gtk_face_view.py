@@ -1109,7 +1109,7 @@ def test_compact_status_badges_keeps_hidden_error_overflow_tone():
 
 
 def test_compact_status_badges_keeps_primary_context_with_one_slot():
-    """GTK canvas badges should keep the current surface visible on very narrow windows."""
+    """One-slot GTK canvas badges keep hidden errors visible."""
     assert face_view.compact_status_badges(
         (
             "Calendar",
@@ -1120,7 +1120,24 @@ def test_compact_status_badges_keeps_primary_context_with_one_slot():
         ),
         max_chars=24,
         max_badges=1,
-    ) == ("Calendar +4",)
+    ) == ("Error +4",)
+
+
+def test_compact_status_badges_prioritizes_hidden_errors_with_one_slot():
+    """One-slot GTK badge overflow should still surface hidden errors."""
+    badge = face_view.compact_status_badges(
+        (
+            "Calendar",
+            "Runtime: Running",
+            "Model: qwen3",
+            "Error: microphone unavailable",
+        ),
+        max_chars=24,
+        max_badges=1,
+    )[0]
+
+    assert badge == "Error +3"
+    assert face_view.status_badge_tone(badge) == "error"
 
 
 def test_compact_status_badges_preserves_one_slot_overflow_count_when_clipped():

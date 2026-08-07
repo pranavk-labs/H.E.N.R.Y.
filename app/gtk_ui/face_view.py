@@ -735,6 +735,17 @@ def compact_status_badges(
             return ()
         if len(visible_labels) > badge_limit:
             if badge_limit == 1:
+                hidden_labels = visible_labels[1:]
+                if status_badge_tone(visible_labels[0]) != "error" and any(
+                    status_badge_tone(label) == "error" for label in hidden_labels
+                ):
+                    return (
+                        _hidden_overflow_badge(
+                            hidden_labels,
+                            len(hidden_labels),
+                            char_limit,
+                        ),
+                    )
                 return (
                     _primary_overflow_badge(
                         visible_labels[0],
