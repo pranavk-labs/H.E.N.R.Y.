@@ -739,6 +739,12 @@ def test_control_state_matches_runtime_lifecycle():
         "preload": True,
         "unload": True,
     }
+    assert face_view.control_state({"state": "voice-error", "model": "qwen3"}) == {
+        "start": True,
+        "stop": False,
+        "preload": True,
+        "unload": True,
+    }
     assert face_view.control_state(
         face_view.offline_runtime_state(ConnectionError("connection refused"))
     ) == {
