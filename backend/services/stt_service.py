@@ -22,6 +22,7 @@ class SpeechToTextService:
     """Speech-to-text (STT) service with Whisper support."""
 
     _instance: Optional["SpeechToTextService"] = None
+    silence_threshold = 0.001
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
@@ -59,6 +60,15 @@ class SpeechToTextService:
             cls._instance = cls(get_settings())
         return cls._instance
 
+    @classmethod
+    def is_silent_pcm16(cls, audio_bytes: bytes) -> bool:
+        """Return whether PCM int16 audio is empty or effectively silent."""
+        audio_array = np.frombuffer(audio_bytes, dtype=np.int16)
+        if audio_array.size == 0:
+            return True
+        peak = int(np.max(np.abs(audio_array.astype(np.int32))))
+        return peak < int(cls.silence_threshold * 32768)
+
     def transcribe(self, audio_bytes: bytes, sample_rate: int) -> str:
         """Convert raw audio bytes into text.
 
@@ -79,7 +89,7 @@ class SpeechToTextService:
                 audio_array = (
                     np.frombuffer(audio_bytes, dtype=np.int16).astype(np.float32) / 32768.0
                 )
-                if audio_array.size == 0 or float(np.max(np.abs(audio_array))) < 0.001:
+                if self.is_silent_pcm16(audio_bytes):
                     logger.info("OpenAI Whisper transcription skipped for silent audio")
                     return ""
 

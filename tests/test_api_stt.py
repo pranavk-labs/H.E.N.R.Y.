@@ -24,18 +24,22 @@ def reset_stt_service():
     SpeechToTextService._instance = None
 
 
+def _audio_b64(audio_array):
+    return base64.b64encode(audio_array.tobytes()).decode()
+
+
+def _non_silent_audio(samples: int) -> np.ndarray:
+    return np.resize(np.array([1000, -1000], dtype=np.int16), samples)
+
+
 def test_transcribe_success(client):
     """Test successful transcription via API."""
-    # Create test audio (1 second of silence at 16kHz)
-    audio_array = np.zeros(16000, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000))
 
     # Mock the STT service
-    with patch.object(SpeechToTextService, 'transcribe', return_value="hello world"):
+    with patch.object(SpeechToTextService, "transcribe", return_value="hello world"):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 16000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 16000}
         )
 
     assert response.status_code == 200
@@ -46,15 +50,12 @@ def test_transcribe_success(client):
 
 def test_transcribe_empty_result(client):
     """Test transcription returning empty text."""
-    audio_array = np.zeros(16000, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000))
 
     # Mock the STT service to return empty string
-    with patch.object(SpeechToTextService, 'transcribe', return_value=""):
+    with patch.object(SpeechToTextService, "transcribe", return_value=""):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 16000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 16000}
         )
 
     assert response.status_code == 200
@@ -63,11 +64,26 @@ def test_transcribe_empty_result(client):
     assert data["language"] == "en"
 
 
+def test_transcribe_silent_audio_skips_stt_service(client):
+    """Silent audio should return empty text without loading the STT engine."""
+    audio_array = np.zeros(16000, dtype=np.int16)
+    audio_b64 = _audio_b64(audio_array)
+
+    with patch.object(SpeechToTextService, "get_instance") as mock_get_instance:
+        response = client.post(
+            "/stt/transcribe",
+            json={"audio_data": audio_b64, "sample_rate": 16000},
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"text": "", "language": "en"}
+    mock_get_instance.assert_not_called()
+
+
 def test_transcribe_invalid_base64(client):
     """Test transcription with invalid base64 audio."""
     response = client.post(
-        "/stt/transcribe",
-        json={"audio_data": "invalid-base64!!!!", "sample_rate": 16000}
+        "/stt/transcribe", json={"audio_data": "invalid-base64!!!!", "sample_rate": 16000}
     )
 
     assert response.status_code == 400
@@ -76,26 +92,20 @@ def test_transcribe_invalid_base64(client):
 
 def test_transcribe_missing_audio_data(client):
     """Test transcription with missing audio_data field."""
-    response = client.post(
-        "/stt/transcribe",
-        json={"sample_rate": 16000}
-    )
+    response = client.post("/stt/transcribe", json={"sample_rate": 16000})
 
     assert response.status_code == 422  # Validation error
 
 
 def test_transcribe_custom_sample_rate(client):
     """Test transcription with custom sample rate."""
-    audio_array = np.zeros(8000, dtype=np.int16)  # 1 second at 8kHz
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(8000))
 
     # Mock the STT service and verify sample rate is passed
     mock_transcribe = MagicMock(return_value="test transcription")
-    with patch.object(SpeechToTextService, 'transcribe', mock_transcribe):
+    with patch.object(SpeechToTextService, "transcribe", mock_transcribe):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 8000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 8000}
         )
 
     assert response.status_code == 200
@@ -107,19 +117,16 @@ def test_transcribe_custom_sample_rate(client):
 
 def test_transcribe_stt_engine_not_configured(client):
     """Test transcription when STT engine is not configured."""
-    audio_array = np.zeros(16000, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000))
 
     # Mock STT service to raise RuntimeError (engine not configured)
     with patch.object(
         SpeechToTextService,
-        'transcribe',
-        side_effect=RuntimeError("Speech-to-text engine 'none' is not configured")
+        "transcribe",
+        side_effect=RuntimeError("Speech-to-text engine 'none' is not configured"),
     ):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 16000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 16000}
         )
 
     assert response.status_code == 503
@@ -128,19 +135,14 @@ def test_transcribe_stt_engine_not_configured(client):
 
 def test_transcribe_internal_error(client):
     """Test transcription with internal error."""
-    audio_array = np.zeros(16000, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000))
 
     # Mock STT service to raise generic exception
     with patch.object(
-        SpeechToTextService,
-        'transcribe',
-        side_effect=Exception("Internal transcription error")
+        SpeechToTextService, "transcribe", side_effect=Exception("Internal transcription error")
     ):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 16000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 16000}
         )
 
     assert response.status_code == 500
@@ -149,15 +151,11 @@ def test_transcribe_internal_error(client):
 
 def test_transcribe_large_audio(client):
     """Test transcription with larger audio file (30 seconds)."""
-    # 30 seconds at 16kHz
-    audio_array = np.zeros(16000 * 30, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000 * 30))
 
-    with patch.object(SpeechToTextService, 'transcribe', return_value="long transcription"):
+    with patch.object(SpeechToTextService, "transcribe", return_value="long transcription"):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64, "sample_rate": 16000}
+            "/stt/transcribe", json={"audio_data": audio_b64, "sample_rate": 16000}
         )
 
     assert response.status_code == 200
@@ -167,15 +165,12 @@ def test_transcribe_large_audio(client):
 
 def test_transcribe_default_sample_rate(client):
     """Test transcription uses default sample rate when not specified."""
-    audio_array = np.zeros(16000, dtype=np.int16)
-    audio_bytes = audio_array.tobytes()
-    audio_b64 = base64.b64encode(audio_bytes).decode()
+    audio_b64 = _audio_b64(_non_silent_audio(16000))
 
     mock_transcribe = MagicMock(return_value="test")
-    with patch.object(SpeechToTextService, 'transcribe', mock_transcribe):
+    with patch.object(SpeechToTextService, "transcribe", mock_transcribe):
         response = client.post(
-            "/stt/transcribe",
-            json={"audio_data": audio_b64}  # No sample_rate specified
+            "/stt/transcribe", json={"audio_data": audio_b64}  # No sample_rate specified
         )
 
     assert response.status_code == 200

@@ -19,9 +19,7 @@ router = APIRouter(prefix="/stt", tags=["stt"])
 class TranscribeRequest(BaseModel):
     """Request model for transcription."""
 
-    audio_data: str = Field(
-        ..., description="Base64-encoded audio data (PCM int16 format)"
-    )
+    audio_data: str = Field(..., description="Base64-encoded audio data (PCM int16 format)")
     sample_rate: int = Field(default=16000, description="Sample rate in Hz")
 
 
@@ -29,9 +27,7 @@ class TranscribeResponse(BaseModel):
     """Response model for transcription."""
 
     text: str = Field(..., description="Transcribed text")
-    language: Optional[str] = Field(
-        default="en", description="Detected or specified language"
-    )
+    language: Optional[str] = Field(default="en", description="Detected or specified language")
 
 
 @router.post("/transcribe", response_model=TranscribeResponse)
@@ -55,6 +51,10 @@ async def transcribe(req: TranscribeRequest) -> Any:
         raise HTTPException(status_code=400, detail="Invalid base64 audio data")
 
     try:
+        if SpeechToTextService.is_silent_pcm16(audio_bytes):
+            logger.info("Skipping STT for silent audio")
+            return TranscribeResponse(text="", language="en")
+
         # Get STT service and transcribe
         stt_service = SpeechToTextService.get_instance()
         text = stt_service.transcribe(audio_bytes, req.sample_rate)
